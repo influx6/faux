@@ -1,0 +1,16 @@
+{
+	"comment": "",
+	"ignore": "",
+	"package": [
+		{
+			"path": "github.com/ardanlabs/kit/tests",
+			"revision": "f6e580223c614873f2a0e987b2b6111f1977ef68",
+			"revisionTime": "2015-12-17T16:20:40-05:00"
+		},
+		{
+			"path": "github.com/satori/go.uuid",
+			"revision": "12d6c931d9d98e6453442b39ada6f3fb45175def",
+			"revisionTime": "2015-12-19T17:45:20+01:00"
+		}
+	]
+}
