@@ -62,11 +62,11 @@ func TestGet(t *testing.T) {
 		t.Logf("\t%s\tShould have a publisher inject with name[%s]", tests.Success, pubName)
 	}
 
-	pkg := "github.com/influx6/faux/pubro"
+	pkg := "/testing"
 	if meta.Package != pkg {
-		t.Errorf("\t%s\tShould have a package path[%s]", tests.Failed, pkg)
+		t.Errorf("\t%s\tShould have a package path[%s]: %s", tests.Failed, pkg, meta.Package)
 	} else {
-		t.Logf("\t%s\tShould have a package path[%s]", tests.Success, pkg)
+		t.Logf("\t%s\tShould have a package path[%s]: %s", tests.Success, pkg, meta.Package)
 	}
 
 }
