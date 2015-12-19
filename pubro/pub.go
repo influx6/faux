@@ -123,7 +123,11 @@ func Register(meta Meta) {
 		plen := len(parts)
 
 		if plen > 1 {
-			pkg = fmt.Sprintf("%s/%s", pkg, parts[0])
+			if pkg == "" {
+				pkg = parts[0]
+			} else {
+				pkg = fmt.Sprintf("%s/%s", pkg, parts[0])
+			}
 		}
 
 		meta.Package = pkg

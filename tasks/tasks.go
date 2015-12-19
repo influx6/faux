@@ -29,10 +29,12 @@ func WatchCommand(wc WatchCommandConfig) pub.Publisher {
 }
 
 func init() {
+
 	pubro.Register(pubro.Meta{
 		Name: "tasks/watchCommand",
 		Desc: `WatchCommand is a publisher which watches a directory and runs a
 giving set of commands everytime a change occurs within that directory.`,
 		Inject: WatchCommand,
 	})
+
 }
