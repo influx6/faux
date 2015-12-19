@@ -20,6 +20,9 @@ func TestWatchCommand(t *testing.T) {
 		t.Logf("\t%s\tShould have publisher[%s] registered", tests.Success, pubName)
 	}
 
+	m, _ := pubro.Get(pubName)
+	t.Logf("Meta: %s", m)
+
 	wc := pubro.New(pubName, tasks.WatchCommandConfig{
 		Dir:      "./",
 		Commands: []string{"echo 'word'"},
