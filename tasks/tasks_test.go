@@ -51,7 +51,7 @@ func TestTaskBuild(t *testing.T) {
 		InDir:       "./",
 		OutDir:      "./mk",
 		PackageName: "mk",
-		FileName:    "moku.go",
+		FileName:    "moku",
 	}, t)
 }
 
