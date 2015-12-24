@@ -16,6 +16,7 @@ func TestTaskNames(t *testing.T) {
 	hasTask("tasks/static", t)
 	hasTask("tasks/markdown2Templates", t)
 	hasTask("tasks/goBinary", t)
+	hasTask("tasks/routine", t)
 	hasTask("tasks/jsClient", t)
 }
 
@@ -41,6 +42,14 @@ func TestTaskBuild(t *testing.T) {
 		Package: "github.com/influx6/flux",
 		Name:    "relay",
 		OutDir:  "/tmp",
+	}, t)
+
+	makeTask("tasks/routine", tasks.RoutineDirective{
+		Name: "tasks/watchCommand",
+		Use: tasks.WatchCommandDirective{
+			Dir:      "./",
+			Commands: []string{"echo 'word'"},
+		},
 	}, t)
 
 	makeTask("tasks/jsClient", tasks.JSClientDirective{
@@ -70,6 +79,11 @@ func TestBadArgumentTaskBuild(t *testing.T) {
 	makeFailedTask("tasks/tasks/goBinary", tasks.GoBinaryDirective{}, t)
 
 	makeFailedTask("tasks/jsClient", tasks.JSClientDirective{}, t)
+
+	makeFailedTask("tasks/routine", tasks.RoutineDirective{
+		Name: "tasks/watchCommand",
+		Use:  "do",
+	}, t)
 }
 
 // hasTask validates the giving task exists and prints the appropriate Pass/Fail

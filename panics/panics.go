@@ -1,10 +1,31 @@
-package panic
+package panics
 
 import (
 	"fmt"
 	"runtime"
 	"strings"
 )
+
+// Guard provides a function for handling panics safely, returning the
+// error recieved after running a provided function.
+func Guard(fx func()) error {
+	var err error
+
+	func() {
+		defer func() {
+			if ex := recover(); ex != nil {
+				if exx, ok := ex.(error); ok {
+					err = exx
+				} else {
+					err = fmt.Errorf("%v", ex)
+				}
+			}
+		}()
+		fx()
+	}()
+
+	return err
+}
 
 // RecoverHandler provides a recovery handler functions for use to automate the recovery processes
 func RecoverHandler(tag string, opFunc func() error, recoFunc func(interface{})) error {

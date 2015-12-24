@@ -5,10 +5,12 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/influx6/faux/builders"
 	"github.com/influx6/faux/databind"
 	"github.com/influx6/faux/fs"
+	"github.com/influx6/faux/panics"
 	"github.com/influx6/faux/pkg"
 	"github.com/influx6/faux/pub"
 	"github.com/influx6/faux/pubro"
@@ -250,7 +252,46 @@ func Static(sm StaticDirective) pub.Publisher {
 	return watcher
 }
 
+// RoutineDirective provides a configuration option which takes the name and
+// value of a tasks to lunch and lunchers such a tasks in a go-routine.
+type RoutineDirective struct {
+	Name string
+	Use  interface{}
+}
+
+// Routine takes the RoutineDirective and lunches the giving task in a go-routine.
+// Returns the publisher recieved by using a waitgroup. It panics if there was an
+// error.
+func Routine(rd RoutineDirective) pub.Publisher {
+	var wg sync.WaitGroup
+	var pb pub.Publisher
+	var err error
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err = panics.Guard(func() {
+			pb = pubro.New(rd.Name, rd.Use)
+		})
+	}()
+
+	wg.Wait()
+
+	if err != nil {
+		panic(err)
+	}
+
+	return pb
+}
+
 func init() {
+
+	pubro.Register(pubro.Meta{
+		Name: "tasks/routine",
+		Desc: `routine lunches a tasks build into a go-routine, returning the
+		built publisher or panicing if error occured.`,
+		Inject: Routine,
+	})
 
 	pubro.Register(pubro.Meta{
 		Name: "tasks/watchCommand",

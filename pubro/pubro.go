@@ -34,6 +34,7 @@ func (p Meta) Build(config interface{}) pub.Publisher {
 	}
 
 	var vak []reflect.Value
+	var configVal reflect.Value
 
 	if config == nil || len(p.injectArg) == 0 {
 		vak = p.injectVal.Call(nil)
@@ -43,10 +44,17 @@ func (p Meta) Build(config interface{}) pub.Publisher {
 		ctype := reflect.TypeOf(config)
 
 		if !ctype.AssignableTo(wanted) {
-			panic(fmt.Sprintf("Unassignable Value for Inject: %s -> %+s", query(config), wanted))
+			if !ctype.ConvertibleTo(wanted) {
+				panic(fmt.Sprintf("Unassignable value for Inject: %s -> %+s", query(config), wanted))
+			}
+
+			vum := reflect.ValueOf(config)
+			configVal = vum.Convert(wanted)
+		} else {
+			configVal = reflect.ValueOf(config)
 		}
 
-		vak = p.injectVal.Call([]reflect.Value{reflect.ValueOf(config)})
+		vak = p.injectVal.Call([]reflect.Value{configVal})
 	}
 
 	if len(vak) == 0 {
