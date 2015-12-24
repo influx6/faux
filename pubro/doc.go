@@ -1,4 +1,4 @@
-// Package pubro provides a singleton provider for registering publishers
+// Package pubro provides a singleton provider for registering publishers builders
 // which allows initialization of those publishers quickly.
 /*
 
