@@ -97,7 +97,7 @@ func TestNew(t *testing.T) {
 }
 
 // TestDosMake tests we can make a lists of publishers using the Do API for pubro.
-func TestMake(t *testing.T) {
+func TestDosMake(t *testing.T) {
 	tests.ResetLog()
 	defer tests.DisplayLog()
 
@@ -134,6 +134,40 @@ func TestMake(t *testing.T) {
 		t.Fatalf("\t%s\tShould have result with tag[%s].", tests.Failed, "rat")
 	} else {
 		t.Logf("\t%s\tShould have result with tag[%s].", tests.Success, "rat")
+	}
+
+	if _, ok := res.Pub("rat").(pub.Publisher); !ok {
+		t.Fatalf("\t%s\tShould have received a pub.Publisher type.", tests.Failed)
+	} else {
+		t.Logf("\t%s\tShould have received a pub.Publisher type.", tests.Success)
+	}
+
+	if _, ok := res.Pub("fox").(pub.Publisher); !ok {
+		t.Fatalf("\t%s\tShould have received a pub.Publisher type.", tests.Failed)
+	} else {
+		t.Logf("\t%s\tShould have received a pub.Publisher type.", tests.Success)
+	}
+}
+
+// TestBadDosMake validates build failure using wrong argument type.
+func TestBadDosMake(t *testing.T) {
+	tests.ResetLog()
+	defer tests.DisplayLog()
+
+	pubs := pubro.NewDos()
+
+	// Add instruction to build a rat monster.
+	pubs.MustAdd(pubro.Do{
+		Tag:  "rat",
+		Name: pubName,
+		Use:  "beans",
+	})
+
+	_, err := pubs.Make()
+	if err == nil {
+		t.Fatalf("\t%s\tShould fail to build pub result: \n%s.", tests.Failed, err)
+	} else {
+		t.Logf("\t%s\tShould fail to build pub result: \n%s.", tests.Success, err)
 	}
 
 }
