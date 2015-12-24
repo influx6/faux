@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/influx6/assets"
 	"github.com/influx6/faux/builders"
 	"github.com/influx6/faux/databind"
 	"github.com/influx6/faux/fs"
@@ -49,13 +48,13 @@ func JSClient(js JSClientDirective) pub.Publisher {
 	_, jsName := filepath.Split(js.Package)
 
 	pkgs := append([]string{}, js.Package)
-	packages, err := assets.GetAllPackageLists(pkgs)
+	packages, err := pkg.GetAllPackageLists(pkgs)
 
 	if err != nil {
 		panic(err)
 	}
 
-	dir, err := assets.GetPackageDir(js.Package)
+	dir, err := pkg.GetPackageDir(js.Package)
 	if err != nil {
 		panic(err)
 	}
