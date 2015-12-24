@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/go-fsnotify/fsnotify"
-	"github.com/influx6/assets"
+	"github.com/influx6/faux/databind"
 	"github.com/influx6/faux/pub"
 	"github.com/influx6/flux"
 )
@@ -18,8 +18,8 @@ import (
 // WatchConfig provides configuration for the WatchDir and WatchFile tasks
 type WatchConfig struct {
 	Path      string
-	Validator assets.PathValidator
-	Mux       assets.PathMux
+	Validator databind.PathValidator
+	Mux       databind.PathMux
 	Ignore    *regexp.Regexp
 }
 
@@ -96,7 +96,7 @@ func Watch(m WatchConfig) pub.Publisher {
 			return
 		}
 
-		dir, err := assets.DirListings(m.Path, m.Validator, m.Mux)
+		dir, err := databind.DirListings(m.Path, m.Validator, m.Mux)
 
 		if err != nil {
 			root.ReplyError(err)
@@ -186,8 +186,8 @@ func Watch(m WatchConfig) pub.Publisher {
 // WatchSetConfig provides configuration for using the WatchSet watcher tasks
 type WatchSetConfig struct {
 	Path      []string
-	Validator assets.PathValidator
-	Mux       assets.PathMux
+	Validator databind.PathValidator
+	Mux       databind.PathMux
 	Ignore    *regexp.Regexp
 }
 
@@ -209,7 +209,7 @@ func WatchSet(m WatchSetConfig) pub.Publisher {
 
 		running = true
 
-		var dirlistings []*assets.DirListing
+		var dirlistings []*databind.DirListing
 		var files []string
 		var dirsAdded = make(map[string]bool)
 
@@ -225,7 +225,7 @@ func WatchSet(m WatchSetConfig) pub.Publisher {
 			}
 
 			if stat.IsDir() {
-				if dir, err := assets.DirListings(path, m.Validator, m.Mux); err == nil {
+				if dir, err := databind.DirListings(path, m.Validator, m.Mux); err == nil {
 					dirsAdded[path] = true
 					dirlistings = append(dirlistings, dir)
 				} else {
@@ -536,13 +536,13 @@ type ListingConfig struct {
 	Path        string
 	DirAlso     bool // optional: if true, will list dir also as part of the listing stream else skip
 	UseRelative bool // optional: if true, will only list in relative paths
-	Validator   assets.PathValidator
-	Mux         assets.PathMux
+	Validator   databind.PathValidator
+	Mux         databind.PathMux
 }
 
-// StreamListings takes a path and generates a assets.DirListing struct when it receives any signal, it will go through all the files within each listings.
+// StreamListings takes a path and generates a databind.DirListing struct when it receives any signal, it will go through all the files within each listings.
 func StreamListings(config ListingConfig) (pub.Publisher, error) {
-	dir, err := assets.DirListings(config.Path, config.Validator, config.Mux)
+	dir, err := databind.DirListings(config.Path, config.Validator, config.Mux)
 
 	if err != nil {
 		return nil, err

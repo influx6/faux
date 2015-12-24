@@ -1,6 +1,7 @@
 package pubro
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -37,14 +38,15 @@ func (p Meta) Build(config interface{}) pub.Publisher {
 
 	var vak []reflect.Value
 
-	if config == nil {
+	if config == nil || len(p.injectArg) == 0 {
 		vak = p.injectVal.Call(nil)
 	} else {
 
+		wanted := p.injectArg[0]
 		ctype := reflect.TypeOf(config)
 
-		if !ctype.AssignableTo(p.injectArg[0]) {
-			panic("UnAssignable Value for Inject")
+		if !ctype.AssignableTo(wanted) {
+			panic(fmt.Sprintf("Unassignable Value for Inject: %s -> %+s", query(config), wanted))
 		}
 
 		vak = p.injectVal.Call([]reflect.Value{reflect.ValueOf(config)})
@@ -58,7 +60,9 @@ func (p Meta) Build(config interface{}) pub.Publisher {
 		panic(fmt.Sprintf("Meta[%s] in Pkg[%s] returns values greater than 1", p.Name, p.Package))
 	}
 
-	return (vak[0].Interface()).(pub.Publisher)
+	pubMade := vak[0]
+
+	return (pubMade.Interface()).(pub.Publisher)
 }
 
 // Validate ensures the Meta provides the necessary information needed
@@ -188,4 +192,14 @@ func splitPath(line string) (string, string) {
 	right := parts[partsLen-1]
 	left := strings.Join(parts[:partsLen-1], "/")
 	return left, right
+}
+
+// query provides a string version of the value.
+func query(value interface{}) string {
+	json, err := json.Marshal(value)
+	if err != nil {
+		return ""
+	}
+
+	return string(json)
 }

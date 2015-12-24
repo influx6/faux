@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/influx6/assets"
 	"github.com/influx6/faux/builders"
+	"github.com/influx6/faux/databind"
 	"github.com/influx6/faux/fs"
 	"github.com/influx6/faux/pkg"
 	"github.com/influx6/faux/pub"
@@ -182,14 +182,6 @@ type MarkdownDirective struct {
 // files and produces the equivalent rendered files as go template files,
 // ensuring to keep the necessary dir structures appropriately.
 func Markdown2Templates(md MarkdownDirective) pub.Publisher {
-	if md.InDir == "" {
-		panic(fmt.Sprintf("MarkdownDirective contains a empty In directory"))
-	}
-
-	if md.OutDir == "" {
-		panic(fmt.Sprintf("MarkdownDirective contains a empty Out directory"))
-	}
-
 	gofriday, err := builders.GoFridayStream(builders.MarkStreamConfig{
 		InputDir: md.InDir,
 		SaveDir:  md.OutDir,
@@ -226,7 +218,7 @@ type StaticDirective struct {
 
 // Static returns a publisher which watches a directory and builds a
 func Static(sm StaticDirective) pub.Publisher {
-	gostatic, err := builders.BundleAssets(&assets.BindFSConfig{
+	gostatic, err := builders.BundleAssets(&databind.BindFSConfig{
 		InDir:           sm.InDir,
 		OutDir:          sm.OutDir,
 		Package:         sm.PackageName,
@@ -260,6 +252,14 @@ func Static(sm StaticDirective) pub.Publisher {
 }
 
 func init() {
+
+	pubro.Register(pubro.Meta{
+		Name: "tasks/watchCommand",
+		Desc: `WatchCommand returns a publisher which watches a directory and runs a
+		giving set of commands everytime a change occurs within that directory.`,
+		Inject: WatchCommand,
+	})
+
 	pubro.Register(pubro.Meta{
 		Name: "tasks/static",
 		Desc: `Static watches a giving directory and produces go package which
@@ -280,13 +280,6 @@ func init() {
 		Desc: `Gobinary watches a package directory and builds its output
 		accordingly into a bin dir in the package or at a custom path.`,
 		Inject: GoBinary,
-	})
-
-	pubro.Register(pubro.Meta{
-		Name: "tasks/watchCommand",
-		Desc: `WatchCommand returns a publisher which watches a directory and runs a
-		giving set of commands everytime a change occurs within that directory.`,
-		Inject: WatchCommand,
 	})
 
 	pubro.Register(pubro.Meta{

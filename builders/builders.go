@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/influx6/assets"
+	"github.com/influx6/faux/databind"
 	"github.com/influx6/faux/fs"
 	"github.com/influx6/faux/js"
 	"github.com/influx6/faux/pkg"
@@ -21,7 +21,7 @@ import (
 
 // OnlyGoFilesPathValidator returns a PathValidator that allows only .go extension files
 // through.
-func OnlyGoFilesPathValidator(fx assets.PathValidator) assets.PathValidator {
+func OnlyGoFilesPathValidator(fx databind.PathValidator) databind.PathValidator {
 	return func(base string, info os.FileInfo) bool {
 		if strings.Contains(base, ".git") {
 			return false
@@ -43,9 +43,9 @@ func OnlyGoFilesPathValidator(fx assets.PathValidator) assets.PathValidator {
 	}
 }
 
-// BundleAssets creates a assets.BindFS, which when it receives any signal, updates the given file from its config
-func BundleAssets(config *assets.BindFSConfig) (pub.Publisher, error) {
-	bindfs, err := assets.NewBindFS(config)
+// BundleAssets creates a databind.BindFS, which when it receives any signal, updates the given file from its config
+func BundleAssets(config *databind.BindFSConfig) (pub.Publisher, error) {
+	bindfs, err := databind.NewBindFS(config)
 
 	if err != nil {
 		return nil, err
@@ -363,8 +363,8 @@ func JSLauncher(config JSBuildConfig) pub.Publisher {
 // PackageWatcher generates a fs.Watch tasker which given a valid package name will retrieve the package directory and
 // those of its dependencies and watch it for changes, you can supply a validator function to filter out what path you
 // prefer to watch or not to
-func PackageWatcher(packageName string, vx assets.PathValidator) (pub.Publisher, error) {
-	pkg, err := assets.GetPackageLists(packageName)
+func PackageWatcher(packageName string, vx databind.PathValidator) (pub.Publisher, error) {
+	pkg, err := pkg.GetPackageLists(packageName)
 	if err != nil {
 		return nil, err
 	}
@@ -532,8 +532,8 @@ type MarkStreamConfig struct {
 	SaveDir     string
 	Ext         string
 	Sanitize    bool
-	Validator   assets.PathValidator
-	Mux         assets.PathMux
+	Validator   databind.PathValidator
+	Mux         databind.PathMux
 	BeforeWrite FileWriteMutator
 }
 
