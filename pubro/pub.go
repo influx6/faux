@@ -13,9 +13,6 @@ import (
 	"github.com/influx6/faux/reflection"
 )
 
-// Injector provides a function type matching the output for creating publishers.
-// type Injector func(interface{}) pub.Publisher
-
 // Meta provides a registry structure for registering publishers.
 type Meta struct {
 	Name      string      `json:"name"`

@@ -95,3 +95,45 @@ func TestNew(t *testing.T) {
 	pubmon.Send("Mushrooms")
 	wg.Wait()
 }
+
+// TestDosMake tests we can make a lists of publishers using the Do API for pubro.
+func TestMake(t *testing.T) {
+	tests.ResetLog()
+	defer tests.DisplayLog()
+
+	pubs := pubro.NewDos()
+
+	// Add instruction to build a rat monster.
+	pubs.MustAdd(pubro.Do{
+		Tag:  "rat",
+		Name: pubName,
+		Use:  monster{Name: "beans"},
+	})
+
+	// Add instruction to build a fox monster.
+	pubs.MustAdd(pubro.Do{
+		Tag:  "fox",
+		Name: pubName,
+		Use:  monster{Name: "rat"},
+	})
+
+	res, err := pubs.Make()
+	if err != nil {
+		t.Fatalf("\t%s\tShould have receive a map of results from build: %s.", tests.Failed, err)
+	} else {
+		t.Logf("\t%s\tShould have receive a map of results from build.", tests.Success)
+	}
+
+	if !res.Has("fox") {
+		t.Fatalf("\t%s\tShould have result with tag[%s].", tests.Failed, "fox")
+	} else {
+		t.Logf("\t%s\tShould have result with tag[%s].", tests.Success, "fox")
+	}
+
+	if !res.Has("rat") {
+		t.Fatalf("\t%s\tShould have result with tag[%s].", tests.Failed, "rat")
+	} else {
+		t.Logf("\t%s\tShould have result with tag[%s].", tests.Success, "rat")
+	}
+
+}
