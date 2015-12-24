@@ -88,7 +88,7 @@ func (d *Dos) Make() (Results, error) {
 		func() {
 			defer func() {
 				if ex := recover(); ex != nil {
-					err = fmt.Errorf("Pubro failed to build Pub[%s] with Tag[%s] Failed to build[%s]", do.Name, do.Tag, ex)
+					err = fmt.Errorf("Pubro failed to build Pub[%s] with Tag[%s]: [%s]", do.Name, do.Tag, ex)
 				}
 			}()
 
