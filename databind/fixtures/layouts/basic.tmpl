@@ -1,0 +1,16 @@
+{{ define "base" }}
+  <html>
+    <head>
+      {{ template "scripts" . }}
+      {{ template "stylesheets" . }}
+    </head>
+    <body>
+      {{ template "content" . }}
+    </body>
+  </html>
+{{ end }}
+
+//define empty sets incase of those without one
+{{ define "scripts" }}{{ end }}
+{{ define "stylesheets" }}{{ end }}
+{{ define "sidebars" }}{{ end }}

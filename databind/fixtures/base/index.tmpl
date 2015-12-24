@@ -1,0 +1,8 @@
+{{ define "content" }}
+  <div class={{ .Name }}>{{ .Title }}</div>
+  {{if iseq 1 1 }}
+    <i>we are equal</i>
+  {{ else }}
+    <i>we are not equal</i>
+  {{ end }}
+{{ end }}
