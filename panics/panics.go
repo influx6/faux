@@ -1,6 +1,7 @@
 package panics
 
 import (
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"strings"
@@ -8,7 +9,7 @@ import (
 
 // Guard provides a function for handling panics safely, returning the
 // error recieved after running a provided function.
-func Guard(fx func()) error {
+func Guard(fx func() error) error {
 	var err error
 
 	func() {
@@ -21,10 +22,53 @@ func Guard(fx func()) error {
 				}
 			}
 		}()
-		fx()
+		err = fx()
 	}()
 
 	return err
+}
+
+// GuardWith provides a function guard for a function in need of an in input
+func GuardWith(fx func(interface{}) error, d interface{}) error {
+	var err error
+
+	func() {
+		defer func() {
+			if eux := recover(); eux != nil {
+				if ex, ok := eux.(error); ok {
+					err = ex
+				} else {
+					err = fmt.Errorf("%s", ToString(eux))
+				}
+			}
+		}()
+		err = fx(d)
+	}()
+
+	return err
+}
+
+// GuardDefer returns a function which guarded by a defer..recover() for handling
+// panic recover.
+func GuardDefer(fx func(interface{}) error) func(interface{}) error {
+	return func(d interface{}) error {
+		var err error
+
+		func() {
+			defer func() {
+				if eux := recover(); eux != nil {
+					if ex, ok := eux.(error); ok {
+						err = ex
+					} else {
+						err = fmt.Errorf("%s", ToString(eux))
+					}
+				}
+			}()
+			err = fx(d)
+		}()
+
+		return err
+	}
 }
 
 // RecoverHandler provides a recovery handler functions for use to automate the recovery processes
@@ -73,4 +117,14 @@ func GoDeferQuietly(title string, fx func()) {
 		fx()
 		return nil
 	}, nil)
+}
+
+// ToString provides a string version of the value using json.Marshal.
+func ToString(value interface{}) string {
+	json, err := json.Marshal(value)
+	if err != nil {
+		return ""
+	}
+
+	return string(json)
 }
