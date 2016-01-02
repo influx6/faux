@@ -11,12 +11,22 @@ import (
 	"github.com/influx6/faux/panics"
 )
 
+// Stat defines the current capacity workings of
+type Stat struct {
+	TotalWorkersRunning int64
+	TotalWorkers        int64
+	Pending             int64
+	Completed           int64
+	Closed              int64
+}
+
 // Streams define a pipeline operation for applying operations to
 // data streams.
 type Streams interface {
 	Inject(interface{})
 	InjectError(error)
 	Stream(Streams) Streams
+	Stats() Stat
 	Shutdown()
 	CloseNotify() <-chan struct{}
 }
@@ -36,8 +46,10 @@ type errorSink chan error
 // a basic building block for stream operation.
 type Stream struct {
 	closed               int64
+	processed            int64
 	pending              int64
 	shutdownAfterpending int64
+	workersUp            int64
 	workers              int
 	proc                 Proc
 
@@ -73,6 +85,17 @@ func New(w int, p Proc) Streams {
 	}
 
 	return &sm
+}
+
+// Stats reports the current operational status of the streamer
+func (s *Stream) Stats() Stat {
+	return Stat{
+		TotalWorkersRunning: atomic.LoadInt64(&s.workersUp),
+		TotalWorkers:        int64(s.workers + 1),
+		Pending:             atomic.LoadInt64(&s.pending),
+		Completed:           atomic.LoadInt64(&s.processed),
+		Closed:              atomic.LoadInt64(&s.closed),
+	}
 }
 
 // Shutdown closes the data and error channels.
@@ -156,8 +179,13 @@ func (s *Stream) send(d interface{}) {
 
 // initDW initializes data workers for stream.
 func (s *Stream) initDW() {
-	defer s.wg.Done()
+	defer func() {
+		s.wg.Done()
+		atomic.AddInt64(&s.workersUp, -1)
+	}()
+
 	s.wg.Add(1)
+	atomic.AddInt64(&s.workersUp, 1)
 
 	for {
 
@@ -178,10 +206,12 @@ func (s *Stream) initDW() {
 		panics.Guard(func() error {
 			res, err := s.proc.Do(d, nil)
 			if err != nil {
+				atomic.AddInt64(&s.processed, 1)
 				s.sendError(err)
 				return nil
 			}
 
+			atomic.AddInt64(&s.processed, 1)
 			s.send(res)
 			return nil
 		})
@@ -191,8 +221,13 @@ func (s *Stream) initDW() {
 
 // initEW initializes error workers for stream.
 func (s *Stream) initEW() {
-	defer s.wg.Done()
+	defer func() {
+		s.wg.Done()
+		atomic.AddInt64(&s.workersUp, -1)
+	}()
+
 	s.wg.Add(1)
+	atomic.AddInt64(&s.workersUp, 1)
 
 	for {
 
@@ -213,10 +248,12 @@ func (s *Stream) initEW() {
 		panics.Guard(func() error {
 			res, err := s.proc.Do(nil, e)
 			if err != nil {
+				atomic.AddInt64(&s.processed, 1)
 				s.sendError(err)
 				return nil
 			}
 
+			atomic.AddInt64(&s.processed, 1)
 			s.send(res)
 			return nil
 		})
