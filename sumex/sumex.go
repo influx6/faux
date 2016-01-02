@@ -35,8 +35,11 @@ type errorSink chan error
 // Stream defines a structure that implements the Streams interface, providing
 // a basic building block for stream operation.
 type Stream struct {
-	closed int64
-	proc   Proc
+	closed               int64
+	pending              int64
+	shutdownAfterpending int64
+	workers              int
+	proc                 Proc
 
 	data dataSink
 	err  errorSink
@@ -54,10 +57,11 @@ func New(w int, p Proc) Streams {
 	}
 
 	sm := Stream{
-		proc: p,
-		data: make(dataSink),
-		err:  make(errorSink),
-		nc:   make(chan struct{}),
+		workers: w,
+		proc:    p,
+		data:    make(dataSink),
+		err:     make(errorSink),
+		nc:      make(chan struct{}),
 	}
 
 	// startup the error worker. We only need one.
@@ -77,7 +81,13 @@ func (s *Stream) Shutdown() {
 		return
 	}
 
+	if atomic.LoadInt64(&s.pending) != 0 {
+		atomic.StoreInt64(&s.shutdownAfterpending, 1)
+		atomic.StoreInt64(&s.closed, 1)
+	}
+
 	s.wg.Wait()
+
 	close(s.data)
 	close(s.err)
 	close(s.nc)
@@ -100,19 +110,30 @@ func (s *Stream) Stream(sm Streams) Streams {
 
 // Inject pipes in a new data for execution by the stream into its data channel.
 func (s *Stream) Inject(d interface{}) {
-	if atomic.LoadInt64(&s.closed) == 0 {
-		s.wg.Add(1)
+	if atomic.LoadInt64(&s.closed) != 0 {
+		return
+	}
+
+	atomic.AddInt64(&s.pending, 1)
+	{
+		// s.wg.Add(1)
 		s.data <- d
 	}
+	atomic.AddInt64(&s.pending, -1)
 }
 
 // InjectError pipes in a new data for execution by the stream
 // into its err channel.
 func (s *Stream) InjectError(e error) {
-	if atomic.LoadInt64(&s.closed) == 0 {
-		s.wg.Add(1)
+	if atomic.LoadInt64(&s.closed) != 0 {
+		return
+	}
+
+	atomic.AddInt64(&s.pending, 1)
+	{
 		s.err <- e
 	}
+	atomic.AddInt64(&s.pending, -1)
 }
 
 // sendError delivers the an error to all registered streamers.
@@ -135,9 +156,17 @@ func (s *Stream) send(d interface{}) {
 
 // initDW initializes data workers for stream.
 func (s *Stream) initDW() {
+	defer s.wg.Done()
+	s.wg.Add(1)
+
 	for {
 
-		if atomic.LoadInt64(&s.closed) != 0 {
+		if atomic.LoadInt64(&s.closed) != 0 && atomic.LoadInt64(&s.shutdownAfterpending) == 0 {
+			break
+		}
+
+		// if we are to shutdown after pending and pending is now zero then
+		if atomic.LoadInt64(&s.shutdownAfterpending) != 0 && atomic.LoadInt64(&s.pending) == 0 {
 			break
 		}
 
@@ -147,7 +176,6 @@ func (s *Stream) initDW() {
 		}
 
 		panics.Guard(func() error {
-			defer s.wg.Done()
 			res, err := s.proc.Do(d, nil)
 			if err != nil {
 				s.sendError(err)
@@ -163,9 +191,17 @@ func (s *Stream) initDW() {
 
 // initEW initializes error workers for stream.
 func (s *Stream) initEW() {
+	defer s.wg.Done()
+	s.wg.Add(1)
+
 	for {
 
-		if atomic.LoadInt64(&s.closed) != 0 {
+		if atomic.LoadInt64(&s.closed) != 0 && atomic.LoadInt64(&s.shutdownAfterpending) == 0 {
+			break
+		}
+
+		// if we are to shutdown after pending and pending is now zero then
+		if atomic.LoadInt64(&s.shutdownAfterpending) != 0 && atomic.LoadInt64(&s.pending) == 0 {
 			break
 		}
 
@@ -175,7 +211,6 @@ func (s *Stream) initEW() {
 		}
 
 		panics.Guard(func() error {
-			defer s.wg.Done()
 			res, err := s.proc.Do(nil, e)
 			if err != nil {
 				s.sendError(err)
