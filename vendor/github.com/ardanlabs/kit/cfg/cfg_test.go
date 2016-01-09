@@ -1,7 +1,6 @@
 package cfg_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/ardanlabs/kit/cfg"
@@ -9,8 +8,8 @@ import (
 
 // Success and failure markers.
 var (
-	Success = "\u2713"
-	Failed  = "\u2717"
+	success = "\u2713"
+	failed  = "\u2717"
 )
 
 //==============================================================================
@@ -22,83 +21,85 @@ func TestExists(t *testing.T) {
 	{
 		uStr := "postgres://root:root@127.0.0.1:8080/postgres?sslmode=disable"
 
-		os.Setenv("MYAPP_PROC_ID", "322")
-		os.Setenv("MYAPP_SOCKET", "./tmp/sockets.po")
-		os.Setenv("MYAPP_PORT", "4034")
-		os.Setenv("MYAPP_FLAG", "true")
-		os.Setenv("MYAPP_DSN", uStr)
-
-		cfg.Init("MYAPP")
+		cfg.Init(cfg.MapProvider{
+			Map: map[string]string{
+				"PROC_ID": "322",
+				"SOCKET":  "./tmp/sockets.po",
+				"PORT":    "4034",
+				"FLAG":    "on",
+				"DSN":     uStr,
+			},
+		})
 
 		t.Log("\tWhen given a namspace key to search for that exists.")
 		{
 			proc, err := cfg.Int("PROC_ID")
 
 			if err != nil {
-				t.Errorf("\t\t%s Should not return error when valid key %q", Failed, "PROC_ID")
+				t.Errorf("\t\t%s Should not return error when valid key %q", failed, "PROC_ID")
 			} else {
-				t.Logf("\t\t%s Should not return error when valid key %q", Success, "PROC_ID")
+				t.Logf("\t\t%s Should not return error when valid key %q", success, "PROC_ID")
 
 				if proc != 322 {
-					t.Errorf("\t\t%s Should have key %q with value %d", Failed, "PROC_ID", 322)
+					t.Errorf("\t\t%s Should have key %q with value %d", failed, "PROC_ID", 322)
 				} else {
-					t.Logf("\t\t%s Should have key %q with value %d", Success, "PROC_ID", 322)
+					t.Logf("\t\t%s Should have key %q with value %d", success, "PROC_ID", 322)
 				}
 			}
 
 			socket, err := cfg.String("SOCKET")
 
 			if err != nil {
-				t.Errorf("\t\t%s Should not return error when valid key %q", Failed, "SOCKET")
+				t.Errorf("\t\t%s Should not return error when valid key %q", failed, "SOCKET")
 			} else {
-				t.Logf("\t\t%s Should not return error when valid key %q", Success, "SOCKET")
+				t.Logf("\t\t%s Should not return error when valid key %q", success, "SOCKET")
 
 				if socket != "./tmp/sockets.po" {
-					t.Errorf("\t\t%s Should have key %q with value %q", Failed, "SOCKET", "./tmp/sockets.po")
+					t.Errorf("\t\t%s Should have key %q with value %q", failed, "SOCKET", "./tmp/sockets.po")
 				} else {
-					t.Logf("\t\t%s Should have key %q with value %q", Success, "SOCKET", "./tmp/sockets.po")
+					t.Logf("\t\t%s Should have key %q with value %q", success, "SOCKET", "./tmp/sockets.po")
 				}
 			}
 
 			port, err := cfg.Int("PORT")
 
 			if err != nil {
-				t.Errorf("\t\t%s Should not return error when valid key %q", Failed, "PORT")
+				t.Errorf("\t\t%s Should not return error when valid key %q", failed, "PORT")
 			} else {
-				t.Logf("\t\t%s Should not return error when valid key %q", Success, "PORT")
+				t.Logf("\t\t%s Should not return error when valid key %q", success, "PORT")
 
 				if port != 4034 {
-					t.Errorf("\t\t%s Should have key %q with value %d", Failed, "PORT", 4034)
+					t.Errorf("\t\t%s Should have key %q with value %d", failed, "PORT", 4034)
 				} else {
-					t.Logf("\t\t%s Should have key %q with value %d", Success, "PORT", 4034)
+					t.Logf("\t\t%s Should have key %q with value %d", success, "PORT", 4034)
 				}
 			}
 
 			flag, err := cfg.Bool("FLAG")
 
 			if err != nil {
-				t.Errorf("\t\t%s Should not return error when valid key %q", Failed, "FLAG")
+				t.Errorf("\t\t%s Should not return error when valid key %q", failed, "FLAG")
 			} else {
-				t.Logf("\t\t%s Should not return error when valid key %q", Success, "FLAG")
+				t.Logf("\t\t%s Should not return error when valid key %q", success, "FLAG")
 
 				if flag == false {
-					t.Errorf("\t\t%s Should have key %q with value %v", Failed, "FLAG", true)
+					t.Errorf("\t\t%s Should have key %q with value %v", failed, "FLAG", true)
 				} else {
-					t.Logf("\t\t%s Should have key %q with value %v", Success, "FLAG", true)
+					t.Logf("\t\t%s Should have key %q with value %v", success, "FLAG", true)
 				}
 			}
 
 			u, err := cfg.URL("DSN")
 
 			if err != nil {
-				t.Errorf("\t\t%s Should not return error when valid key %q", Failed, "DSN")
+				t.Errorf("\t\t%s Should not return error when valid key %q", failed, "DSN")
 			} else {
-				t.Logf("\t\t%s Should not return error when valid key %q", Success, "DSN")
+				t.Logf("\t\t%s Should not return error when valid key %q", success, "DSN")
 
 				if u.String() != uStr {
-					t.Errorf("\t\t%s Should have key %q with value %v", Failed, "DSN", true)
+					t.Errorf("\t\t%s Should have key %q with value %v", failed, "DSN", true)
 				} else {
-					t.Logf("\t\t%s Should have key %q with value %v", Success, "DSN", true)
+					t.Logf("\t\t%s Should have key %q with value %v", success, "DSN", true)
 				}
 			}
 		}
@@ -111,12 +112,15 @@ func TestExists(t *testing.T) {
 func TestNotExists(t *testing.T) {
 	t.Log("Given the need to panic when environment variables are missing.")
 	{
-		os.Setenv("MYAPP_PROC_ID", "322")
-		os.Setenv("MYAPP_SOCKET", "./tmp/sockets.po")
-		os.Setenv("MYAPP_PORT", "4034")
-		os.Setenv("MYAPP_FLAG", "true")
 
-		cfg.Init("MYAPP")
+		cfg.Init(cfg.MapProvider{
+			Map: map[string]string{
+				"PROC_ID": "322",
+				"SOCKET":  "./tmp/sockets.po",
+				"PORT":    "4034",
+				"FLAG":    "on",
+			},
+		})
 
 		t.Log("\tWhen given a namspace key to search for that does NOT exist.")
 		{
@@ -144,13 +148,13 @@ func TestNotExists(t *testing.T) {
 }
 
 // shouldPanic receives a context string and a function to run, if the function
-// panics, it is considered a Success else a failure.
+// panics, it is considered a success else a failure.
 func shouldPanic(t *testing.T, context string, fx func()) {
 	defer func() {
 		if err := recover(); err == nil {
-			t.Errorf("\t\t%s Should paniced when giving unknown key %q.", Failed, context)
+			t.Errorf("\t\t%s Should paniced when giving unknown key %q.", failed, context)
 		} else {
-			t.Logf("\t\t%s Should paniced when giving unknown key %q.", Success, context)
+			t.Logf("\t\t%s Should paniced when giving unknown key %q.", success, context)
 		}
 	}()
 

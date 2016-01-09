@@ -3,19 +3,33 @@
 	"ignore": "",
 	"package": [
 		{
-			"path": "github.com/ardanlabs/kit/tests",
-			"revision": "f6e580223c614873f2a0e987b2b6111f1977ef68",
-			"revisionTime": "2015-12-17T16:20:40-05:00"
+			"path": "github.com/ardanlabs/kit/cfg",
+			"revision": "0849a3acf1daf42c03d109846b7c96b53e7e79df",
+			"revisionTime": "2015-12-30T13:39:03-07:00"
 		},
 		{
-			"path": "github.com/go-humble/detect",
-			"revision": "714e9e4d821cb7daac42b10f6f91fe5da00fa6fb",
-			"revisionTime": "2015-07-11T22:04:33-07:00"
+			"path": "github.com/ardanlabs/kit/db",
+			"revision": "0849a3acf1daf42c03d109846b7c96b53e7e79df",
+			"revisionTime": "2015-12-30T13:39:03-07:00"
+		},
+		{
+			"path": "github.com/ardanlabs/kit/db/mongo",
+			"revision": "0849a3acf1daf42c03d109846b7c96b53e7e79df",
+			"revisionTime": "2015-12-30T13:39:03-07:00"
+		},
+		{
+			"path": "github.com/ardanlabs/kit/log",
+			"revision": "0849a3acf1daf42c03d109846b7c96b53e7e79df",
+			"revisionTime": "2015-12-30T13:39:03-07:00"
+		},
+		{
+			"path": "github.com/ardanlabs/kit/tests",
+			"revision": "0849a3acf1daf42c03d109846b7c96b53e7e79df",
+			"revisionTime": "2015-12-30T13:39:03-07:00"
 		},
 		{
 			"path": "github.com/satori/go.uuid",
-			"revision": "12d6c931d9d98e6453442b39ada6f3fb45175def",
-			"revisionTime": "2015-12-19T17:45:20+01:00"
+			"revision": ""
 		}
 	]
 }
