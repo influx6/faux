@@ -24,9 +24,9 @@ Provides a convenient set of tools for handling template files and turning asset
     	}
 
       //to get this to create and embed the files,simple call .Record()
-    	err = bf.Record() // you can call this as many times as you want to update go file
+    	err = bf.Record() // you can call this as many times as you want to update a go file
 
-      A generate file called `debug.go` will exists in ./tests/debug/
+      // A generated file called `debug.go` will exists in ./tests/debug/
 
 
     ```
