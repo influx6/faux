@@ -43,8 +43,6 @@ type Markup interface {
 
 	Name() string
 	EventID() string
-	Augment(...Markup)
-
 	Empty()
 
 	CleanRemoved()
@@ -241,16 +239,6 @@ func (e *Element) CleanRemoved() {
 	}
 }
 
-// Augment provides a generic method for markup addition
-func (e *Element) Augment(m ...Markup) {
-	if !e.allowChildren {
-		return
-	}
-	for _, mo := range m {
-		mo.Apply(e)
-	}
-}
-
 // AutoClosed returns true/false if this element uses a </> or a <></> tag convention
 func (e *Element) AutoClosed() bool {
 	return e.autoclose
@@ -407,16 +395,18 @@ func (e *Element) Reconcile(em Markup) bool {
 
 // MarkupChildren defines the interface of an element that has children
 type MarkupChildren interface {
-	AddChild(Markup)
+	AddChild(...Markup)
 	Children() []Markup
 }
 
 // AddChild adds a new markup as the children of this element
-func (e *Element) AddChild(em Markup) {
+func (e *Element) AddChild(em ...Markup) {
 	if e.allowChildren {
-		e.children = append(e.children, em)
-		//if this are free elements, then use this event manager
-		em.UseEventManager(e.eventManager)
+		for _, m := range em {
+			e.children = append(e.children, m)
+			//if this are free elements, then use this event manager
+			m.UseEventManager(e.eventManager)
+		}
 	}
 }
 
