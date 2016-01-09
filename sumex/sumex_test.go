@@ -98,6 +98,7 @@ func TestStreams(t *testing.T) {
 		t.Fatalf("\t%s\tShould have received an error(%s) from stream: %s", tests.Failed, ex, err)
 	}
 	t.Logf("\t%s\tShould have received an error(%s) from stream", tests.Success, ex)
+
 }
 
 // BenchmarkStreams measures the performance of streamers using one worker.

@@ -78,7 +78,7 @@ func TestNew(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	pubmon := pubro.New(pubName, monster{Name: "Bob"})
+	pubmon := pubro.Pub(pubName, monster{Name: "Bob"})
 
 	wg.Add(1)
 	pubmon.React(pub.IdiomaticMuxer(func(err error, data interface{}) (interface{}, error) {
@@ -101,7 +101,7 @@ func TestDosMake(t *testing.T) {
 	tests.ResetLog()
 	defer tests.DisplayLog()
 
-	pubs := pubro.NewDos()
+	pubs := pubro.Publishers()
 
 	// Add instruction to build a rat monster.
 	pubs.MustAdd(pubro.Do{
@@ -154,7 +154,7 @@ func TestBadDosMake(t *testing.T) {
 	tests.ResetLog()
 	defer tests.DisplayLog()
 
-	pubs := pubro.NewDos()
+	pubs := pubro.Publishers()
 
 	// Add instruction to build a rat monster.
 	pubs.MustAdd(pubro.Do{

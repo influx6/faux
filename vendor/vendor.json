@@ -8,6 +8,11 @@
 			"revisionTime": "2015-12-17T16:20:40-05:00"
 		},
 		{
+			"path": "github.com/go-humble/detect",
+			"revision": "714e9e4d821cb7daac42b10f6f91fe5da00fa6fb",
+			"revisionTime": "2015-07-11T22:04:33-07:00"
+		},
+		{
 			"path": "github.com/satori/go.uuid",
 			"revision": "12d6c931d9d98e6453442b39ada6f3fb45175def",
 			"revisionTime": "2015-12-19T17:45:20+01:00"

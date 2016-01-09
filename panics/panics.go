@@ -38,7 +38,7 @@ func GuardWith(fx func(interface{}) error, d interface{}) error {
 				if ex, ok := eux.(error); ok {
 					err = ex
 				} else {
-					err = fmt.Errorf("%s", ToString(eux))
+					err = fmt.Errorf("%s", ToString(eux, false))
 				}
 			}
 		}()
@@ -60,7 +60,7 @@ func GuardDefer(fx func(interface{}) error) func(interface{}) error {
 					if ex, ok := eux.(error); ok {
 						err = ex
 					} else {
-						err = fmt.Errorf("%s", ToString(eux))
+						err = fmt.Errorf("%s", ToString(eux, false))
 					}
 				}
 			}()
@@ -120,11 +120,19 @@ func GoDeferQuietly(title string, fx func()) {
 }
 
 // ToString provides a string version of the value using json.Marshal.
-func ToString(value interface{}) string {
-	json, err := json.Marshal(value)
+func ToString(value interface{}, indent bool) string {
+	var data []byte
+	var err error
+
+	if indent {
+		data, err = json.MarshalIndent(value, "", "\n")
+	} else {
+		data, err = json.Marshal(value)
+	}
+
 	if err != nil {
 		return ""
 	}
 
-	return string(json)
+	return string(data)
 }

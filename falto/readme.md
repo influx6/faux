@@ -1,6 +1,6 @@
 # Falto
   Fault tolerant low-latency log only readers and writers that provide a fast,
-  concurrent read and writes to a log based database system.
+  concurrent read and writes to a log based WAL system.
 
 ## Install
 

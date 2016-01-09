@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/influx6/faux/panics"
+	"github.com/satori/go.uuid"
 )
 
 // Stat defines the current capacity workings of
@@ -27,6 +28,7 @@ type Streams interface {
 	InjectError(error)
 	Stream(Streams) Streams
 	Stats() Stat
+	UUID() string
 	Shutdown()
 	CloseNotify() <-chan struct{}
 }
@@ -45,6 +47,8 @@ type errorSink chan error
 // Stream defines a structure that implements the Streams interface, providing
 // a basic building block for stream operation.
 type Stream struct {
+	uuid string
+
 	closed               int64
 	processed            int64
 	pending              int64
@@ -69,6 +73,7 @@ func New(w int, p Proc) Streams {
 	}
 
 	sm := Stream{
+		uuid:    uuid.NewV4().String(),
 		workers: w,
 		proc:    p,
 		data:    make(dataSink),
@@ -131,6 +136,11 @@ func (s *Stream) Stream(sm Streams) Streams {
 	return sm
 }
 
+// UUID returns a UUID string for the given stream.
+func (s *Stream) UUID() string {
+	return s.uuid
+}
+
 // Inject pipes in a new data for execution by the stream into its data channel.
 func (s *Stream) Inject(d interface{}) {
 	if atomic.LoadInt64(&s.closed) != 0 {
@@ -139,7 +149,6 @@ func (s *Stream) Inject(d interface{}) {
 
 	atomic.AddInt64(&s.pending, 1)
 	{
-		// s.wg.Add(1)
 		s.data <- d
 	}
 	atomic.AddInt64(&s.pending, -1)

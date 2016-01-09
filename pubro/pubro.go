@@ -11,9 +11,10 @@ import (
 
 	"github.com/influx6/faux/pub"
 	"github.com/influx6/faux/reflection"
+	"github.com/influx6/faux/sumex"
 )
 
-// Meta provides a registry structure for registering publishers.
+// Meta provides a registry structure for registering building structures.
 type Meta struct {
 	Name      string      `json:"name"`
 	Desc      string      `json:"desc"`
@@ -24,7 +25,7 @@ type Meta struct {
 }
 
 // Build creates a new Publisher using the received config value.
-func (p Meta) Build(config interface{}) pub.Publisher {
+func (p Meta) Build(config interface{}) interface{} {
 	if p.injectArg == nil {
 		args, _ := reflection.GetFuncArgumentsType(p.Inject)
 		p.injectArg = args
@@ -67,7 +68,7 @@ func (p Meta) Build(config interface{}) pub.Publisher {
 
 	pubMade := vak[0]
 
-	return (pubMade.Interface()).(pub.Publisher)
+	return (pubMade.Interface())
 }
 
 // Validate ensures the Meta provides the necessary information needed
@@ -113,8 +114,8 @@ func init() {
 }
 
 // Register adds a new Publisher constructor into the registery, it will
-// panic if there exists a similar registered Publisher with the provided
-// Meta.Name.
+// panic if there exists a similar registered buildable structures with
+// the provided Meta.Name.
 func Register(meta Meta) {
 	if Has(meta.Name) {
 		panic(fmt.Sprintf("Name[%s] already assigned", meta.Name))
@@ -174,9 +175,9 @@ func Has(name string) bool {
 	return ok
 }
 
-// New returns a new Publisher and applies the config value to the function
+// newBuild returns a new Publisher and applies the config value to the function
 // builder, if the publisher injector is found else it will panic.
-func New(name string, config interface{}) pub.Publisher {
+func newBuild(name string, config interface{}) interface{} {
 	if !Has(name) {
 		panic(fmt.Sprintf("Pub.Meta for Publisher[%s] does not exists", name))
 	}
@@ -187,6 +188,18 @@ func New(name string, config interface{}) pub.Publisher {
 	pubos.RUnlock()
 
 	return meta.Build(config)
+}
+
+// Pub returns a new Publisher applying the argument if the builder with the
+// given name exists.
+func Pub(name string, config interface{}) pub.Publisher {
+	return newBuild(name, config).(pub.Publisher)
+}
+
+// Stream returns a new Streams, applying the argument if the builder with
+// the given name exists.
+func Stream(name string, config interface{}) sumex.Streams {
+	return newBuild(name, config).(sumex.Streams)
 }
 
 // splitAndLastSlash splits a string by a formward slash and returns the left
