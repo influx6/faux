@@ -13,5 +13,11 @@ func main() {
 	top, left := vfx.Offset(div)
 	ptop, pleft := vfx.Position(div)
 
-	div.SetInnerHTML(fmt.Sprintf("Offset: %.2f %.2f\nPosition: %.2f %.2f\n", top, left, ptop, pleft))
+	var color = "#ff32CC"
+
+	div.SetInnerHTML(fmt.Sprintf(`
+    Offset: %.2f %.2f
+    Position: %.2f %.2f
+    Color: Hex(%s) Rgba(%s)
+  `, top, left, ptop, pleft, color, vfx.RGBA(color, 50)))
 }

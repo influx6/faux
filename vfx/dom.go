@@ -2,6 +2,7 @@ package vfx
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/gopherjs/gopherjs/js"
 	"honnef.co/go/js/dom"
@@ -77,7 +78,7 @@ func PageBox() (float64, float64) {
 
 	top := cursor.Get(topScrollAttr)
 	left := cursor.Get(leftScrollAttr)
-	return top.Float(), left.Float()
+	return parseFloat(top.String()), parseFloat(left.String())
 }
 
 // ClientBox returns the offset of the current page client box.
@@ -89,7 +90,7 @@ func ClientBox() (float64, float64) {
 		return 0, 0
 	}
 
-	return top.Float(), left.Float()
+	return parseFloat(top.String()), parseFloat(left.String())
 }
 
 // rootName defines a regexp for matching the string to either be body/html.
@@ -104,27 +105,25 @@ func Position(elem dom.Element) (float64, float64) {
 	var pBorderTop, pBorderLeft float64
 
 	nodeNameObject, err := GetProp(parent, "nodeName")
-	if err == nil && !rootName.MatchString(nodeNameObject.String()) {
-		if parent.Get("style") != nil {
-			parentElem := dom.WrapElement(parent)
+	if err == nil && !rootName.MatchString(strings.ToLower(nodeNameObject.String())) {
+		parentElem := dom.WrapElement(parent)
+		parentTop, parentLeft = Offset(parentElem)
+	}
 
-			parentTop, parentLeft = Offset(parentElem)
+	if parent.Get("style") != nil {
 
-			css, _ := GetComputedStyle(elem, "")
-
-			pBorderLeftObject, err := GetComputedStyleValueWith(css, "borderLeftWidth")
-			if err == nil {
-				pBorderLeft = parseFloat(pBorderLeftObject.String())
-			}
-
-			pBorderTopObject, err := GetComputedStyleValueWith(css, "borderTopWidth")
-			if err == nil {
-				pBorderTop = parseFloat(pBorderTopObject.String())
-			}
-
-			parentTop += pBorderTop
-			parentLeft += pBorderLeft
+		pBorderTopObject, err := GetProp(parent, "style.borderTopWidth")
+		if err == nil {
+			pBorderTop = parseFloat(pBorderTopObject.String())
 		}
+
+		pBorderLeftObject, err := GetProp(parent, "style.borderLeftWidth")
+		if err == nil {
+			pBorderLeft = parseFloat(pBorderLeftObject.String())
+		}
+
+		parentTop += pBorderTop
+		parentLeft += pBorderLeft
 	}
 
 	css, _ := GetComputedStyle(elem, "")

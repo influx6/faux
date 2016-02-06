@@ -1,6 +1,7 @@
 package vfx
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gopherjs/gopherjs/js"
@@ -120,6 +121,38 @@ func GetComputedStyleMap(elem dom.Element, ps string) (ComputedStyleMap, error) 
 	}
 
 	return styleMap, nil
+}
+
+//==============================================================================
+
+// RGBA turns a hexademicmal color into rgba format.
+// Alpha values ranges from 0-100
+func RGBA(hex string, alpha int) string {
+	var rgba = "rgba(%d,%d,%d,%.2f)"
+
+	if strings.HasPrefix(hex, "#") {
+		hex = strings.TrimPrefix(hex, "#")
+	}
+
+	af := float64(alpha) / 100
+
+	var r, g, b int
+
+	// We are dealing with a 3 string hex.
+	if len(hex) < 4 {
+		parts := strings.Split(hex, "")
+		r = parseIntBase16(parts[0] + parts[0])
+		g = parseIntBase16(parts[1] + parts[1])
+		b = parseIntBase16(parts[2] + parts[2])
+	}
+
+	if len(hex) < 7 {
+		r = parseIntBase16(hex[0:2])
+		g = parseIntBase16(hex[2:4])
+		b = parseIntBase16(hex[4:6])
+	}
+
+	return fmt.Sprintf(rgba, r, g, b, af)
 }
 
 //==============================================================================

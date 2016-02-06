@@ -22,6 +22,12 @@ func parseInt(fl string) int {
 	return fll
 }
 
+// parseIntBase16 parses a string into a int using base16.
+func parseIntBase16(fl string) int {
+	fll, _ := strconv.ParseInt(fl, 16, 64)
+	return int(fll)
+}
+
 // digitsOnly removes all non-digits characters in a string.
 func digitsOnly(fl string) string {
 	return nodigits.ReplaceAllString(fl, "")
