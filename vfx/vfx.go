@@ -35,7 +35,7 @@ type Frames interface {
 	Build() Frame
 }
 
-// NewFrameBuilder defines a builder for building a animation frame.
-func NewFrameBuilder(stat Stats, s ...Sequence) Frames {
+// NewFrame defines a builder for building a animation frame.
+func NewFrame(stat Stats, s ...Sequence) Frames {
 	return nil
 }
