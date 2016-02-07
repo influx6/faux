@@ -1,24 +1,20 @@
-// Package mque provides a argument aware queue that allows creating pubsub
-// type queues where unless the type expected by the callback is published to
-// the queue or unless the subscriber expects no argument will it be runned.
-package mque
+// Package fque provides a simple no-argument pubsub.
+package fque
 
 import (
 	"errors"
-	"reflect"
 	"sync"
 	"sync/atomic"
 
 	"github.com/influx6/faux/loop"
-	"github.com/influx6/faux/reflection"
 )
 
 //==============================================================================
 
 // Qu defines a queue interface that defines the general queue registery.
 type Qu interface {
-	Q(interface{}) loop.Looper
-	Run(interface{})
+	Q(func()) loop.Looper
+	Run()
 }
 
 // New returns a new implementer of Qu.
@@ -36,12 +32,12 @@ type MQue struct {
 }
 
 // Run applies the argument against the queues callbacks.
-func (m *MQue) Run(mx interface{}) {
+func (m *MQue) Run() {
 	m.l.RLock()
 	defer m.l.RUnlock()
 	for _, mux := range m.muxers {
 		if atomic.LoadInt64(&mux.alive) > 0 {
-			mux.Run(mx)
+			mux.Run()
 		}
 	}
 }
@@ -55,33 +51,14 @@ var ErrInvalid = errors.New("Invalid Func Type")
 var ErrTooMuchArgs = errors.New("Expected One argument Function")
 
 // Q adds a new function type into the queue.
-func (m *MQue) Q(mx interface{}) loop.Looper {
-	if !reflection.IsFuncType(mx) {
-		return nil
-	}
-
+func (m *MQue) Q(mx func()) loop.Looper {
 	m.l.RLock()
 	id := len(m.muxers)
 	m.l.RUnlock()
 
-	tm, _ := reflection.FuncValue(mx)
-
-	var tu reflect.Type
-	var bit int
-
-	args, _ := reflection.GetFuncArgumentsType(mx)
-	if size := len(args); size > 0 {
-		tu = args[0]
-		bit = 1
-	}
-
 	mq := mqueSub{
 		id:    id,
 		mx:    mx,
-		tm:    tm,
-		qu:    m,
-		am:    tu,
-		has:   bit,
 		alive: 1,
 	}
 
@@ -97,11 +74,7 @@ func (m *MQue) Q(mx interface{}) loop.Looper {
 // mqueSub defines a queue subscriber attached to a specific queue.
 type mqueSub struct {
 	id    int
-	mx    interface{}
-	tm    reflect.Value
-	am    reflect.Type
-	qu    *MQue
-	has   int
+	mx    func()
 	alive int64
 }
 
@@ -111,27 +84,8 @@ func (m *mqueSub) End() {
 }
 
 // Run recevies the argument and
-func (m *mqueSub) Run(d interface{}) {
-	if m.has == 0 {
-		m.tm.Call(nil)
-		return
-	}
-
-	var configVal reflect.Value
-	ctype := reflect.TypeOf(d)
-
-	if !ctype.AssignableTo(m.am) {
-		if !ctype.ConvertibleTo(m.am) {
-			return
-		}
-
-		vum := reflect.ValueOf(d)
-		configVal = vum.Convert(m.am)
-	} else {
-		configVal = reflect.ValueOf(d)
-	}
-
-	m.tm.Call([]reflect.Value{configVal})
+func (m *mqueSub) Run() {
+	m.mx()
 }
 
 //==============================================================================
