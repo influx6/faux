@@ -8,8 +8,12 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
+//==============================================================================
+
 // ErrNotFound provides a not found error used when a property was not found.
 var ErrNotFound = errors.New("Not Found")
+
+//==============================================================================
 
 // GetProp retrieves the necessary property for this specific name.
 func GetProp(o *js.Object, prop string) (*js.Object, error) {
@@ -31,6 +35,8 @@ func GetProp(o *js.Object, prop string) (*js.Object, error) {
 	return jsop, nil
 }
 
+//==============================================================================
+
 // MatchProp matches the string value from a property val against a provided
 // expected value.
 func MatchProp(o *js.Object, prop string, val string) bool {
@@ -46,6 +52,7 @@ func MatchProp(o *js.Object, prop string, val string) bool {
 	return true
 }
 
+//==============================================================================
 // expandable defines a regexp for matching period delimited strings.
 var expandable = regexp.MustCompile("([\\w\\d_-]+\\.[\\w\\d_-]+)+")
 
@@ -57,3 +64,5 @@ func Expando(prop string) []string {
 
 	return strings.Split(prop, ".")
 }
+
+//==============================================================================

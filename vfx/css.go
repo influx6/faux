@@ -139,20 +139,24 @@ func RGBA(hex string, alpha int) string {
 	var r, g, b int
 
 	// We are dealing with a 3 string hex.
-	if len(hex) < 4 {
+	if len(hex) < 6 {
 		parts := strings.Split(hex, "")
-		r = parseIntBase16(parts[0] + parts[0])
-		g = parseIntBase16(parts[1] + parts[1])
-		b = parseIntBase16(parts[2] + parts[2])
+		r = parseIntBase16(doubleString(parts[0]))
+		g = parseIntBase16(doubleString(parts[1]))
+		b = parseIntBase16(doubleString(parts[2]))
+		return fmt.Sprintf(rgba, r, g, b, af)
 	}
 
-	if len(hex) < 7 {
-		r = parseIntBase16(hex[0:2])
-		g = parseIntBase16(hex[2:4])
-		b = parseIntBase16(hex[4:6])
-	}
+	r = parseIntBase16(hex[0:2])
+	g = parseIntBase16(hex[2:4])
+	b = parseIntBase16(hex[4:6])
 
 	return fmt.Sprintf(rgba, r, g, b, af)
+}
+
+// doubleString doubles the giving string.
+func doubleString(c string) string {
+	return fmt.Sprintf("%s%s", c, c)
 }
 
 //==============================================================================

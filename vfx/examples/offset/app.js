@@ -30935,7 +30935,7 @@ $packages["regexp"] = (function() {
 	return $pkg;
 })();
 $packages["github.com/influx6/faux/vfx"] = (function() {
-	var $pkg = {}, $init, errors, fmt, js, dom, regexp, strconv, strings, ptrType, sliceType, sliceType$1, nodigits, window, doc, topScrollAttr, leftScrollAttr, useDocForOffset, rootName, expandable, _r, _r$1, _r$2, parseFloat, parseIntBase16, digitsOnly, GetComputedStyle, GetComputedStyleValueWith, RGBA, Root, Window, Document, initScrollProperties, PageBox, ClientBox, Position, Offset, BoundingBox, OffsetParent, init, GetProp, MatchProp, Expando;
+	var $pkg = {}, $init, errors, fmt, js, dom, regexp, strconv, strings, ptrType, sliceType, sliceType$1, nodigits, window, doc, topScrollAttr, leftScrollAttr, useDocForOffset, rootName, expandable, _r, _r$1, _r$2, parseFloat, parseIntBase16, digitsOnly, GetComputedStyle, GetComputedStyleValueWith, RGBA, doubleString, Root, Window, Document, initScrollProperties, PageBox, ClientBox, Position, Offset, BoundingBox, OffsetParent, init, GetProp, MatchProp, Expando;
 	errors = $packages["errors"];
 	fmt = $packages["fmt"];
 	js = $packages["github.com/gopherjs/gopherjs/js"];
@@ -30992,8 +30992,8 @@ $packages["github.com/influx6/faux/vfx"] = (function() {
 	};
 	$pkg.GetComputedStyleValueWith = GetComputedStyleValueWith;
 	RGBA = function(hex, alpha) {
-		var $ptr, _r$3, _tmp, _tmp$1, _tmp$2, af, alpha, b, g, hex, parts, r, rgba, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r$3 = $f._r$3; _tmp = $f._tmp; _tmp$1 = $f._tmp$1; _tmp$2 = $f._tmp$2; af = $f.af; alpha = $f.alpha; b = $f.b; g = $f.g; hex = $f.hex; parts = $f.parts; r = $f.r; rgba = $f.rgba; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		var $ptr, _r$10, _r$3, _r$4, _r$5, _r$6, _r$7, _r$8, _r$9, _tmp, _tmp$1, _tmp$2, af, alpha, b, g, hex, parts, r, rgba, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r$10 = $f._r$10; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _r$7 = $f._r$7; _r$8 = $f._r$8; _r$9 = $f._r$9; _tmp = $f._tmp; _tmp$1 = $f._tmp$1; _tmp$2 = $f._tmp$2; af = $f.af; alpha = $f.alpha; b = $f.b; g = $f.g; hex = $f.hex; parts = $f.parts; r = $f.r; rgba = $f.rgba; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		rgba = "rgba(%d,%d,%d,%.2f)";
 		if (strings.HasPrefix(hex, "#")) {
 			hex = strings.TrimPrefix(hex, "#");
@@ -31005,23 +31005,40 @@ $packages["github.com/influx6/faux/vfx"] = (function() {
 		r = _tmp;
 		g = _tmp$1;
 		b = _tmp$2;
-		if (hex.length < 4) {
+		/* */ if (hex.length < 6) { $s = 1; continue; }
+		/* */ $s = 2; continue;
+		/* if (hex.length < 6) { */ case 1:
 			parts = strings.Split(hex, "");
-			r = parseIntBase16((0 >= parts.$length ? $throwRuntimeError("index out of range") : parts.$array[parts.$offset + 0]) + (0 >= parts.$length ? $throwRuntimeError("index out of range") : parts.$array[parts.$offset + 0]));
-			r = parseIntBase16((1 >= parts.$length ? $throwRuntimeError("index out of range") : parts.$array[parts.$offset + 1]) + (1 >= parts.$length ? $throwRuntimeError("index out of range") : parts.$array[parts.$offset + 1]));
-			r = parseIntBase16((2 >= parts.$length ? $throwRuntimeError("index out of range") : parts.$array[parts.$offset + 2]) + (2 >= parts.$length ? $throwRuntimeError("index out of range") : parts.$array[parts.$offset + 2]));
-		}
-		if (hex.length < 7) {
-			r = parseIntBase16(hex.substring(0, 2));
-			g = parseIntBase16(hex.substring(2, 4));
-			b = parseIntBase16(hex.substring(4, 6));
-		}
-		_r$3 = fmt.Sprintf(rgba, new sliceType([new $Int(r), new $Int(g), new $Int(b), new $Float64(af)])); /* */ $s = 1; case 1: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
-		/* */ $s = 2; case 2:
-		return _r$3;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: RGBA }; } $f.$ptr = $ptr; $f._r$3 = _r$3; $f._tmp = _tmp; $f._tmp$1 = _tmp$1; $f._tmp$2 = _tmp$2; $f.af = af; $f.alpha = alpha; $f.b = b; $f.g = g; $f.hex = hex; $f.parts = parts; $f.r = r; $f.rgba = rgba; $f.$s = $s; $f.$r = $r; return $f;
+			_r$3 = doubleString((0 >= parts.$length ? $throwRuntimeError("index out of range") : parts.$array[parts.$offset + 0])); /* */ $s = 3; case 3: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+			_r$4 = parseIntBase16(_r$3); /* */ $s = 4; case 4: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
+			r = _r$4;
+			_r$5 = doubleString((1 >= parts.$length ? $throwRuntimeError("index out of range") : parts.$array[parts.$offset + 1])); /* */ $s = 5; case 5: if($c) { $c = false; _r$5 = _r$5.$blk(); } if (_r$5 && _r$5.$blk !== undefined) { break s; }
+			_r$6 = parseIntBase16(_r$5); /* */ $s = 6; case 6: if($c) { $c = false; _r$6 = _r$6.$blk(); } if (_r$6 && _r$6.$blk !== undefined) { break s; }
+			g = _r$6;
+			_r$7 = doubleString((2 >= parts.$length ? $throwRuntimeError("index out of range") : parts.$array[parts.$offset + 2])); /* */ $s = 7; case 7: if($c) { $c = false; _r$7 = _r$7.$blk(); } if (_r$7 && _r$7.$blk !== undefined) { break s; }
+			_r$8 = parseIntBase16(_r$7); /* */ $s = 8; case 8: if($c) { $c = false; _r$8 = _r$8.$blk(); } if (_r$8 && _r$8.$blk !== undefined) { break s; }
+			b = _r$8;
+			_r$9 = fmt.Sprintf(rgba, new sliceType([new $Int(r), new $Int(g), new $Int(b), new $Float64(af)])); /* */ $s = 9; case 9: if($c) { $c = false; _r$9 = _r$9.$blk(); } if (_r$9 && _r$9.$blk !== undefined) { break s; }
+			/* */ $s = 10; case 10:
+			return _r$9;
+		/* } */ case 2:
+		r = parseIntBase16(hex.substring(0, 2));
+		g = parseIntBase16(hex.substring(2, 4));
+		b = parseIntBase16(hex.substring(4, 6));
+		_r$10 = fmt.Sprintf(rgba, new sliceType([new $Int(r), new $Int(g), new $Int(b), new $Float64(af)])); /* */ $s = 11; case 11: if($c) { $c = false; _r$10 = _r$10.$blk(); } if (_r$10 && _r$10.$blk !== undefined) { break s; }
+		/* */ $s = 12; case 12:
+		return _r$10;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: RGBA }; } $f.$ptr = $ptr; $f._r$10 = _r$10; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._r$7 = _r$7; $f._r$8 = _r$8; $f._r$9 = _r$9; $f._tmp = _tmp; $f._tmp$1 = _tmp$1; $f._tmp$2 = _tmp$2; $f.af = af; $f.alpha = alpha; $f.b = b; $f.g = g; $f.hex = hex; $f.parts = parts; $f.r = r; $f.rgba = rgba; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	$pkg.RGBA = RGBA;
+	doubleString = function(c) {
+		var $ptr, _r$3, c, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r$3 = $f._r$3; c = $f.c; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		_r$3 = fmt.Sprintf("%s%s", new sliceType([new $String(c), new $String(c)])); /* */ $s = 1; case 1: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+		/* */ $s = 2; case 2:
+		return _r$3;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: doubleString }; } $f.$ptr = $ptr; $f._r$3 = _r$3; $f.c = c; $f.$s = $s; $f.$r = $r; return $f;
+	};
 	Root = function() {
 		var $ptr;
 		return $global;
@@ -31353,8 +31370,8 @@ $packages["main"] = (function() {
 	vfx = $packages["github.com/influx6/faux/vfx"];
 	sliceType = $sliceType($emptyInterface);
 	main = function() {
-		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _tuple, _tuple$1, color, div, left, pleft, ptop, top, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _tuple = $f._tuple; _tuple$1 = $f._tuple$1; color = $f.color; div = $f.div; left = $f.left; pleft = $f.pleft; ptop = $f.ptop; top = $f.top; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, _tuple, _tuple$1, color, div, left, pleft, ptop, scolor, top, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _tuple = $f._tuple; _tuple$1 = $f._tuple$1; color = $f.color; div = $f.div; left = $f.left; pleft = $f.pleft; ptop = $f.ptop; scolor = $f.scolor; top = $f.top; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		_r = vfx.Document(); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		_r$1 = _r.QuerySelector("div.offset"); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 		div = _r$1;
@@ -31366,7 +31383,8 @@ $packages["main"] = (function() {
 		_tuple$1 = _r$3;
 		ptop = _tuple$1[0];
 		pleft = _tuple$1[1];
-		color = "#ff32CC";
+		color = "#cccccc";
+		scolor = "#ccc";
 		_arg = new $Float64(top);
 		_arg$1 = new $Float64(left);
 		_arg$2 = new $Float64(ptop);
@@ -31374,9 +31392,12 @@ $packages["main"] = (function() {
 		_arg$4 = new $String(color);
 		_r$4 = vfx.RGBA(color, 50); /* */ $s = 5; case 5: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
 		_arg$5 = new $String(_r$4);
-		_r$5 = fmt.Sprintf("\n    Offset: %.2f %.2f\n    Position: %.2f %.2f\n    Color: Hex(%s) Rgba(%s)\n  ", new sliceType([_arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5])); /* */ $s = 6; case 6: if($c) { $c = false; _r$5 = _r$5.$blk(); } if (_r$5 && _r$5.$blk !== undefined) { break s; }
-		$r = div.SetInnerHTML(_r$5); /* */ $s = 7; case 7: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: main }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f.color = color; $f.div = div; $f.left = left; $f.pleft = pleft; $f.ptop = ptop; $f.top = top; $f.$s = $s; $f.$r = $r; return $f;
+		_arg$6 = new $String(scolor);
+		_r$5 = vfx.RGBA(scolor, 50); /* */ $s = 6; case 6: if($c) { $c = false; _r$5 = _r$5.$blk(); } if (_r$5 && _r$5.$blk !== undefined) { break s; }
+		_arg$7 = new $String(_r$5);
+		_r$6 = fmt.Sprintf("\n    Offset: %.2f %.2f\n    <br/>\n    Position: %.2f %.2f\n    <br/>\n    Color: Hex(%s) Rgba(%s)\n    <br/>\n    Color: Hex(%s) Rgba(%s)\n    <br/>\n  ", new sliceType([_arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7])); /* */ $s = 7; case 7: if($c) { $c = false; _r$6 = _r$6.$blk(); } if (_r$6 && _r$6.$blk !== undefined) { break s; }
+		$r = div.SetInnerHTML(_r$6); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: main }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f.color = color; $f.div = div; $f.left = left; $f.pleft = pleft; $f.ptop = ptop; $f.scolor = scolor; $f.top = top; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	$init = function() {
 		$pkg.$init = function() {};
