@@ -19,6 +19,7 @@ import (
 type Qu interface {
 	Q(interface{}) loop.Looper
 	Run(interface{})
+	Flush()
 }
 
 // New returns a new implementer of Qu.
@@ -33,6 +34,13 @@ func New() Qu {
 type MQue struct {
 	l      sync.RWMutex
 	muxers []*mqueSub
+}
+
+// Flush ends the queue listeners
+func (m *MQue) Flush() {
+	m.l.Lock()
+	m.muxers = nil
+	m.l.Unlock()
 }
 
 // Run applies the argument against the queues callbacks.

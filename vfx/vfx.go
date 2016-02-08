@@ -22,12 +22,15 @@ type DeferWriter interface {
 	Write()
 }
 
+// DeferWriters defines a lists of DeferWriter implementing structures.
+type DeferWriters []DeferWriter
+
 // CascadeDeferWriter provides a specifc writer that can combine multiple writers
 // into a single one but also allow flatten its writer sequence into a ordered
 // lists of DeferWriters.
 type CascadeDeferWriter interface {
 	DeferWriter
-	Flatten() []DeferWriter
+	Flatten() DeferWriters
 }
 
 // Sequence defines a series of animation step which will be runned
@@ -45,7 +48,7 @@ type Sequence interface {
 // and flexibility in the way DeferWriters can be used. As time travel
 // capsules that replay a animation sequence.
 type InitableSequence interface {
-	Init() DeferWriter
+	Init(Stats) DeferWriter
 	Sequence
 }
 
@@ -55,11 +58,8 @@ type SequenceList []Sequence
 // Frame defines the interface for a animation sequence generator,
 // it defines the sequence of a organized step for animation.
 type Frame interface {
-	Sequence() SequenceList
-	Stat() Stats
-}
-
-// Frames defines a type for a building animation Frame.
-type Frames interface {
-	Build() Frame
+	Init() DeferWriters
+	Inited() bool
+	Sequence() DeferWriters
+	Stats() Stats
 }

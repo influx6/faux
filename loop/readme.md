@@ -15,7 +15,7 @@
 
 # API
 
-  New(gear loop.EngineGear) => \*Engine
+  New(gear loop.EngineGear) => GameEngine
     Loop exposes a single method that returns a new instance of the loop engine,
     powered by the gear which actually implements the real loop mechanism. This
     allows building different looping mechanism or using appropriate ones as
@@ -46,7 +46,6 @@
     func main(){
 
         // Create a new engine.
-
         gameloop := loop.New(web.Loop)
 
         // Subscribe a function into the gameloop.

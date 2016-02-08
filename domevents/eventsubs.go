@@ -81,8 +81,8 @@ func (e *EventMetable) Type() string {
 
 // EventSubs provides a interface for event registeration subscribers.
 type EventSubs interface {
+	Qu
 	EventMeta
-	Chains
 	Offload()
 	DOM(*js.Object)
 }
@@ -95,7 +95,7 @@ type EventSubHandler func(EventSubs)
 // instance which allows chaining of events listeners like middleware
 type EventSub struct {
 	EventMeta
-	Chains
+	Qu
 	jslink JSEventMux
 	dom    *js.Object
 }
@@ -107,7 +107,7 @@ func NewEventSub(evtype, evtarget string) *EventSub {
 			EventType:   evtype,
 			EventTarget: evtarget,
 		},
-		Chains: ChainIdentity(),
+		Qu: NewQu(),
 	}
 }
 
@@ -115,7 +115,7 @@ func NewEventSub(evtype, evtarget string) *EventSub {
 func MetaEventSub(meta EventMeta) *EventSub {
 	return &EventSub{
 		EventMeta: meta,
-		Chains:    ChainIdentity(),
+		Qu:        NewQu(),
 	}
 }
 
@@ -143,7 +143,7 @@ func (e *EventSub) Offload() {
 // Trigger provides bypass for triggering this event sub by passing down an event
 // directly without matching target or selector
 func (e *EventSub) Trigger(h Event) {
-	e.HandleContext(h)
+	e.Run(h)
 }
 
 // TriggerMatch check if the current event from a specific parent matches the
@@ -207,7 +207,7 @@ func (e *EventSub) TriggerMatch(h Event) {
 			h.PreventDefault()
 		}
 
-		e.HandleContext(h)
+		e.Run(h)
 	}
 }
 
