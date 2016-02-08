@@ -12,9 +12,6 @@ type Stats interface {
 	Clone() Stats
 }
 
-// Element defines a interface type for vfx writers.
-type Element interface{}
-
 // DeferWriter provides an interface that allows deferring the write effects
 // of a sequence, these way we can collate all effects of a set of sequences
 // together to perform a batch right, reducing layout trashing.
