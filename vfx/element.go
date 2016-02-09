@@ -100,6 +100,12 @@ func (e *Element) Write(prop string, value string, priority bool) {
 	e.cssDiff.Set(prop)
 }
 
+// End removes this element styles from the dom.
+func (e *Element) End() {
+	e.style.Disconnect()
+	e.cssDiff.Clear()
+}
+
 // Sync adjusts the necessary property changes of the giving element back into
 // the dom. Any changes made to any properties will be diffed and added.
 // Sync only re-writes change properties, all untouched onces are left alone.
@@ -151,6 +157,11 @@ func NewStyleSync(id string) *StyleSync {
 	sync.Connect()
 
 	return &sync
+}
+
+// Disconnect the style from the head node.
+func (s *StyleSync) Disconnect() {
+	Document().QuerySelector("head").RemoveChild(s.elem)
 }
 
 // Connect adds the giving StyleSync internal style into the dom.

@@ -14,7 +14,18 @@ type AnimationSequence struct {
 	sequences  SequenceList
 	stat       Stats
 	inited     int64
+	done       int64
 	iniWriters DeferWriters
+}
+
+// IsOver returns true/false if the animation is done.
+func (f *AnimationSequence) IsOver() bool {
+	return atomic.LoadInt64(&f.done) > 1
+}
+
+// End allows forcing a stop to an animation frame.
+func (f *AnimationSequence) End() {
+	atomic.StoreInt64(&f.done, 1)
 }
 
 // Inited returns true/false if the frame has begun.

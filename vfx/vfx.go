@@ -60,4 +60,6 @@ type Frame interface {
 	Inited() bool
 	Sequence() DeferWriters
 	Stats() Stats
+	IsOver() bool
+	End()
 }

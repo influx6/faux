@@ -34,6 +34,10 @@ func Animate(f ...Frame) loop.Looper {
 				continue
 			}
 
+			if frame.IsOver() {
+				continue
+			}
+
 			writers = append(writers, frame.Sequence()...)
 			frame.Stats().NextIteration(delta)
 		}

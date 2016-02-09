@@ -17,6 +17,10 @@ type Stat struct {
 	done             bool
 }
 
+// AnimationStepsPerSec defines the total steps taking per second of each clock
+// tick.
+var AnimationStepsPerSec = 60
+
 // TimeStat returns a new Stats instance which provide information concering
 // the current animation frame, it uses the provided duration to calculate the
 // total iteration for the animation.
@@ -26,6 +30,8 @@ func TimeStat(ms time.Duration, loop, reversible bool) Stats {
 		reversible: reversible,
 	}
 
+	total := AnimationStepsPerSec * int(ms.Seconds())
+	atomic.StoreInt64(&st.totalIteration, int64(total))
 	return &st
 }
 
