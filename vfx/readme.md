@@ -8,7 +8,7 @@
 
   ```go
 
-    go get -u github.com/influx6/faux/tree/master/vfx
+    go get -u github.com/influx6/faux/vfx
 
   ```
 
