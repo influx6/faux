@@ -15,6 +15,7 @@
 ## Concept
 
   - Sequence and Writers
+
   `Sequence` in VFX define a behaviour that changes respectively on every tick of
   the animation clock, they hold the calculations that are necessary to achieve
   the desired behaviour, in a way they define a means of doing a deferred processing
@@ -33,12 +34,14 @@
   minimum the update calculation performed by the browser DOM.
 
   - Animation Frames
+
   `Animation frames` in VFX are a collection of sequences which according to a
   supplied stat will produce the total necessary sequence writers need to
   achieve the desired animation within a specific frame or time of the animation
   loop. It is the central organizational structure in VFX.
 
   - Stats
+  
   Stats in VFX are captions of current measurements of the animation loop and the
   properties for `Animation Frames`, using stats VFX calls all sequence to produce
   their writers by using the properties of the stats to produce the necessary change
