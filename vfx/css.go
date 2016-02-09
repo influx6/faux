@@ -85,22 +85,6 @@ type ComputedStyle struct {
 // ComputedStyleMap defines a map type of computed style properties and values.
 type ComputedStyleMap map[string]*ComputedStyle
 
-// Has returns true/false if the property exists.
-func (c ComputedStyleMap) Has(name string) bool {
-	_, ok := c[name]
-	return ok
-}
-
-// Get retrieves the specific property if it exists.
-func (c ComputedStyleMap) Get(name string) (*ComputedStyle, error) {
-	cs, ok := c[name]
-	if !ok {
-		return nil, ErrNotFound
-	}
-
-	return cs, nil
-}
-
 // GetComputedStyleMap returns a map of computed style properties and values.
 func GetComputedStyleMap(elem dom.Element, ps string) (ComputedStyleMap, error) {
 	css, err := GetComputedStyle(elem, ps)
@@ -121,6 +105,22 @@ func GetComputedStyleMap(elem dom.Element, ps string) (ComputedStyleMap, error) 
 	}
 
 	return styleMap, nil
+}
+
+// Has returns true/false if the property exists.
+func (c ComputedStyleMap) Has(name string) bool {
+	_, ok := c[name]
+	return ok
+}
+
+// Get retrieves the specific property if it exists.
+func (c ComputedStyleMap) Get(name string) (*ComputedStyle, error) {
+	cs, ok := c[name]
+	if !ok {
+		return nil, ErrNotFound
+	}
+
+	return cs, nil
 }
 
 //==============================================================================

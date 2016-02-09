@@ -128,12 +128,12 @@ func Position(elem dom.Element) (float64, float64) {
 
 	css, _ := GetComputedStyle(elem, "")
 
-	marginTopObject, err := GetComputedStyleValueWith(css, "marginTop")
+	marginTopObject, err := GetComputedStyleValueWith(css, "margin-top")
 	if err == nil {
 		marginTop = parseFloat(marginTopObject.String())
 	}
 
-	marginLeftObject, err := GetComputedStyleValueWith(css, "marginLeft")
+	marginLeftObject, err := GetComputedStyleValueWith(css, "margin-left")
 	if err == nil {
 		marginLeft = parseFloat(marginLeftObject.String())
 	}

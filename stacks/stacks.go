@@ -14,7 +14,7 @@ const ()
 // Tracer provides a interface that allows adding stack trace details, which
 // provides a flexible registry formatting how stack trace gets collected.
 type Tracer interface {
-	Add(context string, Line int, Goroutine, PkgRoot, Pkg, File, Method, MethodAddress, Address string)
+	Add(context string, Line int, Goroutine, PkgRoot, Pkg, File, Method, MethodAddress, Address, OriginalLine string)
 }
 
 // Run collects the stack trace and compiles into the giving trace store.
@@ -43,7 +43,7 @@ func Run(context string, all bool, size int, t Tracer) {
 			root, pkg, method, mName = ExtractPackageAndMethod(line)
 		} else {
 			addr, file, lineNumber = ExtractFileAndLineNumber(line)
-			t.Add(context, lineNumber, goroutine, root, pkg, file, mName, method, addr)
+			t.Add(context, lineNumber, goroutine, root, pkg, file, mName, method, addr, line)
 		}
 	}
 }
@@ -60,6 +60,7 @@ type Stack struct {
 	Package    string
 	Address    string
 	Goroutine  string
+	Line       string
 }
 
 // Trace provides a lists of stack traces which gets registered from a trace
@@ -93,7 +94,7 @@ func (s Trace) FindMethod(method string) (Stack, int) {
 }
 
 // Add adds the stack trace information into the list of traces.
-func (s *Trace) Add(context string, line int, gr, pkgroot, pkg, file, methodName, method, addr string) {
+func (s *Trace) Add(context string, line int, gr, pkgroot, pkg, file, methodName, method, addr, lm string) {
 	*s = append(*s, Stack{
 		Context:    context,
 		LineNumber: line,
@@ -104,6 +105,7 @@ func (s *Trace) Add(context string, line int, gr, pkgroot, pkg, file, methodName
 		Package:    pkg,
 		Address:    addr,
 		Goroutine:  gr,
+		Line:       lm,
 	})
 }
 
