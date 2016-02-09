@@ -10,7 +10,7 @@ type Looper interface {
 // GameEngine defines the gameloop interface which defines the cental engine
 // behaviour for loop.
 type GameEngine interface {
-	Loop(Mux) Looper
+	Loop(Mux, int) Looper
 }
 
 // New returns a new instance object that can use gears to perform its
@@ -27,7 +27,7 @@ type Mux func(float64)
 
 // EngineGear defines a exposable func type that allows calling a looper internals
 // as an instance object.
-type EngineGear func(Mux) Looper
+type EngineGear func(Mux, int) Looper
 
 //==============================================================================
 
@@ -37,8 +37,8 @@ type Engine struct {
 }
 
 // Loop calls the engines gear to create the necessary runner.
-func (e *Engine) Loop(mx Mux) Looper {
-	return e.gear(mx)
+func (e *Engine) Loop(mx Mux, queue int) Looper {
+	return e.gear(mx, queue)
 }
 
 //==============================================================================

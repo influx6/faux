@@ -30,17 +30,19 @@ func Animate(f ...Frame) loop.Looper {
 		for _, frame := range f {
 			if !frame.Inited() {
 				writers = append(writers, frame.Init()...)
+				frame.Stats().NextIteration(delta)
 				continue
 			}
 
 			writers = append(writers, frame.Sequence()...)
+			frame.Stats().NextIteration(delta)
 		}
 
 		// batch all the writes together as one.
 		for _, w := range writers {
 			w.Write()
 		}
-	})
+	}, 0)
 }
 
 //==============================================================================

@@ -79,7 +79,7 @@ func GetComputedStylePriority(css *dom.CSSStyleDeclaration, prop string) (int, e
 type ComputedStyle struct {
 	Name     string
 	Value    string
-	Priority int // values between [0,1] to indicate use of '!important'
+	Priority bool // values between [0,1] to indicate use of '!important'
 }
 
 // ComputedStyleMap defines a map type of computed style properties and values.
@@ -100,7 +100,7 @@ func GetComputedStyleMap(elem dom.Element, ps string) (ComputedStyleMap, error) 
 		styleMap[key] = &ComputedStyle{
 			Name:     key,
 			Value:    val,
-			Priority: priority,
+			Priority: (priority > 0),
 		}
 	}
 

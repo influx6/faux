@@ -10,8 +10,8 @@ import (
 //==============================================================================
 
 // Loop registers the giving callback
-func Loop(mx loop.Mux) loop.Looper {
-	sub := sub{mux: mx}
+func Loop(mx loop.Mux, queue int) loop.Looper {
+	sub := sub{mux: mx, queue: queue}
 	sub.connect()
 	return &sub
 }
@@ -20,8 +20,9 @@ func Loop(mx loop.Mux) loop.Looper {
 
 // sub defines a loop subscriber, implements the loop.Looper interface.
 type sub struct {
-	mux loop.Mux
-	id  int64
+	mux   loop.Mux
+	id    int64
+	queue int
 }
 
 // End cancels the giving subscriber from the gameloop.

@@ -3,13 +3,14 @@ package vfx
 // Stats defines a interface which holds stat information
 // regarding the current frame and configuration for a sequence.
 type Stats interface {
-	CurrentIteration() int
-	TotalIterations() int
-	Stamp() float64
 	Loop() bool
 	Reversible() bool
 	IsDone() bool
+	Delta() float64
 	Clone() Stats
+	CurrentIteration() int
+	TotalIterations() int
+	NextIteration(float64)
 }
 
 // DeferWriter provides an interface that allows deferring the write effects
