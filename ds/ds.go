@@ -39,3 +39,8 @@ type TruthTable interface {
 	Set(k string)
 	Clone() TruthTable
 }
+
+// NewTruthTable returns a new instance of TruthTable.
+func NewTruthTable() TruthTable {
+	return NewTruthMap(NewBoolStore())
+}

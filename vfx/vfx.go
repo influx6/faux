@@ -4,6 +4,7 @@ package vfx
 // regarding the current frame and configuration for a sequence.
 type Stats interface {
 	Loop() bool
+	Easing() string
 	Reversible() bool
 	IsDone() bool
 	Delta() float64

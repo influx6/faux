@@ -15,6 +15,7 @@ type Stat struct {
 	loop             bool
 	reversible       bool
 	done             bool
+	easing           string
 }
 
 // AnimationStepsPerSec defines the total steps taking per second of each clock
@@ -24,10 +25,11 @@ var AnimationStepsPerSec = 60
 // TimeStat returns a new Stats instance which provide information concering
 // the current animation frame, it uses the provided duration to calculate the
 // total iteration for the animation.
-func TimeStat(ms time.Duration, loop, reversible bool) Stats {
+func TimeStat(ms time.Duration, easing string, loop, reversible bool) Stats {
 	st := Stat{
 		loop:       loop,
 		reversible: reversible,
+		easing:     easing,
 	}
 
 	total := AnimationStepsPerSec * int(ms.Seconds())
@@ -36,11 +38,12 @@ func TimeStat(ms time.Duration, loop, reversible bool) Stats {
 }
 
 // MaxStat returns a new Stats using the provided numbers for animation.
-func MaxStat(maxIteration int, loop, reversible bool) Stats {
+func MaxStat(maxIteration int, easing string, loop, reversible bool) Stats {
 	st := Stat{
 		totalIteration: int64(maxIteration),
 		loop:           loop,
 		reversible:     reversible,
+		easing:         easing,
 	}
 
 	return &st
@@ -55,6 +58,11 @@ func (s *Stat) Clone() Stats {
 	}
 
 	return &st
+}
+
+// Easing returns the easing value for this specifc stat.
+func (s *Stat) Easing() string {
+	return s.easing
 }
 
 // Delta returns the current time delta from the last update.

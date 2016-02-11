@@ -5,7 +5,7 @@ package main
 import (
 	"path/filepath"
 
-	"github.com/influx6/assets"
+	"github.com/influx6/faux/databind"
 )
 
 var root = "../."
@@ -20,7 +20,7 @@ func main() {
 }
 
 func debugCompressBindFS() {
-	bf, err := assets.NewBindFS(&assets.BindFSConfig{
+	bf, err := databind.NewBindFS(&databind.BindFSConfig{
 		InDir:           root,
 		OutDir:          filepath.Join(tests, "debugnodecompress"),
 		Package:         "debug",
@@ -36,7 +36,7 @@ func debugCompressBindFS() {
 }
 
 func debugBindFS() {
-	bf, err := assets.NewBindFS(&assets.BindFSConfig{
+	bf, err := databind.NewBindFS(&databind.BindFSConfig{
 		InDir:   root,
 		OutDir:  filepath.Join(tests, "debug"),
 		Package: "debug",
@@ -51,7 +51,7 @@ func debugBindFS() {
 }
 
 func productionBindFS() {
-	bf, err := assets.NewBindFS(&assets.BindFSConfig{
+	bf, err := databind.NewBindFS(&databind.BindFSConfig{
 		InDir:      root,
 		OutDir:     filepath.Join(tests, "prod"),
 		Package:    "prod",
@@ -67,7 +67,7 @@ func productionBindFS() {
 }
 
 func productionNoDecompressBindFS() {
-	bf, err := assets.NewBindFS(&assets.BindFSConfig{
+	bf, err := databind.NewBindFS(&databind.BindFSConfig{
 		InDir:           root,
 		OutDir:          filepath.Join(tests, "prodnodecompress"),
 		Package:         "prod",

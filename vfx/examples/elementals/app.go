@@ -33,6 +33,7 @@ func main() {
 	expand.Write("padding-bottom", "40px", true)
 	expand.Write("padding-right", "40px", true)
 	expand.Write("padding-top", "40px", true)
+
 	expand.Sync()
 
 	report("margin-top", one(expand.Read("margin-top")))

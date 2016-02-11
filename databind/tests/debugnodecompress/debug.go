@@ -1,7 +1,7 @@
 //Auto-generated from github.com/influx6/assets
 // DO NOT CHANGE
 
-// Package debug provides an auto-generated static embeding of data files within the specific directory /home/alex/local/cmd/src/github.com/influx6/faux/databind
+// Package debug provides an auto-generated static embeding of data files within the specific directory C:\Users\fluxfox\Labs\Go\src\github.com\influx6\faux\databind
 package debug
 
   
@@ -901,414 +901,8 @@ func readData(v *VFile,data []byte)([]byte,error){
 
 func init(){
 
-  RootDirectory.Set("/tests",func() *VDir{
-    var dir = NewVDir("/tests","../tests","/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests",false)
-
-    // register the sub-directories
-    
-	dir.AddDirectory("debug",func() *VDir{
-		return RootDirectory.Get("/tests/debug")
-	})
-
-
-
-	dir.AddDirectory("prod",func() *VDir{
-		return RootDirectory.Get("/tests/prod")
-	})
-
-
-
-	dir.AddDirectory("prodnodecompress",func() *VDir{
-		return RootDirectory.Get("/tests/prodnodecompress")
-	})
-
-
-
-    // register the files
-    
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/tests/generate.go","../tests/generate.go",1489,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-    return dir
-  }())
-
-}
-
-
-func init(){
-
-  RootDirectory.Set("/tests/prod",func() *VDir{
-    var dir = NewVDir("/tests/prod","../tests/prod","/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests/prod",false)
-
-    // register the sub-directories
-    
-
-    // register the files
-    
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/tests/prod/prod.go","../tests/prod/prod.go",148145,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/tests/prod/prod_test.go","../tests/prod/prod_test.go",1277,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-    return dir
-  }())
-
-}
-
-
-func init(){
-
-  RootDirectory.Set("/vfiles",func() *VDir{
-    var dir = NewVDir("/vfiles","../vfiles","/home/alex/local/cmd/src/github.com/influx6/faux/databind/vfiles",false)
-
-    // register the sub-directories
-    
-
-    // register the files
-    
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/vfiles/vfiles.go","../vfiles/vfiles.go",18291,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/vfiles/vfiles_test.go","../vfiles/vfiles_test.go",4132,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-    return dir
-  }())
-
-}
-
-
-func init(){
-
-  RootDirectory.Set("/",func() *VDir{
-    var dir = NewVDir("/","..","/home/alex/local/cmd/src/github.com/influx6/faux/databind",true)
-
-    // register the sub-directories
-    
-	dir.AddDirectory("fixtures",func() *VDir{
-		return RootDirectory.Get("/fixtures")
-	})
-
-
-
-	dir.AddDirectory("tests",func() *VDir{
-		return RootDirectory.Get("/tests")
-	})
-
-
-
-	dir.AddDirectory("vfiles",func() *VDir{
-		return RootDirectory.Get("/vfiles")
-	})
-
-
-
-    // register the files
-    
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/.travis.yml","../.travis.yml",63,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/assets.go","../assets.go",9853,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/assets_test.go","../assets_test.go",2810,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/binddata.go","../binddata.go",8854,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/readme.md","../readme.md",1831,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/databind.go","../databind.go",1929,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/pkg.go","../pkg.go",1634,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/safetrees.go","../safetrees.go",3351,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/utils.go","../utils.go",2636,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-    return dir
-  }())
-
-}
-
-
-func init(){
-
   RootDirectory.Set("/fixtures",func() *VDir{
-    var dir = NewVDir("/fixtures","../fixtures","/home/alex/local/cmd/src/github.com/influx6/faux/databind/fixtures",false)
+    var dir = NewVDir("/fixtures","../fixtures","C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/fixtures",false)
 
     // register the sub-directories
     
@@ -1342,14 +936,14 @@ func init(){
 func init(){
 
   RootDirectory.Set("/fixtures/base",func() *VDir{
-    var dir = NewVDir("/fixtures/base","../fixtures/base","/home/alex/local/cmd/src/github.com/influx6/faux/databind/fixtures/base",false)
+    var dir = NewVDir("/fixtures/base","../fixtures/base","C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/fixtures/base",false)
 
     // register the sub-directories
     
 
     // register the files
     
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/fixtures/base/basic.tmpl","../fixtures/base/basic.tmpl",364,true,false,func(v *VFile) ([]byte, error) {
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/fixtures/base/basic.tmpl","../fixtures/base/basic.tmpl",364,true,false,func(v *VFile) ([]byte, error) {
 			fo, err := os.Open(v.RealPath())
 			if err != nil {
 				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
@@ -1371,7 +965,7 @@ func init(){
 		}))
 	
 
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/fixtures/base/index.tmpl","../fixtures/base/index.tmpl",181,true,false,func(v *VFile) ([]byte, error) {
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/fixtures/base/index.tmpl","../fixtures/base/index.tmpl",181,true,false,func(v *VFile) ([]byte, error) {
 			fo, err := os.Open(v.RealPath())
 			if err != nil {
 				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
@@ -1402,14 +996,14 @@ func init(){
 func init(){
 
   RootDirectory.Set("/fixtures/includes",func() *VDir{
-    var dir = NewVDir("/fixtures/includes","../fixtures/includes","/home/alex/local/cmd/src/github.com/influx6/faux/databind/fixtures/includes",false)
+    var dir = NewVDir("/fixtures/includes","../fixtures/includes","C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/fixtures/includes",false)
 
     // register the sub-directories
     
 
     // register the files
     
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/fixtures/includes/index.tmpl","../fixtures/includes/index.tmpl",80,true,false,func(v *VFile) ([]byte, error) {
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/fixtures/includes/index.tmpl","../fixtures/includes/index.tmpl",80,true,false,func(v *VFile) ([]byte, error) {
 			fo, err := os.Open(v.RealPath())
 			if err != nil {
 				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
@@ -1440,74 +1034,14 @@ func init(){
 func init(){
 
   RootDirectory.Set("/fixtures/layouts",func() *VDir{
-    var dir = NewVDir("/fixtures/layouts","../fixtures/layouts","/home/alex/local/cmd/src/github.com/influx6/faux/databind/fixtures/layouts",false)
+    var dir = NewVDir("/fixtures/layouts","../fixtures/layouts","C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/fixtures/layouts",false)
 
     // register the sub-directories
     
 
     // register the files
     
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/fixtures/layouts/basic.tmpl","../fixtures/layouts/basic.tmpl",364,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-    return dir
-  }())
-
-}
-
-
-func init(){
-
-  RootDirectory.Set("/tests/debug",func() *VDir{
-    var dir = NewVDir("/tests/debug","../tests/debug","/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests/debug",false)
-
-    // register the sub-directories
-    
-
-    // register the files
-    
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/tests/debug/debug.go","../tests/debug/debug.go",32825,true,false,func(v *VFile) ([]byte, error) {
-			fo, err := os.Open(v.RealPath())
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			defer fo.Close()
-
-			var buf bytes.Buffer
-			gz := gzip.NewWriter(&buf)
-
-			_, err = io.Copy(gz, fo)
-			gz.Close()
-
-			if err != nil {
-				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
-			}
-
-			return buf.Bytes(), nil
-		}))
-	
-
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/tests/debug/debug_test.go","../tests/debug/debug_test.go",1279,true,false,func(v *VFile) ([]byte, error) {
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/fixtures/layouts/basic.tmpl","../fixtures/layouts/basic.tmpl",364,true,false,func(v *VFile) ([]byte, error) {
 			fo, err := os.Open(v.RealPath())
 			if err != nil {
 				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
@@ -1538,14 +1072,14 @@ func init(){
 func init(){
 
   RootDirectory.Set("/tests/prodnodecompress",func() *VDir{
-    var dir = NewVDir("/tests/prodnodecompress","../tests/prodnodecompress","/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests/prodnodecompress",false)
+    var dir = NewVDir("/tests/prodnodecompress","../tests/prodnodecompress","C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests/prodnodecompress",false)
 
     // register the sub-directories
     
 
     // register the files
     
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/tests/prodnodecompress/prod.go","../tests/prodnodecompress/prod.go",413890,true,false,func(v *VFile) ([]byte, error) {
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/tests/prodnodecompress/prod.go","../tests/prodnodecompress/prod.go",352771,true,false,func(v *VFile) ([]byte, error) {
 			fo, err := os.Open(v.RealPath())
 			if err != nil {
 				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
@@ -1567,7 +1101,473 @@ func init(){
 		}))
 	
 
-		dir.AddFile(NewVFile("/home/alex/local/cmd/src/github.com/influx6/faux/databind/tests","/tests/prodnodecompress/prod_test.go","../tests/prodnodecompress/prod_test.go",1278,true,false,func(v *VFile) ([]byte, error) {
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/tests/prodnodecompress/prod_test.go","../tests/prodnodecompress/prod_test.go",1322,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+    return dir
+  }())
+
+}
+
+
+func init(){
+
+  RootDirectory.Set("/vfiles",func() *VDir{
+    var dir = NewVDir("/vfiles","../vfiles","C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/vfiles",false)
+
+    // register the sub-directories
+    
+
+    // register the files
+    
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/vfiles/vfiles.go","../vfiles/vfiles.go",19173,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/vfiles/vfiles_test.go","../vfiles/vfiles_test.go",4282,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+    return dir
+  }())
+
+}
+
+
+func init(){
+
+  RootDirectory.Set("/",func() *VDir{
+    var dir = NewVDir("/","..","C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind",true)
+
+    // register the sub-directories
+    
+	dir.AddDirectory("fixtures",func() *VDir{
+		return RootDirectory.Get("/fixtures")
+	})
+
+
+
+	dir.AddDirectory("tests",func() *VDir{
+		return RootDirectory.Get("/tests")
+	})
+
+
+
+	dir.AddDirectory("vfiles",func() *VDir{
+		return RootDirectory.Get("/vfiles")
+	})
+
+
+
+    // register the files
+    
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/.travis.yml","../.travis.yml",63,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/binddata.go","../binddata.go",9197,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/formatstrings.go","../formatstrings.go",2033,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/utils.go","../utils.go",2765,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/safetrees.go","../safetrees.go",3512,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/assets.go","../assets.go",10287,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/assets_test.go","../assets_test.go",2927,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/pkg.go","../pkg.go",1715,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/readme.md","../readme.md",1707,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+    return dir
+  }())
+
+}
+
+
+func init(){
+
+  RootDirectory.Set("/tests",func() *VDir{
+    var dir = NewVDir("/tests","../tests","C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests",false)
+
+    // register the sub-directories
+    
+	dir.AddDirectory("debug",func() *VDir{
+		return RootDirectory.Get("/tests/debug")
+	})
+
+
+
+	dir.AddDirectory("prod",func() *VDir{
+		return RootDirectory.Get("/tests/prod")
+	})
+
+
+
+	dir.AddDirectory("prodnodecompress",func() *VDir{
+		return RootDirectory.Get("/tests/prodnodecompress")
+	})
+
+
+
+    // register the files
+    
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/tests/generate.go","../tests/generate.go",1512,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+    return dir
+  }())
+
+}
+
+
+func init(){
+
+  RootDirectory.Set("/tests/debug",func() *VDir{
+    var dir = NewVDir("/tests/debug","../tests/debug","C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests/debug",false)
+
+    // register the sub-directories
+    
+
+    // register the files
+    
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/tests/debug/debug.go","../tests/debug/debug.go",33838,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/tests/debug/debug_test.go","../tests/debug/debug_test.go",1323,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+    return dir
+  }())
+
+}
+
+
+func init(){
+
+  RootDirectory.Set("/tests/prod",func() *VDir{
+    var dir = NewVDir("/tests/prod","../tests/prod","C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests/prod",false)
+
+    // register the sub-directories
+    
+
+    // register the files
+    
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/tests/prod/prod.go","../tests/prod/prod.go",150198,true,false,func(v *VFile) ([]byte, error) {
+			fo, err := os.Open(v.RealPath())
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			defer fo.Close()
+
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+
+			_, err = io.Copy(gz, fo)
+			gz.Close()
+
+			if err != nil {
+				return nil, fmt.Errorf("---> assets.readFile.gzip: Error gzipping file: %s at %s: %s\n", v.Name(), v.RealPath(), err)
+			}
+
+			return buf.Bytes(), nil
+		}))
+	
+
+		dir.AddFile(NewVFile("C:/Users/fluxfox/Labs/Go/src/github.com/influx6/faux/databind/tests","/tests/prod/prod_test.go","../tests/prod/prod_test.go",1320,true,false,func(v *VFile) ([]byte, error) {
 			fo, err := os.Open(v.RealPath())
 			if err != nil {
 				return nil, fmt.Errorf("---> assets.readFile: Error reading file: %s at %s: %s\n", v.Name(), v.RealPath(), err)

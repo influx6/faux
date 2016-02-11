@@ -29,7 +29,7 @@ func TestCompressedVirtualFile(t *testing.T) {
 }
 
 func TestDebugVirtualFile(t *testing.T) {
-	vf := NewVFile("./", "assets/vim.md", "vim.md", 5, true, true, func(v *VFile) ([]byte, error) {
+	vf := NewVFile("./", "assets/vim.md", "../fixtures/vim.md", 5, true, true, func(v *VFile) ([]byte, error) {
 		return readFile(v)
 	})
 
@@ -40,8 +40,8 @@ func TestDebugVirtualFile(t *testing.T) {
 	if data, err := vf.Data(); err != nil {
 		flux.FatalFailed(t, "Error occured retrieving content: %s", err)
 	} else {
-		if string(data) != "#Vim\n" {
-			flux.FatalFailed(t, "Error in file content expected %s got %s", "#Vim", data)
+		if string(data) != "#Vim\r\n" {
+			flux.FatalFailed(t, "Error in file content expected %q got %q", "#Vim", data)
 		}
 	}
 
