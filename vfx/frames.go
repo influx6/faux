@@ -11,15 +11,20 @@ func NewAnimationSequence(stat Stats, s ...Sequence) Frame {
 // AnimationSequence defines a set of sequences that operate on the behaviour of
 // a dom element or lists of dom.elements.
 type AnimationSequence struct {
-	sequences  SequenceList
-	stat       Stats
-	inited     int64
-	done       int64
-	iniWriters DeferWriters
+	sequences      SequenceList
+	stat           Stats
+	inited         int64
+	done           int64
+	completedFrame int64
+	iniWriters     DeferWriters
 }
 
 // IsOver returns true/false if the animation is done.
 func (f *AnimationSequence) IsOver() bool {
+	if f.Stats().Loop() {
+		return false
+	}
+
 	return atomic.LoadInt64(&f.done) > 1
 }
 
@@ -52,6 +57,32 @@ func (f *AnimationSequence) Init() DeferWriters {
 	return writers
 }
 
+// Sync allows the frame to check and perform any update to its operation.
+func (f *AnimationSequence) Sync() {
+	if f.Stats().IsDone() {
+
+		// Set the completedFrame to one to indicate the frame has completed a full
+		// first set animation(transition+reverse transition) of its sequences.
+		atomic.StoreInt64(&f.completedFrame, 1)
+
+		if f.Stats().Loop() {
+			f.stat = f.stat.Clone()
+			return
+		}
+
+		f.End()
+	}
+}
+
+// Phase defines the frame phase, to allow optimization options by the gameloop.
+func (f *AnimationSequence) Phase() FramePhase {
+	if atomic.LoadInt64(&f.completedFrame) > 0 {
+		return OPTIMISEPHASE
+	}
+
+	return STARTPHASE
+}
+
 // Stats return the frame internal stats.
 func (f *AnimationSequence) Stats() Stats {
 	return f.stat
@@ -61,6 +92,13 @@ func (f *AnimationSequence) Stats() Stats {
 // the frame sequence lists.
 func (f *AnimationSequence) Sequence() DeferWriters {
 	var writers DeferWriters
+
+	if f.Stats().Optimized() {
+		if f.Stats().CompletedFirstTransition() {
+			ct := f.Stats().CurrentIteration()
+			return GetWriterCache().Writers(f, ct)
+		}
+	}
 
 	// Collect all writers from each sequence with in the frame.
 	for _, seq := range f.sequences {

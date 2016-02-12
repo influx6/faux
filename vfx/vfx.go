@@ -4,26 +4,54 @@ package vfx
 // regarding the current frame and configuration for a sequence.
 type Stats interface {
 	Loop() bool
-	Easing() string
-	Reversible() bool
-	Optimized() bool
-	Reversed() bool
-	IsDone() bool
+	Next(float64)
 	Delta() float64
 	Clone() Stats
+	Easing() string
+	IsDone() bool
+	Reversed() bool
+	Optimized() bool
+	Reversible() bool
 	CurrentIteration() int
 	TotalIterations() int
-	NextIteration(float64)
-	PreviousIteration(float64)
+	CompletedFirstTransition() bool
 }
+
+//==============================================================================
+
+// FramePhase defines a animation phase type.
+type FramePhase int
+
+// const contains sets of Frame phase that identify the current frame animation
+// phase.
+const (
+	NOPHASE FramePhase = iota
+	STARTPHASE
+	OPTIMISEPHASE
+)
+
+// Frame defines the interface for a animation sequence generator,
+// it defines the sequence of a organized step for animation.
+type Frame interface {
+	End()
+	Sync()
+	Stats() Stats
+	Inited() bool
+	IsOver() bool
+	Init() DeferWriters
+	Phase() FramePhase
+	Sequence() DeferWriters
+}
+
+//==============================================================================
 
 // WriterCache provides a interface type for writer cache structures, which catch
 // animation produced writers per sequence iteration state.
 type WriterCache interface {
-	Store(Stats, int, ...DeferWriter)
-	Writers(Stats, int) DeferWriters
-	ClearIteration(Stats, int)
-	Clear(Stats)
+	Store(Frame, int, ...DeferWriter)
+	Writers(Frame, int) DeferWriters
+	ClearIteration(Frame, int)
+	Clear(Frame)
 }
 
 // DeferWriter provides an interface that allows deferring the write effects
@@ -57,19 +85,3 @@ type Sequence interface {
 
 // SequenceList defines a lists of animatable sequence.
 type SequenceList []Sequence
-
-// Frame defines the interface for a animation sequence generator,
-// it defines the sequence of a organized step for animation.
-type Frame interface {
-	Init() DeferWriters
-	Inited() bool
-	Sequence() DeferWriters
-	Stats() Stats
-	IsOver() bool
-	End()
-}
-
-// ResetableFrame defines a frame that can be reset to its default stat
-type ResetableFrame interface {
-	resetStats()
-}

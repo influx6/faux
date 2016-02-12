@@ -13,6 +13,7 @@ type Stat struct {
 	currentIteration int64
 	reversed         int64
 	completed        int64
+	completedReverse int64
 	delta            float64
 	loop             bool
 	optimize         bool
@@ -60,6 +61,8 @@ func (s *Stat) Clone() Stats {
 		totalIteration: int64(s.totalIteration),
 		loop:           s.loop,
 		reversible:     s.reversible,
+		optimize:       s.optimize,
+		easing:         s.easing,
 	}
 
 	return &st
@@ -73,6 +76,20 @@ func (s *Stat) Easing() string {
 // Delta returns the current time delta from the last update.
 func (s *Stat) Delta() float64 {
 	return s.delta
+}
+
+// Next calls the appropriate iteration step for the stat.
+func (s *Stat) Next(m float64) {
+	if !s.CompletedFirstTransition() {
+		s.NextIteration(m)
+		return
+	}
+
+	if s.Reversible() {
+		atomic.StoreInt64(&s.reversed, 1)
+		s.PreviousIteration(m)
+		return
+	}
 }
 
 // NextIteration increments the iteration count.
@@ -96,7 +113,7 @@ func (s *Stat) PreviousIteration(m float64) {
 	ct := atomic.LoadInt64(&s.currentIteration)
 
 	if ct <= 0 {
-		atomic.StoreInt64(&s.reversed, 1)
+		atomic.StoreInt64(&s.completedReverse, 1)
 	}
 
 	s.delta = m
@@ -120,7 +137,7 @@ func (s *Stat) IsDone() bool {
 		return true
 	}
 
-	rs := atomic.LoadInt64(&s.reversed)
+	rs := atomic.LoadInt64(&s.completedReverse)
 
 	if ct > 0 && rs <= 0 {
 		return false
@@ -137,6 +154,14 @@ func (s *Stat) Reversed() bool {
 // Reversible returns true/false if the stat animation is set to loop.
 func (s *Stat) Reversible() bool {
 	return s.reversible
+}
+
+// CompletedFirstTransition returns true/false if the stat has completed a full
+// iteration of its total iteration, this is useful to know when loop or
+// reversal is turned on, to check if this stat has entered its looping or
+// reversal state. It only reports for the first completion of total iterations.
+func (s *Stat) CompletedFirstTransition() bool {
+	return atomic.LoadInt64(&s.completed) > 0
 }
 
 // Loop returns true/false if the stat animation is set to loop.
