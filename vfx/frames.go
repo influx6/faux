@@ -1,9 +1,6 @@
 package vfx
 
-import (
-	"fmt"
-	"sync/atomic"
-)
+import "sync/atomic"
 
 //==============================================================================
 
@@ -94,11 +91,13 @@ func (f *AnimationSequence) Init() DeferWriters {
 
 // Sync allows the frame to check and perform any update to its operation.
 func (f *AnimationSequence) Sync() {
-	if f.Stats().IsDone() {
-
+	if f.Stats().IsFirstDone() {
 		// Set the completedFrame to one to indicate the frame has completed a full
 		// first set animation(transition+reverse transition) of its sequences.
 		atomic.StoreInt64(&f.completedFrame, 1)
+	}
+
+	if f.Stats().IsDone() {
 
 		if f.Stats().Loop() {
 			f.stat = f.stat.Clone()
@@ -129,25 +128,16 @@ func (f *AnimationSequence) Sequence() DeferWriters {
 	var writers DeferWriters
 
 	if f.Stats().Optimized() {
-		if f.Phase() > STARTPHASE {
 
-			fmt.Printf("Using optimization: %t\n", f.stat.CompletedFirstTransition())
-			fmt.Printf("Optimized Sequence %d-> %d\n", f.stat.CurrentIteration(), f.stat.TotalIterations())
+		if f.Phase() > STARTPHASE {
 
 			ct := f.Stats().CurrentIteration()
 			return GetWriterCache().Writers(f, ct)
 		}
 	}
 
-	fmt.Printf("Sequence %d-> %d\n", f.stat.CurrentIteration(), f.stat.TotalIterations())
-
 	// Collect all writers from each sequence with in the frame.
 	for _, seq := range f.sequences {
-		// If the sequence has finished its rounds, then skip it.
-		// if seq.IsDone() {
-		// 	continue
-		// }
-
 		writers = append(writers, seq.Next(f.Stats(), f.elementals)...)
 	}
 

@@ -22,12 +22,13 @@ type Stats interface {
 	Clone() Stats
 	Easing() string
 	IsDone() bool
+	IsFirstDone() bool
 	Reversed() bool
 	Optimized() bool
 	Reversible() bool
 	CurrentIteration() int
 	TotalIterations() int
-	CompletedFirstTransition() bool
+	DeltaIteration() float64
 }
 
 //==============================================================================
@@ -147,21 +148,33 @@ func (s *Stat) Optimized() bool {
 	return s.optimize
 }
 
+// IsFirstDone returns true/false if the stat has completed a full first
+// sequence.
+func (s *Stat) IsFirstDone() bool {
+	ct := atomic.LoadInt64(&s.completed)
+
+	if ct <= 0 {
+		return false
+	}
+
+	return true
+}
+
 // IsDone returns true/false if the stat is done.
 func (s *Stat) IsDone() bool {
 	ct := atomic.LoadInt64(&s.completed)
 
-	if !s.Reversible() {
-		if ct <= 0 {
-			return false
-		}
+	if ct <= 0 {
+		return false
+	}
 
+	if !s.Reversible() {
 		return true
 	}
 
 	rs := atomic.LoadInt64(&s.completedReverse)
 
-	if ct > 0 && rs <= 0 {
+	if rs <= 0 {
 		return false
 	}
 
@@ -199,6 +212,12 @@ func (s *Stat) TotalIterations() int {
 // CurrentIteration returns the current iteration for this specific stat.
 func (s *Stat) CurrentIteration() int {
 	return int(atomic.LoadInt64(&s.currentIteration))
+}
+
+// DeltaIteration reduces the delta value of currentIteration/TotalIterations,
+// useful for easing calculations.
+func (s *Stat) DeltaIteration() float64 {
+	return float64(s.CurrentIteration()) / float64(s.TotalIterations())
 }
 
 //==============================================================================

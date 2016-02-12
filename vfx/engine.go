@@ -43,6 +43,7 @@ func Animate(f ...Frame) loop.Looper {
 		var writers DeferWriters
 
 		for _, frame := range f {
+
 			if frame.IsOver() {
 				wcache.Clear(frame)
 				continue

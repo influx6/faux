@@ -31,8 +31,6 @@ func (d *DeferWriterCache) Store(frame Frame, rs int, dws ...DeferWriter) {
 		writers = d.get(frame)
 	}
 
-	// fmt.Printf("Storing for index: %d -> %d\n", rs, frame.Stats().TotalIterations())
-
 	if rs >= len(writers) {
 		return
 	}
@@ -59,6 +57,11 @@ func (d *DeferWriterCache) Writers(frame Frame, rs int) DeferWriters {
 	}
 
 	writers := d.get(frame)
+	writersLen := len(writers)
+
+	if rs >= writersLen {
+		rs = writersLen - 1
+	}
 
 	var writeList DeferWriters
 

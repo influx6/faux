@@ -59,8 +59,6 @@ func (w *Width) Next(stats vfx.Stats, elems vfx.Elementals) vfx.DeferWriters {
 
 		newWidth := easeIn(stats.CurrentIteration(), realWidth, change, stats.TotalIterations())
 
-		fmt.Printf("Width %d-> %d --> %d\n", realWidth, change, newWidth)
-
 		writers = append(writers, &WidthCSSWriter{
 			width:    newWidth,
 			unit:     "px",
@@ -77,8 +75,6 @@ func (w *Width) Next(stats vfx.Stats, elems vfx.Elementals) vfx.DeferWriters {
 // easeInQuad returns a easing value forthe current sequence.
 func easeIn(startTime, currentValue, changeInValue, totalTime int) int {
 	ms := float64(startTime) / float64(totalTime)
-	fmt.Printf("CurrentTime: %d/%d -> %.2f\n", startTime, totalTime, ms)
 	cm := float64(changeInValue) * ms
-	fmt.Printf("change: %.2f\n", cm)
 	return int(cm*ms) + currentValue
 }
