@@ -43,12 +43,12 @@ func Animate(f ...Frame) loop.Looper {
 		var writers DeferWriters
 
 		for _, frame := range f {
-			stats := frame.Stats()
+			if frame.IsOver() {
+				wcache.Clear(frame)
+				continue
+			}
 
-			// if frame.Phase() > STARTPHASE {
-			//
-			// 	continue
-			// }
+			stats := frame.Stats()
 
 			if !frame.Inited() {
 				initedWriter := frame.Init()
@@ -61,11 +61,6 @@ func Animate(f ...Frame) loop.Looper {
 
 				stats.Next(delta)
 				frame.Sync()
-				continue
-			}
-
-			if frame.IsOver() {
-				wcache.Clear(frame)
 				continue
 			}
 

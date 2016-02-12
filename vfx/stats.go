@@ -51,15 +51,16 @@ type Stat struct {
 // the current animation frame, it uses the provided duration to calculate the
 // total iteration for the animation.
 func TimeStat(ms time.Duration, easing string, loop, reversible, optimize bool) Stats {
+	total := AnimationStepsPerSec * int(ms.Seconds())
+
 	st := Stat{
-		loop:       loop,
-		reversible: reversible,
-		easing:     easing,
-		optimize:   optimize,
+		totalIteration: int64(total),
+		loop:           loop,
+		reversible:     reversible,
+		easing:         easing,
+		optimize:       optimize,
 	}
 
-	total := AnimationStepsPerSec * int(ms.Seconds())
-	atomic.StoreInt64(&st.totalIteration, int64(total))
 	return &st
 }
 

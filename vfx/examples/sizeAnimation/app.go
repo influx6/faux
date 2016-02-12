@@ -14,8 +14,9 @@ func main() {
 	vfx.Init(web.Loop)
 
 	width := vfx.NewAnimationSequence(".zapps",
-		vfx.TimeStat(500*time.Millisecond, "ease-in", true, false, true),
+		vfx.TimeStat(1*time.Second, "ease-in", true, false, true),
 		&boundaries.Width{Width: 500})
 
 	fmt.Printf("width sequence: %+s\n", width)
+	vfx.Animate(width)
 }

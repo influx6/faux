@@ -1,6 +1,9 @@
 package vfx
 
-import "sync/atomic"
+import (
+	"fmt"
+	"sync/atomic"
+)
 
 //==============================================================================
 
@@ -55,7 +58,7 @@ func (f *AnimationSequence) IsOver() bool {
 		return false
 	}
 
-	return atomic.LoadInt64(&f.done) > 1
+	return atomic.LoadInt64(&f.done) > 0
 }
 
 // End allows forcing a stop to an animation frame.
@@ -65,13 +68,13 @@ func (f *AnimationSequence) End() {
 
 // Inited returns true/false if the frame has begun.
 func (f *AnimationSequence) Inited() bool {
-	return atomic.LoadInt64(&f.inited) > 1
+	return atomic.LoadInt64(&f.inited) > 0
 }
 
 // Init calls the initialization writers for each sequence, returning their
 // respective initialization writers if any to be runned on the first loop.
 func (f *AnimationSequence) Init() DeferWriters {
-	if atomic.LoadInt64(&f.inited) > 1 {
+	if atomic.LoadInt64(&f.inited) > 0 {
 		return f.iniWriters
 	}
 
@@ -126,11 +129,17 @@ func (f *AnimationSequence) Sequence() DeferWriters {
 	var writers DeferWriters
 
 	if f.Stats().Optimized() {
-		if f.Stats().CompletedFirstTransition() {
+		if f.Phase() > STARTPHASE {
+
+			fmt.Printf("Using optimization: %t\n", f.stat.CompletedFirstTransition())
+			fmt.Printf("Optimized Sequence %d-> %d\n", f.stat.CurrentIteration(), f.stat.TotalIterations())
+
 			ct := f.Stats().CurrentIteration()
 			return GetWriterCache().Writers(f, ct)
 		}
 	}
+
+	fmt.Printf("Sequence %d-> %d\n", f.stat.CurrentIteration(), f.stat.TotalIterations())
 
 	// Collect all writers from each sequence with in the frame.
 	for _, seq := range f.sequences {
