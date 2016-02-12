@@ -15,6 +15,7 @@ type Stat struct {
 	completed        int64
 	delta            float64
 	loop             bool
+	optimize         bool
 	reversible       bool
 	done             bool
 	easing           string
@@ -27,11 +28,12 @@ var AnimationStepsPerSec = 60
 // TimeStat returns a new Stats instance which provide information concering
 // the current animation frame, it uses the provided duration to calculate the
 // total iteration for the animation.
-func TimeStat(ms time.Duration, easing string, loop, reversible bool) Stats {
+func TimeStat(ms time.Duration, easing string, loop, reversible, optimize bool) Stats {
 	st := Stat{
 		loop:       loop,
 		reversible: reversible,
 		easing:     easing,
+		optimize:   optimize,
 	}
 
 	total := AnimationStepsPerSec * int(ms.Seconds())
@@ -40,11 +42,12 @@ func TimeStat(ms time.Duration, easing string, loop, reversible bool) Stats {
 }
 
 // MaxStat returns a new Stats using the provided numbers for animation.
-func MaxStat(maxIteration int, easing string, loop, reversible bool) Stats {
+func MaxStat(maxIteration int, easing string, loop, reversible, optimize bool) Stats {
 	st := Stat{
 		totalIteration: int64(maxIteration),
 		loop:           loop,
 		reversible:     reversible,
+		optimize:       optimize,
 		easing:         easing,
 	}
 
@@ -97,6 +100,12 @@ func (s *Stat) PreviousIteration(m float64) {
 	}
 
 	s.delta = m
+}
+
+// Optimized returns true/false if the stat is said to use optimization
+// strategies.
+func (s *Stat) Optimized() bool {
+	return s.optimize
 }
 
 // IsDone returns true/false if the stat is done.

@@ -22,35 +22,58 @@ func TestDeferWriterCache(t *testing.T) {
 
 			var ws sync.WaitGroup
 
-			ws.Add(3)
+			ws.Add(1)
 
 			cache := vfx.NewDeferWriterCache()
-			stat := vfx.TimeStat(1*time.Minute, "ease-in", false, false)
-			stat2 := vfx.TimeStat(2*time.Minute, "ease-in", false, false)
+			stat := vfx.TimeStat(1*time.Second, "ease-in", false, false)
+			stat2 := vfx.TimeStat(2*time.Second, "ease-in", false, false)
+
+			defer cache.Clear(stat)
+			defer cache.Clear(stat2)
+
+			go func() {
+				defer ws.Done()
+				for i := 0; i < stat.TotalIterations(); i++ {
+					j := stat.CurrentIteration()
+					cache.Store(stat, j, buildNDeferWriters(i+1)...)
+					stat.NextIteration(0)
+				}
+			}()
+
+			ws.Wait()
+			ws.Add(2)
 
 			go func() {
 				defer ws.Done()
 				for i := 0; i < 10; i++ {
-					cache.Store(stat, i, buildNDeferWriters(i*4)...)
+					wd := cache.Writers(stat, i)
+					if len(wd) != (i + 1) {
+						t.Fatalf("\t%s\tShould have writer lists for step: %d of len: %d", tests.Failed, i, i*4)
+					}
+					t.Logf("\t%s\tShould have writer lists for step: %d of len: %d", tests.Success, i, i*4)
 				}
 			}()
 
 			go func() {
 				defer ws.Done()
-				for i := 0; i < 10; i++ {
-					cache.Store(stat2, i, buildNDeferWriters(i*4)...)
+				for i := 0; i < stat2.TotalIterations(); i++ {
+					j := stat2.CurrentIteration()
+					cache.Store(stat2, j, buildNDeferWriters(i+1)...)
+					stat2.NextIteration(0)
 				}
 			}()
 
 			ws.Wait()
 
-			for i := 0; i < 10; i++ {
-				wd := cache.Writers(stat2, i)
-				if len(wd) == i*4 {
-					t.Fatalf("\t%s\tShould have writer lists of len: %d", tests.Failed, i*4)
-				}
-				t.Logf("\t%s\tShould have writer lists of len: %d", tests.Success, i*4)
+			w4 := cache.Writers(stat, 4)
+			cache.ClearIteration(stat, 4)
+			w42 := cache.Writers(stat, 4)
+
+			if len(w42) >= len(w4) {
+				t.Fatalf("\t%s\tShould have cleared writers of 4 iteration", tests.Failed)
 			}
+			t.Logf("\t%s\tShould have cleared writers of 4 iteration", tests.Success)
+
 		}
 	}
 

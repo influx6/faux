@@ -20,12 +20,9 @@ func NewDeferWriterCache() *DeferWriterCache {
 
 // Store stores the giving set of writers for a specific iteration step of an
 // animation. These allows using this writers to produce reversal type effects.
-func (d *DeferWriterCache) Store(stats Stats, step int, dws ...DeferWriter) {
-
+func (d *DeferWriterCache) Store(stats Stats, rs int, dws ...DeferWriter) {
 	// Since we start from zeroth index, remove one from step to
 	// attain correct index.
-	rs := step - 1
-
 	var writers DeferWriterList
 
 	if !d.has(stats) {
@@ -33,6 +30,10 @@ func (d *DeferWriterCache) Store(stats Stats, step int, dws ...DeferWriter) {
 	} else {
 		writers = d.get(stats)
 	}
+
+	// if rs >= len(writers) {
+	// 	return
+	// }
 
 	var writeList DeferWriters
 
@@ -50,17 +51,12 @@ func (d *DeferWriterCache) Store(stats Stats, step int, dws ...DeferWriter) {
 
 // Writers returns the giving writers lists for a specific iteration step
 // keyed by a given frames stats.
-func (d *DeferWriterCache) Writers(stats Stats, step int) DeferWriters {
-
+func (d *DeferWriterCache) Writers(stats Stats, rs int) DeferWriters {
 	if !d.has(stats) {
 		return nil
 	}
 
 	writers := d.get(stats)
-
-	// Since we start from zeroth index, remove one from step to
-	// attain correct index.
-	rs := step - 1
 
 	var writeList DeferWriters
 
@@ -73,27 +69,23 @@ func (d *DeferWriterCache) Writers(stats Stats, step int) DeferWriters {
 
 // ClearIteration clears all writers indexed cached pertaining to a specific
 // stat at a specific interation step count.
-func (d *DeferWriterCache) ClearIteration(stats Stats, step int) {
+func (d *DeferWriterCache) ClearIteration(stats Stats, rs int) {
 	if !d.has(stats) {
 		return
 	}
-
-	// Since we start from zeroth index, remove one from step to
-	// attain correct index.
-	realStep := step - 1
 
 	writersLists := d.get(stats)
 
 	totalWriters := len(writersLists)
 
 	// If out real step is over the bar then this is off base.
-	if realStep >= totalWriters {
+	if rs >= totalWriters {
 		return
 	}
 
 	d.wl.Lock()
 	defer d.wl.Unlock()
-	writersLists[realStep] = nil
+	writersLists[rs] = nil
 }
 
 // Clear clears all writers indexed cached pertaining to a specific stat.

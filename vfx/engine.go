@@ -18,6 +18,7 @@ var wcache WriterCache
 // desired to be used in running the animation.
 // Important: This should only be called once.
 func Init(gear loop.EngineGear) {
+	wcache = NewDeferWriterCache()
 	engine = loop.New(gear)
 }
 

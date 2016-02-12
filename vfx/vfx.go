@@ -6,6 +6,7 @@ type Stats interface {
 	Loop() bool
 	Easing() string
 	Reversible() bool
+	Optimized() bool
 	Reversed() bool
 	IsDone() bool
 	Delta() float64

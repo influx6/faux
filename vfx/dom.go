@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/go-humble/detect"
 	"github.com/gopherjs/gopherjs/js"
 	"honnef.co/go/js/dom"
 )
@@ -191,7 +192,9 @@ func OffsetParent(elem dom.Element) *js.Object {
 
 // init initalizes properties and functions necessary for package wide varaibles.
 func init() {
-	initScrollProperties()
+	if detect.IsBrowser() {
+		initScrollProperties()
+	}
 }
 
 //==============================================================================
