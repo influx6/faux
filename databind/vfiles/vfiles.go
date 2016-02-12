@@ -15,6 +15,10 @@ import (
 	"time"
 )
 
+func init() {
+
+}
+
 // httpFile represents a basic http.FileSystem valid file
 type httpFile struct {
 	*bytes.Reader

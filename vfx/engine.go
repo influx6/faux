@@ -4,7 +4,13 @@ import "github.com/influx6/faux/loop"
 
 //==============================================================================
 
+// engine is the global gameloop engine used in managing animations within the
+// global loop.
 var engine loop.GameEngine
+
+// wcache contains all writers cache with respect to each stats for a specific
+// frame.
+var wcache WriterCache
 
 //==============================================================================
 

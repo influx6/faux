@@ -44,12 +44,7 @@ func (f *AnimationSequence) Init() DeferWriters {
 
 	// Collect all writers from each sequence with in the frame.
 	for _, seq := range f.sequences {
-		isq, ok := seq.(InitableSequence)
-		if !ok {
-			continue
-		}
-
-		writers = append(writers, isq.Init(f.Stats()))
+		writers = append(writers, seq.Init(f.Stats()))
 	}
 
 	atomic.StoreInt64(&f.inited, 1)

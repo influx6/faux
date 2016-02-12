@@ -6,12 +6,23 @@ type Stats interface {
 	Loop() bool
 	Easing() string
 	Reversible() bool
+	Reversed() bool
 	IsDone() bool
 	Delta() float64
 	Clone() Stats
 	CurrentIteration() int
 	TotalIterations() int
 	NextIteration(float64)
+	PreviousIteration(float64)
+}
+
+// WriterCache provides a interface type for writer cache structures, which catch
+// animation produced writers per sequence iteration state.
+type WriterCache interface {
+	Store(Stats, int, ...DeferWriter)
+	Writers(Stats, int) DeferWriters
+	ClearIteration(Stats, int)
+	Clear(Stats)
 }
 
 // DeferWriter provides an interface that allows deferring the write effects
@@ -38,17 +49,9 @@ type CascadeDeferWriter interface {
 // Sequence when calling their next method, all sequences must return a
 // DeferWriter.
 type Sequence interface {
+	Init(Stats) DeferWriter
 	Next(Stats) DeferWriter
 	IsDone() bool
-}
-
-// InitableSequence defines a sequence derivative interface that allows
-// providing a initial DeferWriter state. This is to allow better control
-// and flexibility in the way DeferWriters can be used. As time travel
-// capsules that replay a animation sequence.
-type InitableSequence interface {
-	Init(Stats) DeferWriter
-	Sequence
 }
 
 // SequenceList defines a lists of animatable sequence.
@@ -63,4 +66,9 @@ type Frame interface {
 	Stats() Stats
 	IsOver() bool
 	End()
+}
+
+// ResetableFrame defines a frame that can be reset to its default stat
+type ResetableFrame interface {
+	resetStats()
 }

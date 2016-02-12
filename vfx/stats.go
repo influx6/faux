@@ -11,6 +11,8 @@ import (
 type Stat struct {
 	totalIteration   int64
 	currentIteration int64
+	reversed         int64
+	completed        int64
 	delta            float64
 	loop             bool
 	reversible       bool
@@ -73,7 +75,54 @@ func (s *Stat) Delta() float64 {
 // NextIteration increments the iteration count.
 func (s *Stat) NextIteration(m float64) {
 	atomic.AddInt64(&s.currentIteration, 1)
+
+	it := atomic.LoadInt64(&s.totalIteration)
+	ct := atomic.LoadInt64(&s.currentIteration)
+
+	if ct >= it {
+		atomic.StoreInt64(&s.completed, 1)
+	}
+
 	s.delta = m
+}
+
+// PreviousIteration increments the iteration count.
+func (s *Stat) PreviousIteration(m float64) {
+	atomic.AddInt64(&s.currentIteration, -1)
+
+	ct := atomic.LoadInt64(&s.currentIteration)
+
+	if ct <= 0 {
+		atomic.StoreInt64(&s.reversed, 1)
+	}
+
+	s.delta = m
+}
+
+// IsDone returns true/false if the stat is done.
+func (s *Stat) IsDone() bool {
+	ct := atomic.LoadInt64(&s.completed)
+
+	if !s.Reversible() {
+		if ct <= 0 {
+			return false
+		}
+
+		return true
+	}
+
+	rs := atomic.LoadInt64(&s.reversed)
+
+	if ct > 0 && rs <= 0 {
+		return false
+	}
+
+	return true
+}
+
+// Reversed returns true/false if the stats has entered a reversed state.
+func (s *Stat) Reversed() bool {
+	return atomic.LoadInt64(&s.reversed) > 0
 }
 
 // Reversible returns true/false if the stat animation is set to loop.
@@ -84,18 +133,6 @@ func (s *Stat) Reversible() bool {
 // Loop returns true/false if the stat animation is set to loop.
 func (s *Stat) Loop() bool {
 	return s.loop
-}
-
-// IsDone returns true/false if the stat is done.
-func (s *Stat) IsDone() bool {
-	it := atomic.LoadInt64(&s.totalIteration)
-	ct := atomic.LoadInt64(&s.currentIteration)
-
-	if it < ct {
-		return false
-	}
-
-	return true
 }
 
 // TotalIterations returns the total iteration for this specific stat.
