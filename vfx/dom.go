@@ -36,6 +36,26 @@ func Document() dom.Document {
 	return doc
 }
 
+// QuerySelectorAll returns a lists of elementals that maches the selector
+// provided else returns an empty lists.
+func QuerySelectorAll(selector string) Elementals {
+	var eml Elementals
+
+	items := Document().QuerySelectorAll(selector)
+
+	for _, item := range items {
+		eml = append(eml, NewElement(item, ""))
+	}
+
+	return eml
+}
+
+// QuerySelector returns the elemental that maches the selector else returns
+// nil.
+func QuerySelector(selector string) Elemental {
+	return NewElement(Document().QuerySelector(selector), "")
+}
+
 //==============================================================================
 
 // topScrollAttr defines the apppropriate property to retrieve the top scroll
@@ -79,7 +99,7 @@ func PageBox() (float64, float64) {
 
 	top := cursor.Get(topScrollAttr)
 	left := cursor.Get(leftScrollAttr)
-	return parseFloat(top.String()), parseFloat(left.String())
+	return ParseFloat(top.String()), ParseFloat(left.String())
 }
 
 // ClientBox returns the offset of the current page client box.
@@ -91,7 +111,7 @@ func ClientBox() (float64, float64) {
 		return 0, 0
 	}
 
-	return parseFloat(top.String()), parseFloat(left.String())
+	return ParseFloat(top.String()), ParseFloat(left.String())
 }
 
 // rootName defines a regexp for matching the string to either be body/html.
@@ -115,12 +135,12 @@ func Position(elem dom.Element) (float64, float64) {
 
 		pBorderTopObject, err := GetProp(parent, "style.borderTopWidth")
 		if err == nil {
-			pBorderTop = parseFloat(pBorderTopObject.String())
+			pBorderTop = ParseFloat(pBorderTopObject.String())
 		}
 
 		pBorderLeftObject, err := GetProp(parent, "style.borderLeftWidth")
 		if err == nil {
-			pBorderLeft = parseFloat(pBorderLeftObject.String())
+			pBorderLeft = ParseFloat(pBorderLeftObject.String())
 		}
 
 		parentTop += pBorderTop
@@ -131,12 +151,12 @@ func Position(elem dom.Element) (float64, float64) {
 
 	marginTopObject, err := GetComputedStyleValueWith(css, "margin-top")
 	if err == nil {
-		marginTop = parseFloat(marginTopObject.String())
+		marginTop = ParseFloat(marginTopObject.String())
 	}
 
 	marginLeftObject, err := GetComputedStyleValueWith(css, "margin-left")
 	if err == nil {
-		marginLeft = parseFloat(marginLeftObject.String())
+		marginLeft = ParseFloat(marginLeftObject.String())
 	}
 
 	elemTop, elemLeft := Offset(elem)

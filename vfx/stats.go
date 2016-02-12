@@ -7,6 +7,31 @@ import (
 
 //==============================================================================
 
+// AnimationStepsPerSec defines the total steps taking per second of each clock
+// tick.
+var AnimationStepsPerSec = 60
+
+//==============================================================================
+
+// Stats defines a interface which holds stat information
+// regarding the current frame and configuration for a sequence.
+type Stats interface {
+	Loop() bool
+	Next(float64)
+	Delta() float64
+	Clone() Stats
+	Easing() string
+	IsDone() bool
+	Reversed() bool
+	Optimized() bool
+	Reversible() bool
+	CurrentIteration() int
+	TotalIterations() int
+	CompletedFirstTransition() bool
+}
+
+//==============================================================================
+
 // Stat defines a the stats report strucuture for animation.
 type Stat struct {
 	totalIteration   int64
@@ -21,10 +46,6 @@ type Stat struct {
 	done             bool
 	easing           string
 }
-
-// AnimationStepsPerSec defines the total steps taking per second of each clock
-// tick.
-var AnimationStepsPerSec = 60
 
 // TimeStat returns a new Stats instance which provide information concering
 // the current animation frame, it uses the provided duration to calculate the

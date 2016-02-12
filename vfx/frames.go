@@ -2,9 +2,37 @@ package vfx
 
 import "sync/atomic"
 
+//==============================================================================
+
+// FramePhase defines a animation phase type.
+type FramePhase int
+
+// const contains sets of Frame phase that identify the current frame animation
+// phase.
+const (
+	NOPHASE FramePhase = iota
+	STARTPHASE
+	OPTIMISEPHASE
+)
+
+// Frame defines the interface for a animation sequence generator,
+// it defines the sequence of a organized step for animation.
+type Frame interface {
+	End()
+	Sync()
+	Stats() Stats
+	Inited() bool
+	IsOver() bool
+	Init() DeferWriters
+	Phase() FramePhase
+	Sequence() DeferWriters
+}
+
+//==============================================================================
+
 // NewAnimationSequence defines a builder for building a animation frame.
-func NewAnimationSequence(stat Stats, s ...Sequence) Frame {
-	as := AnimationSequence{sequences: s, stat: stat}
+func NewAnimationSequence(selector string, stat Stats, s ...Sequence) Frame {
+	as := AnimationSequence{selector: selector, sequences: s, stat: stat}
 	return &as
 }
 
@@ -17,6 +45,8 @@ type AnimationSequence struct {
 	done           int64
 	completedFrame int64
 	iniWriters     DeferWriters
+	selector       string
+	elementals     Elementals
 }
 
 // IsOver returns true/false if the animation is done.
@@ -45,11 +75,13 @@ func (f *AnimationSequence) Init() DeferWriters {
 		return f.iniWriters
 	}
 
+	f.elementals = QuerySelectorAll(f.selector)
+
 	var writers DeferWriters
 
 	// Collect all writers from each sequence with in the frame.
 	for _, seq := range f.sequences {
-		writers = append(writers, seq.Init(f.Stats()))
+		writers = append(writers, seq.Init(f.Stats(), f.elementals)...)
 	}
 
 	atomic.StoreInt64(&f.inited, 1)
@@ -103,11 +135,11 @@ func (f *AnimationSequence) Sequence() DeferWriters {
 	// Collect all writers from each sequence with in the frame.
 	for _, seq := range f.sequences {
 		// If the sequence has finished its rounds, then skip it.
-		if seq.IsDone() {
-			continue
-		}
+		// if seq.IsDone() {
+		// 	continue
+		// }
 
-		writers = append(writers, seq.Next(f.Stats()))
+		writers = append(writers, seq.Next(f.Stats(), f.elementals)...)
 	}
 
 	return writers

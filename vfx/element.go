@@ -22,6 +22,9 @@ type Elemental interface {
 	Sync()
 }
 
+// Elementals defines a lists of elementals,
+type Elementals []Elemental
+
 // NewElement returns an instancee of the Element struct.
 func NewElement(elem dom.Element, pseudo string) Elemental {
 	css, err := GetComputedStyleMap(elem, pseudo)

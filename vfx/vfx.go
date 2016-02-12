@@ -1,48 +1,5 @@
 package vfx
 
-// Stats defines a interface which holds stat information
-// regarding the current frame and configuration for a sequence.
-type Stats interface {
-	Loop() bool
-	Next(float64)
-	Delta() float64
-	Clone() Stats
-	Easing() string
-	IsDone() bool
-	Reversed() bool
-	Optimized() bool
-	Reversible() bool
-	CurrentIteration() int
-	TotalIterations() int
-	CompletedFirstTransition() bool
-}
-
-//==============================================================================
-
-// FramePhase defines a animation phase type.
-type FramePhase int
-
-// const contains sets of Frame phase that identify the current frame animation
-// phase.
-const (
-	NOPHASE FramePhase = iota
-	STARTPHASE
-	OPTIMISEPHASE
-)
-
-// Frame defines the interface for a animation sequence generator,
-// it defines the sequence of a organized step for animation.
-type Frame interface {
-	End()
-	Sync()
-	Stats() Stats
-	Inited() bool
-	IsOver() bool
-	Init() DeferWriters
-	Phase() FramePhase
-	Sequence() DeferWriters
-}
-
 //==============================================================================
 
 // WriterCache provides a interface type for writer cache structures, which catch
@@ -78,9 +35,9 @@ type CascadeDeferWriter interface {
 // Sequence when calling their next method, all sequences must return a
 // DeferWriter.
 type Sequence interface {
-	Init(Stats) DeferWriter
-	Next(Stats) DeferWriter
-	IsDone() bool
+	Init(Stats, Elementals) DeferWriters
+	Next(Stats, Elementals) DeferWriters
+	// IsDone() bool
 }
 
 // SequenceList defines a lists of animatable sequence.
