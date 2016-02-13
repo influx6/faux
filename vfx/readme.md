@@ -55,45 +55,46 @@
   control as possible, yet with efficient optimization applied in.
 
   ```go
+  
+  package main
 
-    package main
+  import (
+  	"fmt"
+  	"time"
 
-    import (
-    	"time"
+  	"github.com/influx6/faux/loop/web"
+  	"github.com/influx6/faux/vfx"
+  	"github.com/influx6/faux/vfx/animations/boundaries"
+  )
 
-    	"github.com/influx6/faux/loop/web"
-    	"github.com/influx6/faux/vfx"
-    	"github.com/influx6/faux/vfx/animations/boundaries"
-    	"github.com/influx6/faux/vfx/animations/effects"
-    )
+  func main() {
 
-    func main() {
+  	vfx.Init(web.Loop)
 
-      // Initialize the vfx package with the gameloop. This runs
-      // within appropriate timing to ensure efficiency.
-      // web.Loop exposes a windows.RequestAnimationFrame.
-    	vfx.Init(web.Loop)
+  	width := vfx.NewAnimationSequence(".zapps",
+  		vfx.TimeStat(vfx.StatConfig{
+  			Duration: 1 * time.Second,
+  			Delay:    2 * time.Second,
+  			Easing:   "ease-in",
+  			Loop:     4,
+  			Reverse:  true,
+  			Optimize: true,
+  		}),
+  		&boundaries.Width{Width: 500})
 
-      // Create animation sequence that define the different transition
-      // you need to be effect simultenousely.
-      width := &boundaries.Width{Width: 500}
-      color := &effects.Color{color: "#222"}
+  	width.OnBegin(func(stats vfx.Stats) {
+  		fmt.Println("Animation Has Begun.")
+  	})
 
-      // Create the animation sequence stats which define delay, length, repeat,
-      // reversal behaviours and possible easing function names
-      constraints := vfx.TimeStat(1*time.Second, "ease-in", true, true, true)
+  	width.OnEnd(func(stats vfx.Stats) {
+  		fmt.Println("Animation Has Ended.")
+  	})
 
-      // Define the elements selector used to retrieve the specific elements
-      // to be effected for animation.
-      query := ".zapps"
+  	width.OnProgress(func(stats vfx.Stats) {
+  		fmt.Println("Animation is progressing.")
+  	})
 
-      // Animations can be created by building animation sequence, that
-      // define the behaviour for that frame.
-    	widthAnimator := vfx.NewAnimationSequence(query, constraints,width,color)
-
-      // To begin animation, call the vfx.Animate with a frame.
-    	vfx.Animate(widthAnimator)
-    }
-
+  	vfx.Animate(width)
+  }
 
   ```
