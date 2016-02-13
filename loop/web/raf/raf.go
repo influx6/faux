@@ -20,7 +20,7 @@ func RequestAnimationFrame(r Mux) int {
 // CancelAnimationFrame provides a cover for RAF using the
 // js api cancelAnimationFrame.
 func CancelAnimationFrame(id int) {
-	js.Global.Call("cancelAnimationFrame")
+	js.Global.Call("cancelAnimationFrame", id)
 }
 
 //==============================================================================

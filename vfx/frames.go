@@ -75,7 +75,9 @@ func NewAnimationSequence(selector string, stat Stats, s ...Sequence) Frame {
 // IsOver returns true/false if the animation is done.
 func (f *AnimationSequence) IsOver() bool {
 	if f.Stats().Loop() {
-		return false
+		if f.Cycles() < f.Stats().TotalLoops() {
+			return false
+		}
 	}
 
 	return atomic.LoadInt64(&f.done) > 0
@@ -104,6 +106,17 @@ func (f *AnimationSequence) OnEnd(fx func(Stats)) loop.Looper {
 	return f.ended.Q(func() {
 		fx(f.Stats())
 	})
+}
+
+// Reset resets the frame sequence to default state.
+func (f *AnimationSequence) Reset() {
+	f.stat = f.stat.Clone()
+	atomic.StoreInt64(&f.done, 0)
+	atomic.StoreInt64(&f.inited, 0)
+	atomic.StoreInt64(&f.totalCycles, 0)
+	atomic.StoreInt64(&f.lastCycle, 0)
+	atomic.StoreInt64(&f.completedFrame, 0)
+	atomic.StoreInt64(&f.writesOn, 0)
 }
 
 // End allows forcing a stop to an animation frame.
