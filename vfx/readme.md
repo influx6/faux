@@ -54,8 +54,10 @@
   The way VFX was written makes it easy to build animations quickly with as much
   control as possible, yet with efficient optimization applied in.
 
+
+
   ```go
-  
+
   package main
 
   import (
@@ -96,5 +98,48 @@
 
   	vfx.Animate(width)
   }
+
+  ```
+
+  ```html
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>VFX Size Animation</title>
+        <style>
+
+          .zapps{
+            height: 3px;
+            background: red;
+            margin-bottom: 10px;
+          }
+
+          #zapp1{
+            width: 10px;
+          }
+
+          #zapp2{
+            width: 25px;
+          }
+
+          #zapp3{
+            width: 5px;
+          }
+
+          #zapp4{
+            width: 30px;
+          }
+
+        </style>
+      </head>
+      <body>
+        <div id="zapp1" class="zapps"></div>
+        <div id="zapp2" class="zapps"></div>
+        <div id="zapp3" class="zapps"></div>
+        <div id="zapp4" class="zapps"></div>
+      </body>
+      <script type="text/javascript" src="app.js"></script>
+    </html>
 
   ```
