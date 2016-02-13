@@ -1,6 +1,11 @@
 package vfx
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+
+	"github.com/influx6/faux/fque"
+	"github.com/influx6/faux/loop"
+)
 
 //==============================================================================
 
@@ -28,6 +33,9 @@ type Frame interface {
 	Sequence(float64) DeferWriters
 	Cycles() int
 	LastCycles() int
+	OnBegin(func(Stats)) loop.Looper
+	OnEnd(func(Stats)) loop.Looper
+	OnProgress(func(Stats)) loop.Looper
 }
 
 // AnimationSequence defines a set of sequences that operate on the behaviour of
@@ -45,11 +53,22 @@ type AnimationSequence struct {
 	totalCycles    int64
 	lastCycle      int64
 	writesOn       int64
+	progress       fque.Qu
+	begin          fque.Qu
+	ended          fque.Qu
 }
 
 // NewAnimationSequence defines a builder for building a animation frame.
 func NewAnimationSequence(selector string, stat Stats, s ...Sequence) Frame {
-	as := AnimationSequence{selector: selector, sequences: s, stat: stat}
+	as := AnimationSequence{
+		selector:  selector,
+		sequences: s,
+		stat:      stat,
+		progress:  fque.New(),
+		begin:     fque.New(),
+		ended:     fque.New(),
+	}
+
 	return &as
 }
 
@@ -60,6 +79,31 @@ func (f *AnimationSequence) IsOver() bool {
 	}
 
 	return atomic.LoadInt64(&f.done) > 0
+}
+
+// OnProgress provides a callback hook to listen to progress of the animation,
+// this is fired through out the duration of the animation.
+func (f *AnimationSequence) OnProgress(fx func(Stats)) loop.Looper {
+	return f.progress.Q(func() {
+		fx(f.Stats())
+	})
+}
+
+// OnBegin callbacks are fired once, at the beginning of an animation, even if
+// the animation runs in a loop, it still will not be fired more than once.
+func (f *AnimationSequence) OnBegin(fx func(Stats)) loop.Looper {
+	return f.begin.Q(func() {
+		fx(f.Stats())
+	})
+}
+
+// OnEnd callbacks are fired once, at the end of an animation, if the animation
+// the animation runs in a loop, it still will not be fired more than once at
+// the end of the total loop count.
+func (f *AnimationSequence) OnEnd(fx func(Stats)) loop.Looper {
+	return f.ended.Q(func() {
+		fx(f.Stats())
+	})
 }
 
 // End allows forcing a stop to an animation frame.
@@ -113,6 +157,7 @@ func (f *AnimationSequence) Init(ms float64) DeferWriters {
 	atomic.StoreInt64(&f.inited, 1)
 	f.iniWriters = append(f.iniWriters, writers...)
 
+	f.begin.Run()
 	f.Stats().Next(ms)
 	return writers
 }
@@ -156,7 +201,6 @@ func (f *AnimationSequence) Sync() {
 	}
 
 	if f.Stats().IsDone() {
-
 		if f.Stats().Loop() {
 			if f.Cycles() < f.Stats().TotalLoops() || f.Stats().TotalLoops() < 0 {
 
@@ -176,12 +220,22 @@ func (f *AnimationSequence) Sync() {
 		}
 
 		f.End()
+		f.ended.Run()
 
 		// Iterate the stoppable sequence lists and stop any.
 		for _, sq := range f.stoppers {
 			sq.Stop()
 		}
+
+		// TODO: do we need to flush this? Could the user want to re-use a frame?
+		// f.begin.Flush()
+		// f.progress.Flush()
+		// f.ended.Flush()
+
+		return
 	}
+
+	f.progress.Run()
 }
 
 // Phase defines the frame phase, to allow optimization options by the gameloop.

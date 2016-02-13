@@ -56,18 +56,16 @@ func Animate(frame Frame) loop.Looper {
 			return
 		}
 
-		// stats := frame.Stats()
-
 		if !frame.Inited() {
+
 			writers = frame.Init(delta)
-
-			// stats.Next(delta)
 			frame.Sync()
+
 		} else {
-			writers = frame.Sequence(delta)
 
-			// stats.Next(delta)
+			writers = frame.Sequence(delta)
 			frame.Sync()
+
 		}
 
 		// Incase we end up using delays with our sequence, GopherJS can
