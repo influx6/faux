@@ -1,5 +1,5 @@
 # VFX
- Vfx is a idiomatic web animation library which brings the style of [VelocityJS](https://julian.com/research/velocity/)
+ VFX is a idiomatic web animation library which brings the style of [VelocityJS](https://julian.com/research/velocity/)
  to Go. It brings a different approach in the way animations are built but
  has a solid foundation to allow the best performance ensuring to reduce layout
  trashing as much as possible.
@@ -8,7 +8,7 @@
 
   ```go
 
-    go get -u github.com/influx6/faux/vfx
+    go get -u github.com/influx6/faux/vfx/...
 
   ```
 
@@ -51,3 +51,49 @@
   and easing behaviours that is desired to be achieved.
 
 ## Usage
+  The way VFX was written makes it easy to build animations quickly with as much
+  control as possible, yet with efficient optimization applied in.
+
+  ```go
+
+    package main
+
+    import (
+    	"time"
+
+    	"github.com/influx6/faux/loop/web"
+    	"github.com/influx6/faux/vfx"
+    	"github.com/influx6/faux/vfx/animations/boundaries"
+    	"github.com/influx6/faux/vfx/animations/effects"
+    )
+
+    func main() {
+
+      // Initialize the vfx package with the gameloop. This runs
+      // within appropriate timing to ensure efficiency.
+      // web.Loop exposes a windows.RequestAnimationFrame.
+    	vfx.Init(web.Loop)
+
+      // Create animation sequence that define the different transition
+      // you need to be effect simultenousely.
+      width := &boundaries.Width{Width: 500}
+      color := &effects.Color{color: "#222"}
+
+      // Create the animation sequence stats which define delay, length, repeat,
+      // reversal behaviours and possible easing function names
+      constraints := vfx.TimeStat(1*time.Second, "ease-in", true, true, true)
+
+      // Define the elements selector used to retrieve the specific elements
+      // to be effected for animation.
+      query := ".zapps"
+
+      // Animations can be created by building animation sequence, that
+      // define the behaviour for that frame.
+    	widthAnimator := vfx.NewAnimationSequence(query, constraints,width,color)
+
+      // To begin animation, call the vfx.Animate with a frame.
+    	vfx.Animate(widthAnimator)
+    }
+
+
+  ```

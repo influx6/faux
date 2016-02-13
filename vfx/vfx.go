@@ -37,7 +37,17 @@ type CascadeDeferWriter interface {
 type Sequence interface {
 	Init(Stats, Elementals) DeferWriters
 	Next(Stats, Elementals) DeferWriters
-	// IsDone() bool
+}
+
+// DelaySequence returns a new sequence type that checks if a sequence is allowed
+// to be runnable during a sequence iteration.
+type DelaySequence interface {
+	Continue() bool
+}
+
+// StoppableSequence defines a interface for sequences that can be stopped.
+type StoppableSequence interface {
+	Stop()
 }
 
 // SequenceList defines a lists of animatable sequence.

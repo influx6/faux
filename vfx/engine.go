@@ -36,53 +36,53 @@ func GetWriterCache() WriterCache {
 // Animate uses a writer batching to reduce layout trashing. Hence multiple
 // frames assigned for each animation call, will have all their writes, batched
 // into one call.
-func Animate(f ...Frame) loop.Looper {
+func Animate(frame Frame) loop.Looper {
+
+	var engineStopper loop.Looper
 
 	// Return this frame subscription ender, initialized and run its writers.
-	return engine.Loop(func(delta float64) {
+	engineStopper = engine.Loop(func(delta float64) {
 		var writers DeferWriters
 
-		for _, frame := range f {
+		if frame.IsOver() {
+			wcache.Clear(frame)
 
-			if frame.IsOver() {
-				wcache.Clear(frame)
-				continue
+			// If we are over and the stopper is not nil then use it to stop our
+			// frame looper.
+			if engineStopper != nil {
+				engineStopper.End()
 			}
 
-			stats := frame.Stats()
+			return
+		}
 
-			if !frame.Inited() {
-				initedWriter := frame.Init()
-				writers = append(writers, initedWriter...)
+		// stats := frame.Stats()
 
-				// If we are allowed to optimize, store the writers for this sequence step.
-				if stats.Optimized() && frame.Phase() < OPTIMISEPHASE {
-					wcache.Store(frame, stats.CurrentIteration(), initedWriter...)
-				}
+		if !frame.Inited() {
+			writers = frame.Init(delta)
 
-				stats.Next(delta)
-				frame.Sync()
-				continue
-			}
-
-			sw := frame.Sequence()
-			writers = append(writers, sw...)
-
-			// If we are allowed to optimize, store the writers for this sequence step.
-			if stats.Optimized() && frame.Phase() < OPTIMISEPHASE {
-				wcache.Store(frame, stats.CurrentIteration(), sw...)
-			}
-
-			stats.Next(delta)
+			// stats.Next(delta)
 			frame.Sync()
+		} else {
+			writers = frame.Sequence(delta)
 
+			// stats.Next(delta)
+			frame.Sync()
 		}
 
-		// batch all the writes together as one.
-		for _, w := range writers {
-			w.Write()
-		}
+		// Incase we end up using delays with our sequence, GopherJS can
+		// not block and should not block, other processes, so lunch the
+		// writers in a Goroutine. Frames have built in reconciliation system
+		// to manage the variances when dealing with delays.
+		go func() {
+			for _, w := range writers {
+				w.Write()
+			}
+		}()
+
 	}, 0)
+
+	return engineStopper
 }
 
 //==============================================================================

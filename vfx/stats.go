@@ -9,14 +9,16 @@ import (
 
 // AnimationStepsPerSec defines the total steps taking per second of each clock
 // tick.
-var AnimationStepsPerSec = 60
+var AnimationStepsPerSec int64 = 60
 
 //==============================================================================
 
 // Stats defines a interface which holds stat information
 // regarding the current frame and configuration for a sequence.
 type Stats interface {
+	Delay() time.Duration
 	Loop() bool
+	TotalLoops() int
 	Next(float64)
 	Delta() float64
 	Clone() Stats
@@ -33,46 +35,44 @@ type Stats interface {
 
 //==============================================================================
 
+// GetIterations returns the total iterations for a specific time.Duration that
+// is supplied.
+func GetIterations(ms time.Duration) int64 {
+	return AnimationStepsPerSec * int64(ms.Seconds())
+}
+
+//==============================================================================
+
+// StatConfig provides a configuration for building a Stats object for animators.
+type StatConfig struct {
+	Duration time.Duration
+	Delay    time.Duration
+	Easing   string
+	Loop     int
+	Reverse  bool
+	Optimize bool
+}
+
 // Stat defines a the stats report strucuture for animation.
 type Stat struct {
+	config           StatConfig
+	delay            time.Duration
 	totalIteration   int64
 	currentIteration int64
 	reversed         int64
 	completed        int64
 	completedReverse int64
 	delta            float64
-	loop             bool
-	optimize         bool
-	reversible       bool
 	done             bool
-	easing           string
 }
 
 // TimeStat returns a new Stats instance which provide information concering
 // the current animation frame, it uses the provided duration to calculate the
 // total iteration for the animation.
-func TimeStat(ms time.Duration, easing string, loop, reversible, optimize bool) Stats {
-	total := AnimationStepsPerSec * int(ms.Seconds())
-
+func TimeStat(config StatConfig) Stats {
 	st := Stat{
-		totalIteration: int64(total),
-		loop:           loop,
-		reversible:     reversible,
-		easing:         easing,
-		optimize:       optimize,
-	}
-
-	return &st
-}
-
-// MaxStat returns a new Stats using the provided numbers for animation.
-func MaxStat(maxIteration int, easing string, loop, reversible, optimize bool) Stats {
-	st := Stat{
-		totalIteration: int64(maxIteration),
-		loop:           loop,
-		reversible:     reversible,
-		optimize:       optimize,
-		easing:         easing,
+		config:         config,
+		totalIteration: GetIterations(config.Duration),
 	}
 
 	return &st
@@ -80,20 +80,18 @@ func MaxStat(maxIteration int, easing string, loop, reversible, optimize bool) S
 
 // Clone returns a clone for the stats.
 func (s *Stat) Clone() Stats {
-	st := Stat{
-		totalIteration: int64(s.totalIteration),
-		loop:           s.loop,
-		reversible:     s.reversible,
-		optimize:       s.optimize,
-		easing:         s.easing,
-	}
+	return TimeStat(s.config)
+}
 
-	return &st
+// Delay returns the time duration defined as the delay before the start of
+// a animation sequence on every complete cycle(after a forward+reverse run).
+func (s *Stat) Delay() time.Duration {
+	return s.config.Delay
 }
 
 // Easing returns the easing value for this specifc stat.
 func (s *Stat) Easing() string {
-	return s.easing
+	return s.config.Easing
 }
 
 // Delta returns the current time delta from the last update.
@@ -145,11 +143,11 @@ func (s *Stat) PreviousIteration(m float64) {
 // Optimized returns true/false if the stat is said to use optimization
 // strategies.
 func (s *Stat) Optimized() bool {
-	return s.optimize
+	return s.config.Optimize
 }
 
 // IsFirstDone returns true/false if the stat has completed a full first
-// sequence.
+// sequence without a reversal.
 func (s *Stat) IsFirstDone() bool {
 	ct := atomic.LoadInt64(&s.completed)
 
@@ -188,7 +186,7 @@ func (s *Stat) Reversed() bool {
 
 // Reversible returns true/false if the stat animation is set to loop.
 func (s *Stat) Reversible() bool {
-	return s.reversible
+	return s.config.Reverse
 }
 
 // CompletedFirstTransition returns true/false if the stat has completed a full
@@ -199,9 +197,15 @@ func (s *Stat) CompletedFirstTransition() bool {
 	return atomic.LoadInt64(&s.completed) > 0
 }
 
+// TotalLoops returns the total count of loops for this stat. If value is
+// less than 0, it is considered an infinite loop.
+func (s *Stat) TotalLoops() int {
+	return s.config.Loop
+}
+
 // Loop returns true/false if the stat animation is set to loop.
 func (s *Stat) Loop() bool {
-	return s.loop
+	return s.config.Loop != 0
 }
 
 // TotalIterations returns the total iteration for this specific stat.

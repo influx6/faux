@@ -56,12 +56,18 @@ func (d *DeferWriterCache) Writers(frame Frame, rs int) DeferWriters {
 		return nil
 	}
 
+	if rs < 0 {
+		return nil
+	}
+
 	writers := d.get(frame)
 	writersLen := len(writers)
 
 	if rs >= writersLen {
 		rs = writersLen - 1
 	}
+
+	// fmt.Printf("Writers at index %d at len %d\n", rs, writersLen)
 
 	var writeList DeferWriters
 
