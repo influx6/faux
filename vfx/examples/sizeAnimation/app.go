@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/influx6/faux/loop/web"
 	"github.com/influx6/faux/vfx"
 	"github.com/influx6/faux/vfx/animations/boundaries"
 )
 
 func main() {
 
-	vfx.Init(web.Loop)
+	// vfx.Init(web.Loop)
 
 	width := vfx.NewAnimationSequence(".zapps",
 		vfx.TimeStat(vfx.StatConfig{

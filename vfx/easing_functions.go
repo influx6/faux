@@ -11,10 +11,6 @@ func (e EaseIn) Ease(c EaseConfig) float64 {
 	return (c.DeltaValue * ms) + c.CurrentValue
 }
 
-func init() {
-	RegisterEasing("ease-in", EaseIn{})
-}
-
 //==============================================================================
 
 // EaseInQuad provides a struct for 'easing-in-quad' based animation.
@@ -26,10 +22,6 @@ func (e EaseInQuad) Ease(c EaseConfig) float64 {
 	return (c.DeltaValue * ms * ms) + c.CurrentValue
 }
 
-func init() {
-	RegisterEasing("ease-in-quad", EaseInQuad{})
-}
-
 //==============================================================================
 
 // EaseOutQuad provides a struct for 'easing-out-quad' based animation.
@@ -39,10 +31,6 @@ type EaseOutQuad struct{}
 func (e EaseOutQuad) Ease(c EaseConfig) float64 {
 	ms := (float64(c.CurrentStep) / float64(c.TotalSteps)) * float64(c.CurrentStep-2)
 	return ((c.DeltaValue * -1) * ms) + c.CurrentValue
-}
-
-func init() {
-	RegisterEasing("ease-out-quad", EaseOutQuad{})
 }
 
 //==============================================================================
@@ -61,10 +49,6 @@ func (e EaseInOutQuad) Ease(c EaseConfig) float64 {
 	diff--
 
 	return (-1*c.DeltaValue)*((diff)*(diff-2)-1) + c.CurrentValue
-}
-
-func init() {
-	RegisterEasing("ease-in-out-quad", EaseInOutQuad{})
 }
 
 //==============================================================================

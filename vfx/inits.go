@@ -1,7 +1,6 @@
 package vfx
 
 import (
-	"github.com/go-humble/detect"
 	"github.com/influx6/faux/loop"
 	"github.com/influx6/faux/loop/web"
 )
@@ -42,9 +41,11 @@ func Init(gear loop.EngineGear) {
 
 // init initializes the selector code before the start of the animators.
 func init() {
-	if detect.IsBrowser() {
-		Init(web.Loop)
-	}
+	Init(web.Loop)
+	RegisterEasing("ease-in", EaseIn{})
+	RegisterEasing("ease-in-quad", EaseInQuad{})
+	RegisterEasing("ease-out-quad", EaseOutQuad{})
+	RegisterEasing("ease-in-out-quad", EaseInOutQuad{})
 }
 
 //==============================================================================

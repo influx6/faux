@@ -71,8 +71,6 @@
 
   func main() {
 
-  	vfx.Init(web.Loop)
-
   	width := vfx.NewAnimationSequence(".zapps",
   		vfx.TimeStat(vfx.StatConfig{
   			Duration: 1 * time.Second,
@@ -99,9 +97,7 @@
   	vfx.Animate(width)
 
     // To stop a frame animation, simple use the vfx.Stop function call.
-    go func(){
-      vfx.Stop(width)
-    }()
+    vfx.Stop(width)
   }
 
   ```
