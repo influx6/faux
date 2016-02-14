@@ -64,7 +64,6 @@
   	"fmt"
   	"time"
 
-  	"github.com/influx6/faux/loop/web"
   	"github.com/influx6/faux/vfx"
   	"github.com/influx6/faux/vfx/animations/boundaries"
   )
