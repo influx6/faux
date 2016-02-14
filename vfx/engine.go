@@ -1,57 +1,33 @@
 package vfx
 
-import "github.com/influx6/faux/loop"
-
 //==============================================================================
 
-// engine is the global gameloop engine used in managing animations within the
-// global loop.
-var engine loop.GameEngine
-
-// wcache contains all writers cache with respect to each stats for a specific
-// frame.
-var wcache WriterCache
-
-//==============================================================================
-
-// Init initializes the animation system with the necessary loop engine,
-// desired to be used in running the animation.
-// Important: This should only be called once.
-func Init(gear loop.EngineGear) {
-	wcache = NewDeferWriterCache()
-	engine = loop.New(gear)
-}
-
-//==============================================================================
-
-// GetWriterCache returns the writer cache used by the animation library.
-func GetWriterCache() WriterCache {
-	return wcache
-}
-
-//==============================================================================
-
-// Animate provides the central engine for managing all animation calls,
-// it returns a subscription interface that allows the animation to be stopped.
-// Animate uses a writer batching to reduce layout trashing. Hence multiple
-// frames assigned for each animation call, will have all their writes, batched
+// Animate provides the central engine for managing all animation calls.
+// Animate uses writer batching to reduce layout trashing. Hence  each frame
+// assigned for each animation call, will have all their writes batched
 // into one call.
-func Animate(frame Frame) loop.Looper {
+func Animate(frame Frame) {
 
-	var engineStopper loop.Looper
+	// Due to the fact we cant reset due to the fact that the next call of the
+	// game loop could still have the frame registered to run, we cant reset,
+	// within the game loop, hence defer a reset if the frame is to be re-added
+	// into the animation loop again.
+	if frame.IsOver() {
+		frame.Reset()
+	}
 
 	// Return this frame subscription ender, initialized and run its writers.
-	engineStopper = engine.Loop(func(delta float64) {
+	stopCache.Add(frame, engine.Loop(func(delta float64) {
 		var writers DeferWriters
 
 		if frame.IsOver() {
 			wcache.Clear(frame)
 
-			// If we are over and the stopper is not nil then use it to stop our
-			// frame looper.
-			if engineStopper != nil {
-				engineStopper.End()
-			}
+			// Stop this frame for being executed anymore.
+			Stop(frame)
+
+			// Reset the frame for re-use.
+			// frame.Reset()
 
 			return
 		}
@@ -77,10 +53,23 @@ func Animate(frame Frame) loop.Looper {
 				w.Write()
 			}
 		}()
+	}, 0))
+}
 
-	}, 0)
+// Stop stops the frame within the animation step, removing its registered
+// loopere.
+func Stop(frame Frame) {
+	looper := stopCache.Get(frame)
+	if looper != nil {
+		stopCache.Delete(frame)
+		looper.End()
+	}
+}
 
-	return engineStopper
+// RegisterEasing adds a easing provider into the registery with the specified
+// name, we allow replacing a easing provider for a keyed name, if you so wish.
+func RegisterEasing(name string, easing Easing) {
+	easingProviders.Add(name, easing)
 }
 
 //==============================================================================

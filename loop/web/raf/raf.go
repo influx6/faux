@@ -3,6 +3,7 @@ package raf
 import (
 	"math"
 
+	"github.com/go-humble/detect"
 	"github.com/gopherjs/gopherjs/js"
 )
 
@@ -19,14 +20,19 @@ func RequestAnimationFrame(r Mux) int {
 
 // CancelAnimationFrame provides a cover for RAF using the
 // js api cancelAnimationFrame.
-func CancelAnimationFrame(id int) {
+func CancelAnimationFrame(id int, f ...func()) {
 	js.Global.Call("cancelAnimationFrame", id)
+	for _, fx := range f {
+		fx()
+	}
 }
 
 //==============================================================================
 
 func init() {
-	rafPolyfill()
+	if detect.IsBrowser() {
+		rafPolyfill()
+	}
 }
 
 func rafPolyfill() {

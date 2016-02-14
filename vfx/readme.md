@@ -97,6 +97,11 @@
   	})
 
   	vfx.Animate(width)
+
+    // To stop a frame animation, simple use the vfx.Stop function call.
+    go func(){
+      vfx.Stop(width)
+    }()
   }
 
   ```

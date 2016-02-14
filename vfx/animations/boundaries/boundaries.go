@@ -51,13 +51,20 @@ func (w *Width) Init(stats vfx.Stats, elems vfx.Elementals) vfx.DeferWriters {
 func (w *Width) Next(stats vfx.Stats, elems vfx.Elementals) vfx.DeferWriters {
 	var writers vfx.DeferWriters
 
+	easing := vfx.GetEasing(stats.Easing())
+
 	for _, elem := range elems {
 		width, priority, _ := elem.Read("width")
 
 		realWidth := vfx.ParseInt(width)
 		change := w.Width - realWidth
 
-		newWidth := easeIn(stats.CurrentIteration(), realWidth, change, stats.TotalIterations())
+		newWidth := int(easing.Ease(vfx.EaseConfig{
+			CurrentStep:  stats.CurrentIteration(),
+			TotalSteps:   stats.TotalIterations(),
+			CurrentValue: float64(realWidth),
+			DeltaValue:   float64(change),
+		}))
 
 		writers = append(writers, &WidthCSSWriter{
 			width:    newWidth,
@@ -71,10 +78,3 @@ func (w *Width) Next(stats vfx.Stats, elems vfx.Elementals) vfx.DeferWriters {
 }
 
 //==============================================================================
-
-// easeInQuad returns a easing value forthe current sequence.
-func easeIn(startTime, currentValue, changeInValue, totalTime int) int {
-	ms := float64(startTime) / float64(totalTime)
-	cm := float64(changeInValue) * ms
-	return int(cm*ms) + currentValue
-}

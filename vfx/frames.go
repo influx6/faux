@@ -1,8 +1,10 @@
 package vfx
 
 import (
+	"sync"
 	"sync/atomic"
 
+	"github.com/go-humble/detect"
 	"github.com/influx6/faux/fque"
 	"github.com/influx6/faux/loop"
 )
@@ -25,21 +27,25 @@ const (
 type Frame interface {
 	End()
 	Sync()
+	Reset()
+	Cycles() int
 	Stats() Stats
 	Inited() bool
 	IsOver() bool
-	Init(float64) DeferWriters
-	Phase() FramePhase
-	Sequence(float64) DeferWriters
-	Cycles() int
 	LastCycles() int
-	OnBegin(func(Stats)) loop.Looper
+	ResetListeners()
+	Then(Frame) Frame
+	Phase() FramePhase
+	Init(float64) DeferWriters
+	Sequence(float64) DeferWriters
 	OnEnd(func(Stats)) loop.Looper
+	OnBegin(func(Stats)) loop.Looper
 	OnProgress(func(Stats)) loop.Looper
 }
 
 // AnimationSequence defines a set of sequences that operate on the behaviour of
-// a dom element or lists of dom.elements.
+// a dom element or lists of dom.elements. Once an animation sequence is done,
+// it is removed from the gameloop and its stats are reset to allow re-use.
 type AnimationSequence struct {
 	sequences      SequenceList
 	stoppers       []StoppableSequence
@@ -56,6 +62,8 @@ type AnimationSequence struct {
 	progress       fque.Qu
 	begin          fque.Qu
 	ended          fque.Qu
+	fl             sync.RWMutex
+	frames         []Frame
 }
 
 // NewAnimationSequence defines a builder for building a animation frame.
@@ -70,6 +78,18 @@ func NewAnimationSequence(selector string, stat Stats, s ...Sequence) Frame {
 	}
 
 	return &as
+}
+
+// Then stacks the next frame to be scheduled once the current frame is finished.
+// If this current frame is an infinite loop then the next Frame is runned when
+// a full cycle is completed. It returns this frame being stacked on as the
+// returned value to allow stacking without loosing the frame.
+func (f *AnimationSequence) Then(fr Frame) Frame {
+	f.fl.Lock()
+	defer f.fl.Unlock()
+
+	f.frames = append(f.frames, fr)
+	return f
 }
 
 // IsOver returns true/false if the animation is done.
@@ -108,6 +128,14 @@ func (f *AnimationSequence) OnEnd(fx func(Stats)) loop.Looper {
 	})
 }
 
+// ResetListeners provides a reset specific for resetting the listener lists
+// for the animation frame.
+func (f *AnimationSequence) ResetListeners() {
+	f.begin.Flush()
+	f.progress.Flush()
+	f.ended.Flush()
+}
+
 // Reset resets the frame sequence to default state.
 func (f *AnimationSequence) Reset() {
 	f.stat = f.stat.Clone()
@@ -136,7 +164,9 @@ func (f *AnimationSequence) Init(ms float64) DeferWriters {
 		return f.iniWriters
 	}
 
-	f.elementals = QuerySelectorAll(f.selector)
+	if detect.IsBrowser() {
+		f.elementals = QuerySelectorAll(f.selector)
+	}
 
 	var writers DeferWriters
 
@@ -164,7 +194,7 @@ func (f *AnimationSequence) Init(ms float64) DeferWriters {
 
 	// If we are allowed to optimize, store the writers for this sequence step.
 	if f.Stats().Optimized() && f.Phase() < OPTIMISEPHASE {
-		GetWriterCache().Store(f, f.Stats().CurrentIteration(), writers...)
+		GetWriterCache().Store(f, f.Stats().CurrentIteration(), writers)
 	}
 
 	atomic.StoreInt64(&f.inited, 1)
@@ -208,14 +238,30 @@ func (f *AnimationSequence) Continue() bool {
 // Sync allows the frame to check and perform any update to its operation.
 func (f *AnimationSequence) Sync() {
 	if f.Stats().IsFirstDone() {
+
 		// Set the completedFrame to one to indicate the frame has completed a full
-		// first set animation(transition transition) of its sequences.
+		// first set animation(transition) of its sequences.
 		atomic.StoreInt64(&f.completedFrame, 1)
+
 	}
 
 	if f.Stats().IsDone() {
+
 		if f.Stats().Loop() {
-			if f.Cycles() < f.Stats().TotalLoops() || f.Stats().TotalLoops() < 0 {
+
+			// If this is an infinite loop, schedule our next frames into the animation
+			// runner.
+			if f.infiniteLoop() {
+				f.fl.RLock()
+
+				for _, fr := range f.frames {
+					Animate(fr)
+				}
+
+				f.fl.RUnlock()
+			}
+
+			if f.Cycles() < f.Stats().TotalLoops() || f.infiniteLoop() {
 
 				// Incremement the total cycle count and store the last.
 				tc := atomic.LoadInt64(&f.totalCycles)
@@ -234,6 +280,14 @@ func (f *AnimationSequence) Sync() {
 
 		f.End()
 		f.ended.Run()
+
+		f.fl.RLock()
+
+		for _, fr := range f.frames {
+			Animate(fr)
+		}
+
+		f.fl.RUnlock()
 
 		// Iterate the stoppable sequence lists and stop any.
 		for _, sq := range f.stoppers {
@@ -299,9 +353,19 @@ func (f *AnimationSequence) Sequence(ms float64) DeferWriters {
 
 	// If we are allowed to optimize, store the writers for this sequence step.
 	if f.Stats().Optimized() && f.Phase() < OPTIMISEPHASE {
-		GetWriterCache().Store(f, f.Stats().CurrentIteration(), writers...)
+		GetWriterCache().Store(f, f.Stats().CurrentIteration(), writers)
 	}
 
 	f.Stats().Next(ms)
 	return writers
+}
+
+// infiniteLoop returns true/false if the animation sequence loop is infinite.
+// That is set to -1 or less than 0 value.
+func (f *AnimationSequence) infiniteLoop() bool {
+	if f.Stats().TotalLoops() > 0 {
+		return false
+	}
+
+	return true
 }

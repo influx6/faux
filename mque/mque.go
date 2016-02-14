@@ -114,8 +114,11 @@ type mqueSub struct {
 }
 
 // End removes this subscriber for the queue.
-func (m *mqueSub) End() {
+func (m *mqueSub) End(f ...func()) {
 	atomic.StoreInt64(&m.alive, 0)
+	for _, fx := range f {
+		fx()
+	}
 }
 
 // Run recevies the argument and

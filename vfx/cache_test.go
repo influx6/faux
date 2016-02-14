@@ -26,11 +26,26 @@ func TestDeferWriterCache(t *testing.T) {
 
 			cache := vfx.NewDeferWriterCache()
 
-			stat := vfx.TimeStat(1*time.Second, "ease-in", false, false, false)
-			stat2 := vfx.TimeStat(2*time.Second, "ease-in", false, false, false)
+			stat := vfx.TimeStat(vfx.StatConfig{
+				Duration: 1 * time.Second,
+				Delay:    2 * time.Second,
+				Easing:   "ease-in",
+				Loop:     0,
+				Reverse:  false,
+				Optimize: false,
+			})
 
-			frame := vfx.NewAnimationSequence(stat)
-			frame2 := vfx.NewAnimationSequence(stat2)
+			stat2 := vfx.TimeStat(vfx.StatConfig{
+				Duration: 1 * time.Second,
+				Delay:    2 * time.Second,
+				Easing:   "ease-in",
+				Loop:     0,
+				Reverse:  false,
+				Optimize: false,
+			})
+
+			frame := vfx.NewAnimationSequence("", stat)
+			frame2 := vfx.NewAnimationSequence("", stat2)
 
 			defer cache.Clear(frame)
 			defer cache.Clear(frame2)
@@ -40,7 +55,7 @@ func TestDeferWriterCache(t *testing.T) {
 				for i := 0; i < stat.TotalIterations(); i++ {
 					j := stat.CurrentIteration()
 					cache.Store(frame, j, buildNDeferWriters(i+1)...)
-					stat.NextIteration(0)
+					stat.Next(0)
 				}
 			}()
 
@@ -63,7 +78,7 @@ func TestDeferWriterCache(t *testing.T) {
 				for i := 0; i < stat2.TotalIterations(); i++ {
 					j := stat2.CurrentIteration()
 					cache.Store(frame2, j, buildNDeferWriters(i+1)...)
-					stat2.NextIteration(0)
+					stat2.Next(0)
 				}
 			}()
 
@@ -80,7 +95,6 @@ func TestDeferWriterCache(t *testing.T) {
 
 		}
 	}
-
 }
 
 //==============================================================================

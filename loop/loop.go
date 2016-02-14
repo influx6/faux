@@ -4,7 +4,7 @@ package loop
 
 // Looper defines a loop subscriber for a specific loop subscriber.
 type Looper interface {
-	End()
+	End(...func())
 }
 
 // GameEngine defines the gameloop interface which defines the cental engine

@@ -26,9 +26,9 @@ type sub struct {
 }
 
 // End cancels the giving subscriber from the gameloop.
-func (s *sub) End() {
+func (s *sub) End(f ...func()) {
 	id := atomic.LoadInt64(&s.id)
-	raf.CancelAnimationFrame(int(id))
+	raf.CancelAnimationFrame(int(id), f...)
 }
 
 // animate calls the muxer for this subscriber
