@@ -90,9 +90,9 @@ func GetFuncArgumentsType(elem interface{}) ([]reflect.Type, error) {
 	for i := 0; i < totalFields; i++ {
 		indElem := tl.In(i)
 
-		if indElem.Kind() == reflect.Ptr {
-			indElem = indElem.Elem()
-		}
+		// if indElem.Kind() == reflect.Ptr {
+		// 	indElem = indElem.Elem()
+		// }
 
 		input = append(input, indElem)
 	}

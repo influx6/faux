@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ardanlabs/kit/tests"
-	"github.com/influx6/faux/loop/mque"
+	"github.com/influx6/faux/mque"
 )
 
 func init() {
@@ -90,7 +90,7 @@ func TestQueueEnd(t *testing.T) {
 
 			q := mque.New()
 
-			q.Q(func(item int) {
+			q.Q(func(item *int) {
 				count++
 			})
 
@@ -100,12 +100,15 @@ func TestQueueEnd(t *testing.T) {
 
 			q.Run(20)
 			sub.End()
-			q.Run(40)
+
+			var numb = 40
+
+			q.Run(&numb)
 
 			if count < 2 {
-				t.Fatalf("\t%s\tShould have received a string", tests.Failed)
+				t.Fatalf("\t%s\tShould have received more than two events", tests.Failed)
 			}
-			t.Logf("\t%s\tShould have received a string", tests.Success)
+			t.Logf("\t%s\tShould have received more than two events", tests.Success)
 
 		}
 	}
