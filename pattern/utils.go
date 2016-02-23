@@ -56,7 +56,12 @@ func SplitPatternAndRemovePrefix(c string) []string {
 	return strings.Split(strings.TrimPrefix(cleanPath(c), "/"), "/")
 }
 
-// CheckPriority is used to return the priority of a pattern. 0 for highest(when no parameters),1 for restricted parameters({id:[]}) and 2 for loose paramters. The first parameter catched is used for rating
+// CheckPriority is used to return the priority of a pattern.
+// 0 for highest(when no parameters).
+// 1 for restricted parameters({id:[]}).
+// 2 for no paramters.
+// The first parameter catched is used for rating.
+// The ratings go from highest to lowest .i.e (0-2).
 func CheckPriority(patt string) int {
 	sets := splitPattern(patt)
 

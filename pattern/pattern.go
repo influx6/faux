@@ -31,6 +31,7 @@ type Matchers []Matchable
 type URIMatcher interface {
 	Validate(string) (Params, bool)
 	Pattern() string
+	Priority() int
 }
 
 // matchProvider provides a class array-path matcher
@@ -38,6 +39,7 @@ type matchProvider struct {
 	pattern  string
 	matchers Matchers
 	endless  bool
+	priority int
 }
 
 // New returns a new instance of a URIMatcher.
@@ -45,12 +47,18 @@ func New(pattern string) URIMatcher {
 	pm := SegmentList(stripLastSlash(pattern))
 
 	m := matchProvider{
+		priority: CheckPriority(pattern),
 		pattern:  pattern,
 		matchers: pm,
 		endless:  IsEndless(pattern),
 	}
 
 	return &m
+}
+
+// Priority returns the priority status of this giving pattern.
+func (m *matchProvider) Priority() int {
+	return m.priority
 }
 
 // Pattern returns the pattern string for this matcher.
