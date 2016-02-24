@@ -107,8 +107,9 @@ func cleanPath(p string) string {
 	return np
 }
 
+// stripLastSlash strips the slahes from the path.
 func stripLastSlash(c string) string {
-	return strings.TrimSuffix(strings.TrimSuffix(c, "/*"), "/")
+	return strings.Replace(strings.TrimSuffix(strings.TrimSuffix(c, "/*"), "/"), "#", "/", -1)
 }
 
 // HasKeyParam returns true/false if the special pattern {:[..]} exists in the string

@@ -71,6 +71,7 @@ func (m *matchProvider) Pattern() string {
 func (m *matchProvider) Validate(f string) (Params, bool) {
 	var state bool
 
+	f = strings.Replace(f, "#", "/", -1)
 	cleaned := strings.TrimSuffix(cleanPath(f), "/")
 	src := splitPattern(cleaned)
 
