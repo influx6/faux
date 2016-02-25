@@ -7,53 +7,77 @@ import (
 	"strings"
 )
 
-var (
-	specs       = regexp.MustCompile(`\W+`)
-	allSlashes  = regexp.MustCompile(`/+`)
-	paramd      = regexp.MustCompile(`^{[\w\W]+}$`)
-	picker      = regexp.MustCompile(`^:[\w\W]+$`)
-	special     = regexp.MustCompile(`{\w+:[\w\W]+}|:[\w]+`)
-	morespecial = regexp.MustCompile(`{\w+:[\w\W]+}`)
-	anyvalue    = `[\w\W]+`
-	endless     = regexp.MustCompile(`/\*$`)
+//==============================================================================
 
-	//MoreSlashes this to check for more than one forward slahes
-	MoreSlashes = regexp.MustCompile(`\/+`)
-)
+var endless = regexp.MustCompile(`/\*$`)
 
 //IsEndless returns true/false if the pattern as a /*
 func IsEndless(s string) bool {
 	return endless.MatchString(s)
 }
 
+//==============================================================================
+
+// moreSlashes this to check for more than one forward slahes
+var moreSlashes = regexp.MustCompile(`\/+`)
+
 // CleanSlashes cleans all double forward slashes into one
 func CleanSlashes(p string) string {
-	return MoreSlashes.ReplaceAllString(filepath.ToSlash(p), "/")
+	if strings.Contains(p, "\\") {
+		return moreSlashes.ReplaceAllString(filepath.ToSlash(p), "/")
+	}
+	return moreSlashes.ReplaceAllString(p, "/")
 }
+
+//==============================================================================
 
 //RemoveCurly removes '{' and '}' from any string
 func RemoveCurly(s string) string {
 	return strings.TrimPrefix(strings.TrimSuffix(s, "}"), "{")
 }
 
+//==============================================================================
+
 //RemoveBracket removes '[' and ']' from any string
 func RemoveBracket(s string) string {
 	return strings.TrimPrefix(strings.TrimSuffix(s, "]"), "[")
 }
+
+//==============================================================================
 
 //SplitPattern splits a pattern with the '/'
 func SplitPattern(c string) []string {
 	return strings.Split(c, "/")
 }
 
-//TrimSlashes splits a pattern with the '/'
+//==============================================================================
+
+//TrimEndSlashe removes the '/' at the end of string.
+func TrimEndSlashe(c string) string {
+	return strings.TrimSuffix(strings.TrimPrefix(cleanPath(c), "/"), "/")
+}
+
+//==============================================================================
+
+//TrimSlashes removes the '/' at the beginning and end of string.
 func TrimSlashes(c string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(cleanPath(c), "/"), "/")
 }
 
+//==============================================================================
+
 //SplitPatternAndRemovePrefix splits a pattern with the '/'
 func SplitPatternAndRemovePrefix(c string) []string {
 	return strings.Split(strings.TrimPrefix(cleanPath(c), "/"), "/")
+}
+
+//==============================================================================
+
+var morespecial = regexp.MustCompile(`{\w+:[\w\W]+}`)
+
+// HasKeyParam returns true/false if the special pattern {:[..]} exists in the string
+func HasKeyParam(p string) bool {
+	return morespecial.MatchString(p)
 }
 
 // CheckPriority is used to return the priority of a pattern.
@@ -84,6 +108,8 @@ func cleanPattern(patt string) string {
 	return morespecial.ReplaceAllString(cleaned, "/")
 }
 
+//==============================================================================
+
 // CleanPath provides a public path cleaner
 func CleanPath(p string) string {
 	return cleanPath(p)
@@ -107,25 +133,29 @@ func cleanPath(p string) string {
 	return np
 }
 
-// stripLastSlash strips the slahes from the path.
-func stripLastSlash(c string) string {
-	return strings.Replace(strings.TrimSuffix(strings.TrimSuffix(c, "/*"), "/"), "#", "/", -1)
-}
+//==============================================================================
 
-// HasKeyParam returns true/false if the special pattern {:[..]} exists in the string
-func HasKeyParam(p string) bool {
-	return morespecial.MatchString(p)
-}
+var special = regexp.MustCompile(`{\w+:[\w\W]+}|:[\w]+`)
 
 // HasParam returns true/false if the special pattern {:[..]} exists in the string
 func HasParam(p string) bool {
 	return special.MatchString(p)
 }
 
+//==============================================================================
+
+var picker = regexp.MustCompile(`^:[\w\W]+$`)
+
 // HasPick matches string of type :id,:name
 func HasPick(p string) bool {
 	return picker.MatchString(p)
 }
+
+//==============================================================================
+
+var specs = regexp.MustCompile(`\n\t\s+`)
+var paramd = regexp.MustCompile(`^{[\w\W]+}$`)
+var anyvalue = `[\w\W]+`
 
 //YankSpecial provides a means of extracting parts of form `{id:[\d+]}`
 func YankSpecial(val string) (string, string, bool) {
@@ -144,6 +174,8 @@ func YankSpecial(val string) (string, string, bool) {
 	return part[0], removeBracket(part[1]), true
 }
 
+//==============================================================================
+
 func removeCurly(s string) string {
 	return strings.TrimPrefix(strings.TrimSuffix(s, "}"), "{")
 }
@@ -153,5 +185,19 @@ func removeBracket(s string) string {
 }
 
 func splitPattern(c string) []string {
-	return strings.Split(c, "/")
+	parts := strings.Split(c, "/")
+
+	// Re-add the first slash to respect root suremacy.
+	if len(parts) > 0 && parts[0] == "" {
+		parts[0] = "/"
+	}
+
+	return parts
+}
+
+//==============================================================================
+
+// stripLastSlash strips the slahes from the path.
+func stripLastSlash(c string) string {
+	return strings.Replace(strings.TrimSuffix(strings.TrimSuffix(c, "/*"), "/"), "#", "/", -1)
 }

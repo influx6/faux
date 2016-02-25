@@ -44,7 +44,10 @@ type matchProvider struct {
 
 // New returns a new instance of a URIMatcher.
 func New(pattern string) URIMatcher {
-	pm := SegmentList(stripLastSlash(pattern))
+
+	ps := stripLastSlash(pattern)
+
+	pm := SegmentList(ps)
 
 	m := matchProvider{
 		priority: CheckPriority(pattern),
@@ -73,6 +76,7 @@ func (m *matchProvider) Validate(f string) (Params, bool) {
 
 	f = strings.Replace(f, "#", "/", -1)
 	cleaned := strings.TrimSuffix(cleanPath(f), "/")
+	cleaned = stripLastSlash(cleaned)
 	src := splitPattern(cleaned)
 
 	total := len(m.matchers)
@@ -85,6 +89,7 @@ func (m *matchProvider) Validate(f string) (Params, bool) {
 	param := make(Params)
 
 	for k, v := range m.matchers {
+
 		if k >= srclen {
 			state = false
 			break

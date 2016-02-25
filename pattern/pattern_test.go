@@ -52,13 +52,8 @@ func TestSpecialChecker(t *testing.T) {
 	}
 }
 
-func TestClassicMuxPicker(t *testing.T) {
-	cpattern := `/name/:id`
-	r := pattern.New(cpattern)
-
-	if r == nil {
-		t.Fatalf("invalid array: %+s", r)
-	}
+func TestNamePattern(t *testing.T) {
+	r := pattern.New(`/name/:id`)
 
 	param, state := r.Validate(`/name/12`)
 	if !state {
@@ -67,19 +62,21 @@ func TestClassicMuxPicker(t *testing.T) {
 
 }
 
-func TestClassicMux(t *testing.T) {
-	cpattern := `/name/{id:[\d+]}/`
+func TestHashedPattern(t *testing.T) {
+	r := pattern.New(`/github.com/influx6/examples#views`)
 
-	r := pattern.New(cpattern)
-
-	if r == nil {
-		t.Fatalf("invalid array: %+s", r)
+	param, state := r.Validate(`/github.com/influx6/examples/views`)
+	if !state {
+		t.Fatalf("incorrect pattern: %+s %t", param, state)
 	}
+}
+
+func TestRegExpPattern(t *testing.T) {
+	r := pattern.New(`/name/{id:[\d+]}/`)
 
 	param, state := r.Validate(`/name/12/d`)
 
 	if state {
 		t.Fatalf("incorrect pattern: %+s %t", param, state)
 	}
-
 }
