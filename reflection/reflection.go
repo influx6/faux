@@ -253,6 +253,10 @@ func MergeMap(tag string, elem interface{}, values map[string]interface{}) error
 
 		item := values[field.Tag]
 
+		if item == nil {
+			continue
+		}
+
 		fl := tl.Field(field.Index)
 
 		// If we can't set this field, then skip.
