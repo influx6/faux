@@ -3,6 +3,7 @@ package reflection
 import (
 	"errors"
 	"reflect"
+	"strings"
 )
 
 // ErrNotFunction is returned when the type is not a reflect.Func.
@@ -139,4 +140,123 @@ func InterfaceFromValues(vals []reflect.Value) []interface{} {
 	}
 
 	return data
+}
+
+//==============================================================================
+
+// ErrNotStruct is returned when the reflect type is not a struct.
+var ErrNotStruct = errors.New("Not a struct type")
+
+// Field defines a specific tag field with its details from a giving struct.
+type Field struct {
+	Name  string
+	Tag   string
+	Type  reflect.Type
+	Index int
+}
+
+// Fields defines a lists of Field instances.
+type Fields []Field
+
+// GetTagFields retrieves all fields of the giving elements with the giving tag
+// type.
+func GetTagFields(elem interface{}, tag string) (Fields, error) {
+	if !IsStruct(elem) {
+		return nil, ErrNotStruct
+	}
+
+	tl := reflect.TypeOf(elem)
+
+	if tl.Kind() == reflect.Ptr {
+		tl = tl.Elem()
+	}
+
+	var fields Fields
+
+	for i := 0; i < tl.NumField(); i++ {
+		field := tl.Field(i)
+
+		// Get the specified tag from this field if it exists.
+		tagVal := strings.TrimSpace(field.Tag.Get(tag))
+
+		// If its a - item in the tag then skip or if its an empty string.
+		if tagVal == "-" || tagVal == "" {
+			continue
+		}
+
+		fields = append(fields, Field{
+			Name:  field.Name,
+			Type:  field.Type,
+			Index: i,
+			Tag:   tagVal,
+		})
+	}
+
+	return fields, nil
+}
+
+// MergeMap merges the key names of the provided map into the appropriate field
+// place where the element has the provided tag.
+func MergeMap(tag string, elem interface{}, values map[string]interface{}) error {
+
+	// Collect the fields that match the giving tag.
+	fields, err := GetTagFields(elem, tag)
+	if err != nil {
+		return err
+	}
+
+	// If there exists no field matching the tag skip.
+	if len(fields) == 0 {
+		return nil
+	}
+
+	tl := reflect.ValueOf(elem)
+
+	if tl.Kind() == reflect.Ptr {
+		tl = tl.Elem()
+	}
+
+	// Loop through  the fields and set the appropriate value as needed.
+	for _, field := range fields {
+
+		item := values[field.Tag]
+
+		fl := tl.Field(field.Index)
+
+		// If we can't set this field, then skip.
+		if !fl.CanSet() {
+			continue
+		}
+
+		fl.Set(reflect.ValueOf(item))
+	}
+
+	return nil
+}
+
+// IsStruct returns true/false if the elem provided is a type of struct.
+func IsStruct(elem interface{}) bool {
+	mc := reflect.TypeOf(elem)
+
+	if mc.Kind() == reflect.Ptr {
+		mc = mc.Elem()
+	}
+
+	if mc.Kind() != reflect.Struct {
+		return false
+	}
+
+	return true
+}
+
+// MakeNew returns a new version of the giving type, returning a nonpointer type.
+// If the type is not a struct then an error is returned.
+func MakeNew(elem interface{}) (interface{}, error) {
+	mc := reflect.TypeOf(elem)
+
+	if mc.Kind() != reflect.Struct {
+		return nil, ErrNotStruct
+	}
+
+	return reflect.New(mc).Interface(), nil
 }
