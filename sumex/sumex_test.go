@@ -68,8 +68,8 @@ func TestStreams(t *testing.T) {
 
 	ws := sumex.New(3, writer{})
 	rs := ws.Stream(sumex.New(3, reader{}))
-	rc := sumex.Receive(rs)
-	erc := sumex.ReceiveError(rs)
+	rc, _ := sumex.Receive(rs)
+	erc, _ := sumex.ReceiveError(rs)
 
 	defer ws.Shutdown()
 	defer rs.Shutdown()
@@ -108,7 +108,7 @@ func BenchmarkOneWorkerStreams(t *testing.B) {
 	t.ReportAllocs()
 	for i := 0; i < t.N; i++ {
 		ws := sumex.New(1, writer{})
-		rc := sumex.Receive(ws)
+		rc, _ := sumex.Receive(ws)
 
 		defer ws.Shutdown()
 
@@ -127,7 +127,7 @@ func BenchmarkNWorkerStreams(t *testing.B) {
 	t.ReportAllocs()
 	for i := 0; i < t.N; i++ {
 		ws := sumex.New(40, writer{})
-		rc := sumex.Receive(ws)
+		rc, _ := sumex.Receive(ws)
 
 		defer ws.Shutdown()
 

@@ -278,18 +278,37 @@ func (s *Stream) initEW() {
 	}
 }
 
+//==========================================================================================
+
 // ProcHandler defines a base function type for sumex streams.
 type ProcHandler func(interface{}, error) (interface{}, error)
 
 // Do creates a new stream from a function provided
 func Do(sm Streams, workers int, h ProcHandler) Streams {
+
 	if h == nil {
 		panic("nil ProcHandler")
 	}
+
 	ms := New(workers, doworker{h})
-	sm.Stream(ms)
+
+	if sm != nil {
+		sm.Stream(ms)
+	}
+
 	return ms
 }
+
+//==========================================================================================
+
+// Identity returns a stream which returns what it recieves as output.
+func Identity(w int) Streams {
+	return Do(nil, w, func(d interface{}, err error) (interface{}, error) {
+		return d, err
+	})
+}
+
+//==========================================================================================
 
 // doworker provides a proxy structure matching the Proc interface.
 // Calls the provided ProcHandler underneath its Do method.
@@ -302,10 +321,12 @@ func (do doworker) Do(d interface{}, err error) (interface{}, error) {
 	return do.p(d, err)
 }
 
+//==========================================================================================
+
 // Receive returns a receive-only blocking chan which returns
 // all data items from a giving stream.
 // The returned channel gets closed along  with the stream
-func Receive(sm Streams) <-chan interface{} {
+func Receive(sm Streams) (<-chan interface{}, Streams) {
 	mc := make(chan interface{})
 
 	ms := Do(sm, 1, func(d interface{}, _ error) (interface{}, error) {
@@ -319,13 +340,13 @@ func Receive(sm Streams) <-chan interface{} {
 		close(mc)
 	}()
 
-	return mc
+	return mc, ms
 }
 
 // ReceiveError returns a receive-only blocking chan which returns all error
 // items from a giving stream.
 // The returned channel gets closed along  with the stream
-func ReceiveError(sm Streams) <-chan error {
+func ReceiveError(sm Streams) (<-chan error, Streams) {
 	mc := make(chan error)
 
 	ms := Do(sm, 1, func(_ interface{}, e error) (interface{}, error) {
@@ -341,5 +362,7 @@ func ReceiveError(sm Streams) <-chan error {
 		close(mc)
 	}()
 
-	return mc
+	return mc, ms
 }
+
+//==========================================================================================
