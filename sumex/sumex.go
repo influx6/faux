@@ -220,6 +220,10 @@ func (s *Stream) initDW() {
 				return nil
 			}
 
+			if res == nil {
+				return nil
+			}
+
 			atomic.AddInt64(&s.processed, 1)
 			s.send(res)
 			return nil
@@ -259,6 +263,10 @@ func (s *Stream) initEW() {
 			if err != nil {
 				atomic.AddInt64(&s.processed, 1)
 				s.sendError(err)
+				return nil
+			}
+
+			if res == nil {
 				return nil
 			}
 

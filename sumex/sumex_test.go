@@ -22,8 +22,9 @@ func (w writer) Do(value interface{}, err error) (interface{}, error) {
 
 	json, err := json.Marshal(value)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
+
 	return json, nil
 }
 
