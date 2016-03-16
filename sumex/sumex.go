@@ -128,7 +128,7 @@ func (s *Stream) CloseNotify() <-chan struct{} {
 }
 
 // Stream provides a pipe which adds a new receiver of data to the provided
-// stream. Returns the supplied stream.
+// stream. Returns the supplied stream receiver.
 func (s *Stream) Stream(sm Streams) Streams {
 	s.pl.Lock()
 	defer s.pl.Unlock()

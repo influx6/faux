@@ -1,6 +1,7 @@
 package panics
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"runtime"
@@ -86,6 +87,30 @@ func RecoverHandler(tag string, opFunc func() error, recoFunc func(interface{}))
 	}
 
 	return nil
+}
+
+// DeferReport provides a recovery handler functions for use to automate
+// the recovery processes and logs out any panic that occurs.
+func DeferReport(op func(), logfn func(*bytes.Buffer)) {
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				if logfn != nil {
+					var data bytes.Buffer
+					trace := make([]byte, 10000)
+					runtime.Stack(trace, true)
+					data.Write([]byte("----------------------------------------------------------------"))
+					data.Write([]byte(fmt.Sprintf("Error: %+v\n", err)))
+					data.Write([]byte("----------------------------------------------------------------"))
+					data.Write(trace)
+					data.Write([]byte("----------------------------------------------------------------"))
+					logfn(&data)
+				}
+			}
+		}()
+
+		op()
+	}()
 }
 
 // LogRecoverHandler provides a recovery handler functions for use to automate
