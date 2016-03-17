@@ -89,6 +89,33 @@ func RecoverHandler(tag string, opFunc func() error, recoFunc func(interface{}))
 	return nil
 }
 
+// Defer provides a recovery handler functions for use to automate
+// the recovery processes and logs out any panic that occurs.
+func Defer(op func(), logfn func(*bytes.Buffer)) {
+	defer func() {
+		if err := recover(); err != nil {
+			if logfn != nil {
+				var data bytes.Buffer
+				trace := make([]byte, 10000)
+				runtime.Stack(trace, true)
+				data.Write([]byte("----------------------------------------------------------------"))
+				data.Write([]byte("\n"))
+				data.Write([]byte(fmt.Sprintf("Error: %+v\n", err)))
+				data.Write([]byte("\n"))
+				data.Write([]byte("----------------------------------------------------------------"))
+				data.Write([]byte("\n"))
+				data.Write(trace)
+				data.Write([]byte("\n"))
+				data.Write([]byte("----------------------------------------------------------------"))
+				data.Write([]byte("\n"))
+				logfn(&data)
+			}
+		}
+	}()
+
+	op()
+}
+
 // DeferReport provides a recovery handler functions for use to automate
 // the recovery processes and logs out any panic that occurs.
 func DeferReport(op func(), logfn func(*bytes.Buffer)) {
