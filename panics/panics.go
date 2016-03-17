@@ -100,10 +100,15 @@ func DeferReport(op func(), logfn func(*bytes.Buffer)) {
 					trace := make([]byte, 10000)
 					runtime.Stack(trace, true)
 					data.Write([]byte("----------------------------------------------------------------"))
+					data.Write([]byte("\n"))
 					data.Write([]byte(fmt.Sprintf("Error: %+v\n", err)))
+					data.Write([]byte("\n"))
 					data.Write([]byte("----------------------------------------------------------------"))
+					data.Write([]byte("\n"))
 					data.Write(trace)
+					data.Write([]byte("\n"))
 					data.Write([]byte("----------------------------------------------------------------"))
+					data.Write([]byte("\n"))
 					logfn(&data)
 				}
 			}
