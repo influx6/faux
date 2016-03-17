@@ -66,8 +66,8 @@ func TestStreams(t *testing.T) {
 
 	monsterName := "Willow"
 
-	ws := sumex.New(3, writer{})
-	rs := ws.Stream(sumex.New(3, reader{}))
+	ws := sumex.New(3, nil, writer{})
+	rs := ws.Stream(sumex.New(3, nil, reader{}))
 	rc, _ := sumex.Receive(rs)
 	erc, _ := sumex.ReceiveError(rs)
 
@@ -107,7 +107,7 @@ func BenchmarkOneWorkerStreams(t *testing.B) {
 	t.ResetTimer()
 	t.ReportAllocs()
 	for i := 0; i < t.N; i++ {
-		ws := sumex.New(1, writer{})
+		ws := sumex.New(1, nil, writer{})
 		rc, _ := sumex.Receive(ws)
 
 		defer ws.Shutdown()
@@ -126,7 +126,7 @@ func BenchmarkNWorkerStreams(t *testing.B) {
 	t.ResetTimer()
 	t.ReportAllocs()
 	for i := 0; i < t.N; i++ {
-		ws := sumex.New(40, writer{})
+		ws := sumex.New(40, nil, writer{})
 		rc, _ := sumex.Receive(ws)
 
 		defer ws.Shutdown()
