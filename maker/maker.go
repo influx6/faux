@@ -43,8 +43,8 @@ type Maker struct {
 	makers    map[string]*Meta
 }
 
-// NewMaker returns a new Maker instance.
-func NewMaker(t Transform) *Maker {
+// New returns a new Maker instance.
+func New(t Transform) *Maker {
 	if t == nil {
 		t = Identity
 	}
