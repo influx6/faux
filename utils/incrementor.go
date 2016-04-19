@@ -5,12 +5,16 @@ import (
 	"sync/atomic"
 )
 
+//==============================================================================
+
 // Incr provides a struct which houses a ever-increasing ID.
 type Incr struct {
 	uuid  string
 	steps int64
 	add   int64
 }
+
+//==============================================================================
 
 // NewIncr returns a new instance of the Incr struct.
 // Its one arguments allows you to set the starting point for the
@@ -37,6 +41,8 @@ func NewIncrBy(point int, by int) *Incr {
 
 	return &in
 }
+
+//==============================================================================
 
 // New returns a new ID from the incrementer.
 func (in *Incr) New() string {
