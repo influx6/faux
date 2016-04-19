@@ -19,9 +19,9 @@ type Incr struct {
 // NewIncr returns a new instance of the Incr struct.
 // Its one arguments allows you to set the starting point for the
 // counter.
-func NewIncr(point int) *Incr {
+func NewIncr(tag string, point int) *Incr {
 	in := Incr{
-		uuid:  UUID(),
+		uuid:  tag,
 		steps: int64(point),
 		add:   1,
 	}
@@ -32,9 +32,9 @@ func NewIncr(point int) *Incr {
 // NewIncrBy returns a new instance of the Incr struct.
 // It allos you to provide a starting point and incrementer value
 // for how the values increases over time.
-func NewIncrBy(point int, by int) *Incr {
+func NewIncrBy(tag string, point int, by int) *Incr {
 	in := Incr{
-		uuid:  UUID(),
+		uuid:  tag,
 		steps: int64(point),
 		add:   int64(by),
 	}
