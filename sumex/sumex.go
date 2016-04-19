@@ -6,10 +6,12 @@ package sumex
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
 
+	"github.com/influx6/faux/context"
 	"github.com/influx6/faux/panics"
 	"github.com/satori/go.uuid"
 )
@@ -39,6 +41,13 @@ func (l eventlog) Error(context interface{}, name string, err error, message str
 
 //==============================================================================
 
+// Proc defines a interface for processors for sumex streams.
+type Proc interface {
+	Do(context.Context, error, interface{}) (interface{}, error)
+}
+
+//==============================================================================
+
 // Stat defines the current capacity workings of
 type Stat struct {
 	TotalWorkersRunning int64
@@ -48,33 +57,66 @@ type Stat struct {
 	Closed              int64
 }
 
-// Streams define a pipeline operation for applying operations to
+// Stream define a pipeline operation for applying operations to
 // data streams.
-type Streams interface {
-	Inject(interface{})
-	InjectError(error)
-	Stream(Streams) Streams
+type Stream interface {
 	Stats() Stat
 	UUID() string
-	Logger() Log
+	Log() Log
 	Shutdown()
+	Stream(Stream) Stream
 	CloseNotify() <-chan struct{}
+	Error(context.Context, error)
+	Data(context.Context, interface{})
 }
 
-// Proc defines a interface for processors for sumex streams.
-type Proc interface {
-	Do(interface{}, error) (interface{}, error)
+//==============================================================================
+
+// payload defines the payload being injected into the system.
+type payload struct {
+	err error
+	d   interface{}
+	ctx context.Context
 }
 
 // dataSink provides a interface{} channel type.
-type dataSink chan interface{}
+type dataSink chan *payload
 
-// errorSink provies an error channel type.
-type errorSink chan error
+//==============================================================================
 
-// Stream defines a structure that implements the Streams interface, providing
+// New returns a new Stream compliant instance.
+func New(l Log, w int, p Proc) Stream {
+	if w <= 0 {
+		w = 1
+	}
+
+	if l == nil {
+		l = events
+	}
+
+	sm := stream{
+		log:     l,
+		uuid:    uuid.NewV4().String(),
+		workers: w,
+		proc:    p,
+		data:    make(dataSink),
+		nc:      make(chan struct{}),
+		// ctx:     context.New(),
+	}
+
+	// initialize the total data workers needed.
+	for i := 0; i < w; i++ {
+		go sm.worker()
+	}
+
+	return &sm
+}
+
+//==============================================================================
+
+// stream defines a structure that implements the Stream interface, providing
 // a basic building block for stream operation.
-type Stream struct {
+type stream struct {
 	log  Log
 	uuid string
 
@@ -85,46 +127,18 @@ type Stream struct {
 	workersUp            int64
 	workers              int
 	proc                 Proc
+	ctx                  context.Context
 
 	data dataSink
-	err  errorSink
 	nc   chan struct{}
 
 	wg   sync.WaitGroup
 	pl   sync.RWMutex
-	pubs []Streams // list of listeners.
-}
-
-// New returns a new Streams compliant instance.
-func New(w int, l Log, p Proc) Streams {
-	if w <= 0 {
-		w = 1
-	}
-
-	if l == nil {
-		l = events
-	}
-
-	sm := Stream{
-		log:     l,
-		uuid:    uuid.NewV4().String(),
-		workers: w,
-		proc:    p,
-		data:    make(dataSink),
-		err:     make(errorSink),
-		nc:      make(chan struct{}),
-	}
-
-	// initialize the total data workers needed.
-	for i := 0; i < w; i++ {
-		go sm.initDW()
-	}
-
-	return &sm
+	pubs []Stream // list of listeners.
 }
 
 // Stats reports the current operational status of the streamer
-func (s *Stream) Stats() Stat {
+func (s *stream) Stats() Stat {
 	return Stat{
 		TotalWorkersRunning: atomic.LoadInt64(&s.workersUp),
 		TotalWorkers:        int64(s.workers + 1),
@@ -134,44 +148,42 @@ func (s *Stream) Stats() Stat {
 	}
 }
 
-// Logger returns the internal logger for this stream.
-func (s *Stream) Logger() Log {
+// Log returns the internal logger for this stream.
+func (s *stream) Log() Log {
 	return s.log
 }
 
 // Shutdown closes the data and error channels.
-func (s *Stream) Shutdown() {
-	s.log.Log("Sumex.Streams", "Shutdown", "Started : Shutdown Requested")
-	if atomic.LoadInt64(&s.closed) == 0 {
-		s.log.Log("Sumex.Streams", "Stats", "Info : Shutdown Request : Previously Done")
+func (s *stream) Shutdown() {
+	s.log.Log("Sumex.Stream", "Shutdown", "Started : Shutdown Requested")
+	if atomic.LoadInt64(&s.closed) > 0 {
+		s.log.Log("Sumex.Stream", "Stats", "Completed : Shutdown Request : Previously Done")
 		return
 	}
 
-	if pen := atomic.LoadInt64(&s.pending); pen > 0 {
-		s.log.Log("Sumex.Streams", "Shutdown", "Info : Pending : %d", pen)
-		atomic.StoreInt64(&s.shutdownAfterpending, 1)
-		atomic.StoreInt64(&s.closed, 1)
-	}
+	defer close(s.nc)
 
-	s.log.Log("Sumex.Streams", "Shutdown", "Started : WaitGroup.Wait()")
-	s.wg.Wait()
-	s.log.Log("Sumex.Streams", "Shutdown", "Completed : WaitGroup.Wait()")
-
-	close(s.data)
-	close(s.err)
-	close(s.nc)
 	atomic.StoreInt64(&s.closed, 1)
-	s.log.Log("Sumex.Streams", "Shutdown", "Completed : Shutdown Requested")
+
+	atomic.AddInt64(&s.pending, 1)
+	{
+		close(s.data)
+	}
+	atomic.AddInt64(&s.pending, -1)
+
+	s.wg.Wait()
+
+	s.log.Log("Sumex.Stream", "Shutdown", "Completed : Shutdown Requested")
 }
 
 // CloseNotify returns a chan used to shutdown the close of a stream.
-func (s *Stream) CloseNotify() <-chan struct{} {
+func (s *stream) CloseNotify() <-chan struct{} {
 	return s.nc
 }
 
 // Stream provides a pipe which adds a new receiver of data to the provided
 // stream. Returns the supplied stream receiver.
-func (s *Stream) Stream(sm Streams) Streams {
+func (s *stream) Stream(sm Stream) Stream {
 	s.pl.Lock()
 	defer s.pl.Unlock()
 	s.pubs = append(s.pubs, sm)
@@ -179,131 +191,87 @@ func (s *Stream) Stream(sm Streams) Streams {
 }
 
 // UUID returns a UUID string for the given stream.
-func (s *Stream) UUID() string {
+func (s *stream) UUID() string {
 	return s.uuid
 }
 
-// Inject pipes in a new data for execution by the stream into its data channel.
-func (s *Stream) Inject(d interface{}) {
+// Data sends in data for execution by the stream into its data channel.
+// It allows providing an optional context which would be passed into the
+// internal processor else using the default context of the stream.
+func (s *stream) Data(ctx context.Context, d interface{}) {
 	if atomic.LoadInt64(&s.closed) > 0 {
 		return
 	}
 
-	s.log.Log("sumex.Streams", "Inject", "Started : Data Recieved : %s", fmt.Sprintf("%+v", d))
+	s.log.Log("sumex.Stream", "Data", "Started : Data Recieved : %s", fmt.Sprintf("%+v", d))
 	atomic.AddInt64(&s.pending, 1)
 	{
-		s.data <- d
+		s.data <- &payload{ctx: ctx, d: d}
 	}
 	atomic.AddInt64(&s.pending, -1)
-	s.log.Log("sumex.Streams", "Inject", "Completed")
+	s.log.Log("sumex.Stream", "Data", "Completed")
 }
 
-// InjectError pipes in a new data for execution by the stream
+// Error pipes in a new data for execution by the stream
 // into its err channel.
-func (s *Stream) InjectError(e error) {
+func (s *stream) Error(ctx context.Context, e error) {
 	if atomic.LoadInt64(&s.closed) != 0 {
 		return
 	}
 
-	s.log.Error("sumex.Streams", "InjectError", e, "Started : Error Recieved : %s", fmt.Sprintf("%+v", e))
+	s.log.Error("sumex.Stream", "Error", e, "Started : Error Recieved : %s", fmt.Sprintf("%+v", e))
 	atomic.AddInt64(&s.pending, 1)
 	{
-		s.err <- e
+		s.data <- &payload{ctx: ctx, err: e}
 	}
 	atomic.AddInt64(&s.pending, -1)
-	s.log.Log("sumex.Streams", "InjectError", "Completed")
+	s.log.Log("sumex.Stream", "Error", "Completed")
 }
 
-// sendError delivers the an error to all registered streamers.
-func (s *Stream) sendError(e error) {
-	s.log.Log("sumex.Streams", "sendError", "Started : %+s", e)
-	s.pl.RLock()
-	for _, sm := range s.pubs {
-		go sm.InjectError(e)
-	}
-	s.pl.RUnlock()
-	s.log.Log("sumex.Streams", "sendError", "Completed")
-}
-
-// send delivers the data to all registered streamers.
-func (s *Stream) send(d interface{}) {
-	s.log.Log("sumex.Streams", "send", "Started : %s", fmt.Sprintf("%+v", d))
-	s.pl.RLock()
-	for _, sm := range s.pubs {
-		go sm.Inject(d)
-	}
-	s.pl.RUnlock()
-	s.log.Log("sumex.Streams", "send", "Completed")
-}
-
-// initDW initializes data workers for stream.
-func (s *Stream) initDW() {
-	defer func() {
-		s.log.Log("sumex.Streams", "initDW", "Started : Goroutine : Shutdown")
-		s.wg.Done()
-		atomic.AddInt64(&s.workersUp, -1)
-		s.log.Log("sumex.Streams", "initDW", "Completed : Goroutine : Shutdown")
-	}()
+// worker initializes data workers for stream.
+func (s *stream) worker() {
+	defer s.wg.Done()
+	defer atomic.AddInt64(&s.workersUp, -1)
 
 	s.wg.Add(1)
 	atomic.AddInt64(&s.workersUp, 1)
 
-	for {
-
-		if atomic.LoadInt64(&s.closed) > 0 && atomic.LoadInt64(&s.shutdownAfterpending) < 1 {
-			s.log.Log("sumex.Streams", "initDW", "Closed : ShutDown Request Pending")
-			break
-		}
-
-		// if we are to shutdown after pending and pending is now zero then
-		if atomic.LoadInt64(&s.shutdownAfterpending) > 0 && atomic.LoadInt64(&s.pending) < 1 {
-			s.log.Log("sumex.Streams", "initDW", "Closed : ShutDown Request : No Pending")
-			break
-		}
-
-		var d interface{}
-		var e error
-		var ok bool
-
-		select {
-		case d, ok = <-s.data:
-		case e, ok = <-s.err:
-		}
-
-		if !ok {
-			break
-		}
-
-		if e != nil {
-			s.log.Error("sumex.Streams", "initDW", e, "Received Data")
-		}
-
+	for load := range s.data {
 		panics.Defer(func() {
-			res, err := s.proc.Do(d, e)
+			res, err := s.proc.Do(load.ctx, load.err, load.d)
+			s.log.Log("sumex.Stream", "worker", "Info : Res : { Response: %+s, Error: %+s}", res, err)
+
+			atomic.AddInt64(&s.processed, 1)
+
+			s.pl.RLock()
+			defer s.pl.RUnlock()
+
 			if err != nil {
-				atomic.AddInt64(&s.processed, 1)
-				s.sendError(err)
+				for _, sm := range s.pubs {
+					go sm.Error(load.ctx, err)
+				}
 				return
 			}
 
-			if res != nil {
-				atomic.AddInt64(&s.processed, 1)
-				s.send(res)
+			for _, sm := range s.pubs {
+				go sm.Data(load.ctx, res)
 			}
-		}, func(d *bytes.Buffer) {
-			fmt.Println(d.String())
-		})
 
+		}, func(d *bytes.Buffer) {
+			s.Log().Error("sumex.Stream", "worker", errors.New("Panic"), "Panic : %+s", d.Bytes())
+		})
 	}
+
+	s.log.Log("sumex.Stream", "worker", "Info : Goroutine : Shutdown")
 }
 
 //==========================================================================================
 
 // ProcHandler defines a base function type for sumex streams.
-type ProcHandler func(interface{}, error) (interface{}, error)
+type ProcHandler func(context.Context, error, interface{}) (interface{}, error)
 
 // Do creates a new stream from a function provided
-func Do(sm Streams, workers int, h ProcHandler) Streams {
+func Do(sm Stream, workers int, h ProcHandler) Stream {
 
 	if h == nil {
 		panic("nil ProcHandler")
@@ -315,7 +283,7 @@ func Do(sm Streams, workers int, h ProcHandler) Streams {
 		log = events
 	}
 
-	ms := New(workers, log, doworker{h})
+	ms := New(log, workers, doworker{h})
 
 	if sm != nil {
 		sm.Stream(ms)
@@ -327,8 +295,8 @@ func Do(sm Streams, workers int, h ProcHandler) Streams {
 //==========================================================================================
 
 // Identity returns a stream which returns what it recieves as output.
-func Identity(w int, l Log) Streams {
-	return Do(nil, w, func(d interface{}, err error) (interface{}, error) {
+func Identity(w int, l Log) Stream {
+	return Do(nil, w, func(ctx context.Context, err error, d interface{}) (interface{}, error) {
 		return d, err
 	})
 }
@@ -342,8 +310,8 @@ type doworker struct {
 }
 
 // Do provide a proxy caller for the handler registered to it.
-func (do doworker) Do(d interface{}, err error) (interface{}, error) {
-	return do.p(d, err)
+func (do doworker) Do(ctx context.Context, err error, d interface{}) (interface{}, error) {
+	return do.p(ctx, err, d)
 }
 
 //==========================================================================================
@@ -351,10 +319,10 @@ func (do doworker) Do(d interface{}, err error) (interface{}, error) {
 // Receive returns a receive-only blocking chan which returns
 // all data items from a giving stream.
 // The returned channel gets closed along  with the stream
-func Receive(sm Streams) (<-chan interface{}, Streams) {
+func Receive(sm Stream) (<-chan interface{}, Stream) {
 	mc := make(chan interface{})
 
-	ms := Do(sm, 1, func(d interface{}, _ error) (interface{}, error) {
+	ms := Do(sm, 1, func(ctx context.Context, _ error, d interface{}) (interface{}, error) {
 		mc <- d
 		return nil, nil
 	})
@@ -371,10 +339,10 @@ func Receive(sm Streams) (<-chan interface{}, Streams) {
 // ReceiveError returns a receive-only blocking chan which returns all error
 // items from a giving stream.
 // The returned channel gets closed along  with the stream
-func ReceiveError(sm Streams) (<-chan error, Streams) {
+func ReceiveError(sm Stream) (<-chan error, Stream) {
 	mc := make(chan error)
 
-	ms := Do(sm, 1, func(_ interface{}, e error) (interface{}, error) {
+	ms := Do(sm, 1, func(ctx context.Context, e error, _ interface{}) (interface{}, error) {
 		if e != nil {
 			mc <- e
 		}

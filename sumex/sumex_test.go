@@ -6,16 +6,36 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/ardanlabs/kit/tests"
+	"github.com/influx6/faux/context"
 	"github.com/influx6/faux/sumex"
 )
+
+//==============================================================================
+var events eventlog
+
+// logg provides a concrete implementation of a logger.
+type eventlog struct{}
+
+// Log logs all standard log reports.
+func (l eventlog) Log(context interface{}, name string, message string, data ...interface{}) {
+	fmt.Printf("Log: %s : %s : %s : %s\n", context, "DEV", name, fmt.Sprintf(message, data...))
+}
+
+// Error logs all error reports.
+func (l eventlog) Error(context interface{}, name string, err error, message string, data ...interface{}) {
+	fmt.Printf("Error: %s : %s : %s : %s : Error %s\n", context, "DEV", name, fmt.Sprintf(message, data...), err)
+}
+
+//==============================================================================
 
 type writer struct{}
 
 // Do writes returns a giving value as a byte slice else returns a non-nil error.
 // Uses json.Marshal internally.
-func (w writer) Do(value interface{}, err error) (interface{}, error) {
+func (w writer) Do(ctx context.Context, err error, value interface{}) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -28,11 +48,12 @@ func (w writer) Do(value interface{}, err error) (interface{}, error) {
 	return json, nil
 }
 
+//==============================================================================
 type reader struct{}
 
 // Do takes a expected value as string and returns the internal expected
 // structure else returns a non-nil error.
-func (r reader) Do(value interface{}, err error) (interface{}, error) {
+func (r reader) Do(ctx context.Context, err error, value interface{}) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -50,6 +71,8 @@ func (r reader) Do(value interface{}, err error) (interface{}, error) {
 	return d, nil
 }
 
+//==============================================================================
+
 // basic structure we expect
 type monster struct {
 	Name string
@@ -66,15 +89,12 @@ func TestStreams(t *testing.T) {
 
 	monsterName := "Willow"
 
-	ws := sumex.New(3, nil, writer{})
-	rs := ws.Stream(sumex.New(3, nil, reader{}))
+	ws := sumex.New(events, 3, writer{})
+	rs := ws.Stream(sumex.New(events, 3, reader{}))
 	rc, _ := sumex.Receive(rs)
 	erc, _ := sumex.ReceiveError(rs)
 
-	defer ws.Shutdown()
-	defer rs.Shutdown()
-
-	ws.Inject(&monster{Name: monsterName})
+	ws.Data(nil, &monster{Name: monsterName})
 
 	var res interface{}
 	var err error
@@ -92,7 +112,7 @@ func TestStreams(t *testing.T) {
 	t.Logf("\t%s\tShould have received monster with Name[%s]", tests.Success, monsterName)
 
 	ex := errors.New("Bad Data")
-	ws.InjectError(ex)
+	ws.Error(nil, ex)
 
 	err, ok = <-erc
 	if err == nil {
@@ -100,6 +120,22 @@ func TestStreams(t *testing.T) {
 	}
 	t.Logf("\t%s\tShould have received an error(%s) from stream", tests.Success, ex)
 
+	ws.Shutdown()
+	rs.Shutdown()
+
+	select {
+	case <-ws.CloseNotify():
+		t.Logf("\t%s\tShould have closed first stream properly", tests.Success)
+	case <-time.After(30 * time.Second):
+		t.Errorf("\t%s\tShould have closed first stream properly", tests.Failed)
+	}
+
+	select {
+	case <-rs.CloseNotify():
+		t.Logf("\t%s\tShould have closed second stream properly", tests.Success)
+	case <-time.After(30 * time.Second):
+		t.Errorf("\t%s\tShould have closed second stream properly", tests.Failed)
+	}
 }
 
 // BenchmarkStreams measures the performance of streamers using one worker.
@@ -107,13 +143,13 @@ func BenchmarkOneWorkerStreams(t *testing.B) {
 	t.ResetTimer()
 	t.ReportAllocs()
 	for i := 0; i < t.N; i++ {
-		ws := sumex.New(1, nil, writer{})
+		ws := sumex.New(nil, 1, writer{})
 		rc, _ := sumex.Receive(ws)
 
 		defer ws.Shutdown()
 
 		for j := 0; j < 10; j++ {
-			go ws.Inject(&monster{Name: fmt.Sprintf("%d", j)})
+			go ws.Data(nil, &monster{Name: fmt.Sprintf("%d", j)})
 		}
 
 		<-rc
@@ -126,13 +162,13 @@ func BenchmarkNWorkerStreams(t *testing.B) {
 	t.ResetTimer()
 	t.ReportAllocs()
 	for i := 0; i < t.N; i++ {
-		ws := sumex.New(40, nil, writer{})
+		ws := sumex.New(nil, 40, writer{})
 		rc, _ := sumex.Receive(ws)
 
 		defer ws.Shutdown()
 
 		for j := 0; j < 10; j++ {
-			go ws.Inject(&monster{Name: fmt.Sprintf("%d", j)})
+			go ws.Data(nil, &monster{Name: fmt.Sprintf("%d", j)})
 		}
 
 		<-rc
