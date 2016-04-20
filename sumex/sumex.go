@@ -48,6 +48,8 @@ type Proc interface {
 
 //==============================================================================
 
+//==============================================================================
+
 // Stat defines the current capacity workings of
 type Stat struct {
 	TotalWorkersRunning int64
@@ -62,7 +64,7 @@ type Stat struct {
 type Stream interface {
 	Stats() Stat
 	UUID() string
-	Log() Log
+	Logs() Log
 	Shutdown()
 	Stream(Stream) Stream
 	CloseNotify() <-chan struct{}
@@ -84,28 +86,45 @@ type dataSink chan *payload
 
 //==============================================================================
 
+// Worker defines a configuration interface for sumex.Streams.
+type Worker struct {
+	Max func() int
+	Min func() int
+	Log Log
+}
+
+var minFn = func() int { return 1 }
+var maxFn = func() int { return 2 }
+
 // New returns a new Stream compliant instance.
-func New(l Log, w int, p Proc) Stream {
-	if w <= 0 {
-		w = 1
+func New(w *Worker, p Proc) Stream {
+	if w == nil {
+		w = (*Worker)(nil)
 	}
 
-	if l == nil {
-		l = events
+	if w.Min == nil || w.Min() <= 0 {
+		w.Min = minFn
+	}
+
+	if w.Max == nil {
+		w.Max = maxFn
+	}
+
+	if w.Log == nil {
+		w.Log = events
 	}
 
 	sm := stream{
-		log:     l,
-		uuid:    uuid.NewV4().String(),
-		workers: w,
-		proc:    p,
-		data:    make(dataSink),
-		nc:      make(chan struct{}),
-		ctx:     context.New(),
+		Worker: w,
+		uuid:   uuid.NewV4().String(),
+		proc:   p,
+		data:   make(dataSink),
+		nc:     make(chan struct{}),
+		ctx:    context.New(),
 	}
 
 	// initialize the total data workers needed.
-	for i := 0; i < w; i++ {
+	for i := 0; i < sm.Min(); i++ {
 		go sm.worker()
 	}
 
@@ -117,7 +136,7 @@ func New(l Log, w int, p Proc) Stream {
 // stream defines a structure that implements the Stream interface, providing
 // a basic building block for stream operation.
 type stream struct {
-	log  Log
+	*Worker
 	uuid string
 
 	closed               int64
@@ -149,15 +168,15 @@ func (s *stream) Stats() Stat {
 }
 
 // Log returns the internal logger for this stream.
-func (s *stream) Log() Log {
-	return s.log
+func (s *stream) Logs() Log {
+	return s.Log
 }
 
 // Shutdown closes the data and error channels.
 func (s *stream) Shutdown() {
-	s.log.Log("Sumex.Stream", "Shutdown", "Started : Shutdown Requested")
+	s.Log.Log("Sumex.Stream", "Shutdown", "Started : Shutdown Requested")
 	if atomic.LoadInt64(&s.closed) > 0 {
-		s.log.Log("Sumex.Stream", "Stats", "Completed : Shutdown Request : Previously Done")
+		s.Log.Log("Sumex.Stream", "Stats", "Completed : Shutdown Request : Previously Done")
 		return
 	}
 
@@ -173,7 +192,7 @@ func (s *stream) Shutdown() {
 
 	s.wg.Wait()
 
-	s.log.Log("Sumex.Stream", "Shutdown", "Completed : Shutdown Requested")
+	s.Log.Log("Sumex.Stream", "Shutdown", "Completed : Shutdown Requested")
 }
 
 // CloseNotify returns a chan used to shutdown the close of a stream.
@@ -207,13 +226,13 @@ func (s *stream) Data(ctx context.Context, d interface{}) {
 		ctx = s.ctx
 	}
 
-	s.log.Log("sumex.Stream", "Data", "Started : Data Recieved : %s", fmt.Sprintf("%+v", d))
+	s.Log.Log("sumex.Stream", "Data", "Started : Data Recieved : %s", fmt.Sprintf("%+v", d))
 	atomic.AddInt64(&s.pending, 1)
 	{
 		s.data <- &payload{ctx: ctx, d: d}
 	}
 	atomic.AddInt64(&s.pending, -1)
-	s.log.Log("sumex.Stream", "Data", "Completed")
+	s.Log.Log("sumex.Stream", "Data", "Completed")
 }
 
 // Error pipes in a new data for execution by the stream
@@ -227,13 +246,13 @@ func (s *stream) Error(ctx context.Context, e error) {
 		ctx = s.ctx
 	}
 
-	s.log.Error("sumex.Stream", "Error", e, "Started : Error Recieved : %s", fmt.Sprintf("%+v", e))
+	s.Log.Error("sumex.Stream", "Error", e, "Started : Error Recieved : %s", fmt.Sprintf("%+v", e))
 	atomic.AddInt64(&s.pending, 1)
 	{
 		s.data <- &payload{ctx: ctx, err: e}
 	}
 	atomic.AddInt64(&s.pending, -1)
-	s.log.Log("sumex.Stream", "Error", "Completed")
+	s.Log.Log("sumex.Stream", "Error", "Completed")
 }
 
 // worker initializes data workers for stream.
@@ -247,7 +266,7 @@ func (s *stream) worker() {
 	for load := range s.data {
 		panics.Defer(func() {
 			res, err := s.proc.Do(load.ctx, load.err, load.d)
-			s.log.Log("sumex.Stream", "worker", "Info : Res : { Response: %+s, Error: %+s}", res, err)
+			s.Log.Log("sumex.Stream", "worker", "Info : Res : { Response: %+s, Error: %+s}", res, err)
 
 			atomic.AddInt64(&s.processed, 1)
 
@@ -266,11 +285,11 @@ func (s *stream) worker() {
 			}
 
 		}, func(d *bytes.Buffer) {
-			s.Log().Error("sumex.Stream", "worker", errors.New("Panic"), "Panic : %+s", d.Bytes())
+			s.Logs().Error("sumex.Stream", "worker", errors.New("Panic"), "Panic : %+s", d.Bytes())
 		})
 	}
 
-	s.log.Log("sumex.Stream", "worker", "Info : Goroutine : Shutdown")
+	s.Log.Log("sumex.Stream", "worker", "Info : Goroutine : Shutdown")
 }
 
 //==========================================================================================
@@ -279,19 +298,13 @@ func (s *stream) worker() {
 type ProcHandler func(context.Context, error, interface{}) (interface{}, error)
 
 // Do creates a new stream from a function provided
-func Do(sm Stream, workers int, h ProcHandler) Stream {
+func Do(sm Stream, w *Worker, h ProcHandler) Stream {
 
 	if h == nil {
 		panic("nil ProcHandler")
 	}
 
-	var log Log
-
-	if sm == nil {
-		log = events
-	}
-
-	ms := New(log, workers, doworker{h})
+	ms := New(w, doworker{h})
 
 	if sm != nil {
 		sm.Stream(ms)
@@ -303,7 +316,7 @@ func Do(sm Stream, workers int, h ProcHandler) Stream {
 //==========================================================================================
 
 // Identity returns a stream which returns what it recieves as output.
-func Identity(w int, l Log) Stream {
+func Identity(w *Worker, l Log) Stream {
 	return Do(nil, w, func(ctx context.Context, err error, d interface{}) (interface{}, error) {
 		return d, err
 	})
@@ -330,7 +343,7 @@ func (do doworker) Do(ctx context.Context, err error, d interface{}) (interface{
 func Receive(sm Stream) (<-chan interface{}, Stream) {
 	mc := make(chan interface{})
 
-	ms := Do(sm, 1, func(ctx context.Context, _ error, d interface{}) (interface{}, error) {
+	ms := Do(sm, nil, func(ctx context.Context, _ error, d interface{}) (interface{}, error) {
 		mc <- d
 		return nil, nil
 	})
@@ -350,7 +363,7 @@ func Receive(sm Stream) (<-chan interface{}, Stream) {
 func ReceiveError(sm Stream) (<-chan error, Stream) {
 	mc := make(chan error)
 
-	ms := Do(sm, 1, func(ctx context.Context, e error, _ interface{}) (interface{}, error) {
+	ms := Do(sm, nil, func(ctx context.Context, e error, _ interface{}) (interface{}, error) {
 		if e != nil {
 			mc <- e
 		}
