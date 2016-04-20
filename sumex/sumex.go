@@ -101,7 +101,7 @@ func New(l Log, w int, p Proc) Stream {
 		proc:    p,
 		data:    make(dataSink),
 		nc:      make(chan struct{}),
-		// ctx:     context.New(),
+		ctx:     context.New(),
 	}
 
 	// initialize the total data workers needed.
@@ -203,6 +203,10 @@ func (s *stream) Data(ctx context.Context, d interface{}) {
 		return
 	}
 
+	if ctx == nil {
+		ctx = s.ctx
+	}
+
 	s.log.Log("sumex.Stream", "Data", "Started : Data Recieved : %s", fmt.Sprintf("%+v", d))
 	atomic.AddInt64(&s.pending, 1)
 	{
@@ -217,6 +221,10 @@ func (s *stream) Data(ctx context.Context, d interface{}) {
 func (s *stream) Error(ctx context.Context, e error) {
 	if atomic.LoadInt64(&s.closed) != 0 {
 		return
+	}
+
+	if ctx == nil {
+		ctx = s.ctx
 	}
 
 	s.log.Error("sumex.Stream", "Error", e, "Started : Error Recieved : %s", fmt.Sprintf("%+v", e))
