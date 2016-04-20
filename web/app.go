@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/dimfeld/httptreemux"
-	"golang.org/influx/faux/context"
+	"github.com/influx/faux/context"
 )
 
 // Handle provides the signature for handler providers.
