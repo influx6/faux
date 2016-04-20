@@ -40,11 +40,15 @@ type App struct {
 }
 
 // New returns a new App instance.
-func New(cors bool, mh ...Middleware) *App {
+func New(cors bool, m map[string]string, mh ...Middleware) *App {
+	if m == nil {
+		m = make(map[string]string)
+	}
+
 	app := App{
 		gm:      mh,
 		tree:    httptreemux.New(),
-		headers: make(map[string]string),
+		headers: m,
 	}
 
 	if cors {
@@ -68,6 +72,11 @@ func New(cors bool, mh ...Middleware) *App {
 // ServeHTTP implements the http.Handler interface which allows us
 // provide a server muxilator.
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if a.headers != nil {
+		for key, val := range a.headers {
+			w.Header().Set(key, val)
+		}
+	}
 	a.tree.ServeHTTP(w, r)
 }
 
