@@ -17,6 +17,18 @@ type Log interface {
 	Error(context interface{}, name string, err error, message string, data ...interface{})
 }
 
+var events eventlog
+
+// logg provides a concrete implementation of a logger.
+type eventlog struct{}
+
+// Log logs all standard log reports.
+func (l eventlog) Log(context interface{}, name string, message string, data ...interface{}) {}
+
+// Error logs all error reports.
+func (l eventlog) Error(context interface{}, name string, err error, message string, data ...interface{}) {
+}
+
 //==============================================================================
 
 // Param defines the map of values to be handled by the provider.
@@ -33,6 +45,7 @@ type Middleware func(Handler) Handler
 // App provides the core provider for creating a server provider using
 // http.Router and the sumex.Stream management system.
 type App struct {
+	log     Log
 	tree    *httptreemux.TreeMux
 	gm      []Middleware
 	options httptreemux.HandlerFunc
@@ -40,12 +53,17 @@ type App struct {
 }
 
 // New returns a new App instance.
-func New(cors bool, m map[string]string, mh ...Middleware) *App {
+func New(l Log, cors bool, m map[string]string, mh ...Middleware) *App {
 	if m == nil {
 		m = make(map[string]string)
 	}
 
+	if l == nil {
+		l = events
+	}
+
 	app := App{
+		log:     l,
 		gm:      mh,
 		tree:    httptreemux.New(),
 		headers: m,
