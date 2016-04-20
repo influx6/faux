@@ -1,11 +1,11 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/dimfeld/httptreemux"
 	"github.com/influx6/faux/context"
-	"github.com/influx6/faux/sumex"
 )
 
 //==============================================================================
@@ -19,8 +19,11 @@ type Log interface {
 
 //==============================================================================
 
+// Param defines the map of values to be handled by the provider.
+type Param map[string]string
+
 // Handler provides the signature for handler providers.
-type Handler func(context.Context, http.ResponseWriter, *http.Request) error
+type Handler func(context.Context, http.ResponseWriter, *http.Request, Param) error
 
 // Middleware defines the middleware signature for creating middlewares.
 type Middleware func(Handler) Handler
@@ -30,7 +33,6 @@ type Middleware func(Handler) Handler
 // App provides the core provider for creating a server provider using
 // http.Router and the sumex.Stream management system.
 type App struct {
-	sumex.Stream
 	tree    *httptreemux.TreeMux
 	gm      []Middleware
 	options httptreemux.HandlerFunc
@@ -38,7 +40,7 @@ type App struct {
 }
 
 // New returns a new App instance.
-func New(l Log, cors bool, w int, mh ...Middleware) *App {
+func New(cors bool, mh ...Middleware) *App {
 	app := App{
 		gm:      mh,
 		tree:    httptreemux.New(),
@@ -59,7 +61,6 @@ func New(l Log, cors bool, w int, mh ...Middleware) *App {
 	}
 
 	app.tree.OptionsHandler = app.options
-	app.Stream = sumex.New(l, w, &app)
 
 	return &app
 }
@@ -72,6 +73,15 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Do performs the needed operation for handling a app-server.
 func (a *App) Do(ctx context.Context, err error, data interface{}) (interface{}, error) {
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	switch data.(type) {
+	case Route:
+		(data.(Route)).Register(ctx, a.tree)
+		return nil, nil
+	default:
+		return nil, errors.New("Unknwon Action")
+	}
 }

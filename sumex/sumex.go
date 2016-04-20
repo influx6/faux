@@ -106,7 +106,7 @@ func New(w *Worker, p Proc) Stream {
 		w.Min = minFn
 	}
 
-	if w.Max == nil {
+	if w.Max == nil || w.Max() <= 0 {
 		w.Max = maxFn
 	}
 
@@ -119,6 +119,7 @@ func New(w *Worker, p Proc) Stream {
 		uuid:   uuid.NewV4().String(),
 		proc:   p,
 		data:   make(dataSink),
+		ender:  make(chan struct{}),
 		nc:     make(chan struct{}),
 		ctx:    context.New(),
 	}
@@ -144,12 +145,12 @@ type stream struct {
 	pending              int64
 	shutdownAfterpending int64
 	workersUp            int64
-	workers              int
 	proc                 Proc
 	ctx                  context.Context
 
-	data dataSink
-	nc   chan struct{}
+	data  dataSink
+	ender chan struct{}
+	nc    chan struct{}
 
 	wg   sync.WaitGroup
 	pl   sync.RWMutex
@@ -159,11 +160,10 @@ type stream struct {
 // Stats reports the current operational status of the streamer
 func (s *stream) Stats() Stat {
 	return Stat{
-		TotalWorkersRunning: atomic.LoadInt64(&s.workersUp),
-		TotalWorkers:        int64(s.workers + 1),
-		Pending:             atomic.LoadInt64(&s.pending),
-		Completed:           atomic.LoadInt64(&s.processed),
-		Closed:              atomic.LoadInt64(&s.closed),
+		TotalWorkers: atomic.LoadInt64(&s.workersUp),
+		Pending:      atomic.LoadInt64(&s.pending),
+		Completed:    atomic.LoadInt64(&s.processed),
+		Closed:       atomic.LoadInt64(&s.closed),
 	}
 }
 
@@ -263,30 +263,40 @@ func (s *stream) worker() {
 	s.wg.Add(1)
 	atomic.AddInt64(&s.workersUp, 1)
 
-	for load := range s.data {
-		panics.Defer(func() {
-			res, err := s.proc.Do(load.ctx, load.err, load.d)
-			s.Log.Log("sumex.Stream", "worker", "Info : Res : { Response: %+s, Error: %+s}", res, err)
+loop:
+	for {
+		select {
+		case <-s.ender:
+			break loop
+		case load, ok := <-s.data:
+			if !ok {
+				break loop
+			}
 
-			atomic.AddInt64(&s.processed, 1)
+			panics.Defer(func() {
+				res, err := s.proc.Do(load.ctx, load.err, load.d)
+				s.Log.Log("sumex.Stream", "worker", "Info : Res : { Response: %+s, Error: %+s}", res, err)
 
-			s.pl.RLock()
-			defer s.pl.RUnlock()
+				atomic.AddInt64(&s.processed, 1)
 
-			if err != nil {
-				for _, sm := range s.pubs {
-					go sm.Error(load.ctx, err)
+				s.pl.RLock()
+				defer s.pl.RUnlock()
+
+				if err != nil {
+					for _, sm := range s.pubs {
+						go sm.Error(load.ctx, err)
+					}
+					return
 				}
-				return
-			}
 
-			for _, sm := range s.pubs {
-				go sm.Data(load.ctx, res)
-			}
+				for _, sm := range s.pubs {
+					go sm.Data(load.ctx, res)
+				}
 
-		}, func(d *bytes.Buffer) {
-			s.Logs().Error("sumex.Stream", "worker", errors.New("Panic"), "Panic : %+s", d.Bytes())
-		})
+			}, func(d *bytes.Buffer) {
+				s.Logs().Error("sumex.Stream", "worker", errors.New("Panic"), "Panic : %+s", d.Bytes())
+			})
+		}
 	}
 
 	s.Log.Log("sumex.Stream", "worker", "Info : Goroutine : Shutdown")
