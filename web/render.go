@@ -29,14 +29,14 @@ type ResponseRequest struct {
 	R *http.Request
 }
 
-// JSON renders out a JSON response and status code giving using the Render
+// Respond renders out a JSON response and status code giving using the Render
 // function.
-func (r *ResponseRequest) JSON(code int, data interface{}) {
+func (r *ResponseRequest) Respond(code int, data interface{}) {
 	Render(code, r.R, r, data)
 }
 
-// Error renders out a error response into the request object.
-func (r *ResponseRequest) Error(code int, err error) {
+// RespondError renders out a error response into the request object.
+func (r *ResponseRequest) RespondError(code int, err error) {
 	RenderErrorWithStatus(code, err, r.R, r)
 }
 
