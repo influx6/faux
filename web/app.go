@@ -35,7 +35,7 @@ func (l eventlog) Error(context interface{}, name string, err error, message str
 type Param map[string]string
 
 // Handler provides the signature for handler providers.
-type Handler func(context.Context, http.ResponseWriter, *http.Request, Param) error
+type Handler func(context.Context, *ResponseRequest, Param) error
 
 // Middleware defines the middleware signature for creating middlewares.
 type Middleware func(Handler) Handler
@@ -45,8 +45,8 @@ type Middleware func(Handler) Handler
 // App provides the core provider for creating a server provider using
 // http.Router and the sumex.Stream management system.
 type App struct {
+	*httptreemux.TreeMux
 	log     Log
-	tree    *httptreemux.TreeMux
 	gm      []Middleware
 	options httptreemux.HandlerFunc
 	headers map[string]string
@@ -63,9 +63,9 @@ func New(l Log, cors bool, m map[string]string, mh ...Middleware) *App {
 	}
 
 	app := App{
+		TreeMux: httptreemux.New(),
 		log:     l,
 		gm:      mh,
-		tree:    httptreemux.New(),
 		headers: m,
 	}
 
@@ -82,7 +82,7 @@ func New(l Log, cors bool, m map[string]string, mh ...Middleware) *App {
 		app.headers["Access-Control-Allow-Origin"] = "*"
 	}
 
-	app.tree.OptionsHandler = app.options
+	app.TreeMux.OptionsHandler = app.options
 
 	return &app
 }
@@ -95,7 +95,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set(key, val)
 		}
 	}
-	a.tree.ServeHTTP(w, r)
+	a.TreeMux.ServeHTTP(w, r)
 }
 
 // Do performs the needed operation for handling a app-server.
@@ -106,7 +106,7 @@ func (a *App) Do(ctx context.Context, err error, data interface{}) (interface{},
 
 	switch data.(type) {
 	case Route:
-		(data.(Route)).Register(ctx, a.tree)
+		(data.(Route)).Register(ctx, a.TreeMux)
 		return nil, nil
 	default:
 		return nil, errors.New("Unknwon Action")

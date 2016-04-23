@@ -20,6 +20,28 @@ type JSONError struct {
 	Fields []Field `json:"fields,omitempty"`
 }
 
+//==============================================================================
+
+// ResponseRequest defines a response object which holds the request  object
+// associated with it and allows you write out the behaviour.
+type ResponseRequest struct {
+	http.ResponseWriter
+	R *http.Request
+}
+
+// JSON renders out a JSON response and status code giving using the Render
+// function.
+func (r *ResponseRequest) JSON(code int, data interface{}) {
+	Render(code, r.R, r, data)
+}
+
+// Error renders out a error response into the request object.
+func (r *ResponseRequest) Error(code int, err error) {
+	RenderErrorWithStatus(code, err, r.R, r)
+}
+
+//==============================================================================
+
 // Render writes the giving data into the response as JSON.
 func Render(code int, r *http.Request, w http.ResponseWriter, data interface{}) {
 	if code == http.StatusNoContent {
