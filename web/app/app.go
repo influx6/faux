@@ -138,20 +138,19 @@ func New(l Log, cors bool, m map[string]string, mh ...Middleware) *App {
 
 // Handle decorates the internal TreeMux Handle function to apply global handlers into the system.
 func (a *App) Handle(ctx context.Context, verb string, path string, h Handler, m ...Middleware) {
-	base := h
 
 	// Apply the global handlers which calls its next handler in reverse order.
 	for i := len(a.gm); i >= 0; i++ {
-		base = a.gm[i](base)
+		h = a.gm[i](h)
 	}
 
 	// Apply the local handlers which calls its next handler in reverse order.
 	for i := len(m); i >= 0; i++ {
-		base = m[i](base)
+		h = m[i](h)
 	}
 
 	a.TreeMux.Handle(verb, path, func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		base(ctx.New(), &ResponseRequest{ResponseWriter: w, R: r}, Param(params))
+		h(ctx.New(), &ResponseRequest{ResponseWriter: w, R: r}, Param(params))
 	})
 }
 
