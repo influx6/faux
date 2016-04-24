@@ -1,4 +1,4 @@
-package web
+package app
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ import (
 // Route defines a route interface for the web package, this allows us to
 // register this routes.
 type Route interface {
-	Register(context.Context, *httptreemux.TreeMux)
+	Register(context.Context, *httptreemux.TreeMux, Middleware)
 }
 
 //==============================================================================
@@ -98,10 +98,12 @@ type route struct {
 }
 
 // Register registers the route with the giving path mux.
-func (r *route) Register(ctx context.Context, tree *httptreemux.TreeMux) {
-	tree.Handle(r.verb, r.path, func(w http.ResponseWriter, rq *http.Request, param map[string]string) {
-		if err := r.handler(ctx, &ResponseRequest{ResponseWriter: w, R: rq}, Param(param)); err != nil {
-			RenderError(err, rq, w)
+func (r *route) Register(ctx context.Context, mux *httptreemux.TreeMux, m Middleware) {
+	h := m(r.handler)
+	mux.Handle(r.verb, r.path, func(w http.ResponseWriter, rq *http.Request, params map[string]string) {
+		rs := &ResponseRequest{ResponseWriter: w, R: rq}
+		if err := h(ctx, rs, Param(params)); err != nil {
+			rs.RespondError(http.StatusBadRequest, err)
 		}
 	})
 }

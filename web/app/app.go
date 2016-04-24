@@ -1,8 +1,9 @@
-package web
+package app
 
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/dimfeld/httptreemux"
 	"github.com/influx6/faux/context"
@@ -34,6 +35,54 @@ func (l eventlog) Error(context interface{}, name string, err error, message str
 // Param defines the map of values to be handled by the provider.
 type Param map[string]string
 
+// Get returns the given value for a specific key and returns a bool to indicate
+// if it was found.
+func (p Param) Get(key string) (val string, found bool) {
+	val, found = p[key]
+	return
+}
+
+// GetBool returns a bool value if possible from the value of a giving key if it
+// exits.
+func (p Param) GetBool(key string) (item bool, err error) {
+	val, ok := p[key]
+	if !ok {
+		err = errors.New("Not Found")
+		return
+	}
+
+	item, err = strconv.ParseBool(val)
+	return
+}
+
+// GetFloat returns a float value if possible from the value of a giving key if
+// it exits.
+func (p Param) GetFloat(key string) (item float64, err error) {
+	val, ok := p[key]
+	if !ok {
+		err = errors.New("Not Found")
+		return
+	}
+
+	item, err = strconv.ParseFloat(val, 64)
+	return
+}
+
+// GetInt returns a int value if possible from the value of a giving key if it
+// exits.
+func (p Param) GetInt(key string) (item int, err error) {
+	val, ok := p[key]
+	if !ok {
+		err = errors.New("Not Found")
+		return
+	}
+
+	item, err = strconv.Atoi(val)
+	return
+}
+
+//==============================================================================
+
 // Handler provides the signature for handler providers.
 type Handler func(context.Context, *ResponseRequest, Param) error
 
@@ -49,6 +98,7 @@ type App struct {
 	log     Log
 	gm      []Middleware
 	options httptreemux.HandlerFunc
+	ctx     context.Context
 	headers map[string]string
 }
 
@@ -64,6 +114,7 @@ func New(l Log, cors bool, m map[string]string, mh ...Middleware) *App {
 
 	app := App{
 		TreeMux: httptreemux.New(),
+		ctx:     context.New(),
 		log:     l,
 		gm:      mh,
 		headers: m,
@@ -87,6 +138,29 @@ func New(l Log, cors bool, m map[string]string, mh ...Middleware) *App {
 	return &app
 }
 
+// Handle decorates the internal TreeMux Handle function to apply global handlers into the system.
+func (a *App) Handle(ctx context.Context, verb string, path string, h Handler, m ...Middleware) {
+	if ctx == nil {
+		ctx = a.ctx
+	}
+
+	base := h
+
+	// Apply the global handlers which calls its next handler in reverse order.
+	for i := len(a.gm); i >= 0; i++ {
+		base = a.gm[i](base)
+	}
+
+	// Apply the local handlers which calls its next handler in reverse order.
+	for i := len(m); i >= 0; i++ {
+		base = m[i](base)
+	}
+
+	a.TreeMux.Handle(verb, path, func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		base(ctx, &ResponseRequest{ResponseWriter: w, R: r}, Param(params))
+	})
+}
+
 // ServeHTTP implements the http.Handler interface which allows us
 // provide a server muxilator.
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -104,9 +178,19 @@ func (a *App) Do(ctx context.Context, err error, data interface{}) (interface{},
 		return nil, err
 	}
 
+	wrap := func(h Handler) Handler {
+		// Apply the global handlers which calls its next handler in reverse order.
+		for i := len(a.gm); i >= 0; i++ {
+			h = a.gm[i](h)
+		}
+
+		return h
+	}
+
 	switch data.(type) {
 	case Route:
-		(data.(Route)).Register(ctx, a.TreeMux)
+		(data.(Route)).Register(ctx, a.TreeMux, wrap)
+
 		return nil, nil
 	default:
 		return nil, errors.New("Unknwon Action")
