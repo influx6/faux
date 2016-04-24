@@ -13,14 +13,6 @@ import (
 
 //==============================================================================
 
-// Route defines a route interface for the web package, this allows us to
-// register this routes.
-type Route interface {
-	Register(context.Context, *httptreemux.TreeMux, Middleware)
-}
-
-//==============================================================================
-
 // ContentPipe defines a immutable pipe which registers content-type based
 // routes which gets handled by a muxilator, these allows appending
 // multiple responders based on content type for a server.
@@ -58,6 +50,13 @@ func (c *ContentPipe) Append(content string, handler Handler) *ContentPipe {
 	return &ch
 }
 
+//==============================================================================
+
+// ContentRoute adds a new route to a app http Server.
+func ContentRoute(app interface{}, c *ContentResponse, verb string, path string, h Handler) {
+	PageRoute(app, verb, path, c.Do)
+}
+
 // ContentResponse provides a concurrently-safe router for handle response
 // functions for a routes content-type, it uses a mutex to safe-guard the
 // addition and use of new content-providers.
@@ -90,25 +89,11 @@ func (c *ContentResponse) Do(ctx context.Context, rs *ResponseRequest, params Pa
 
 //==============================================================================
 
-// route implements the Route interface, registering a route as needed.
-type route struct {
-	verb    string
-	path    string
-	handler Handler
+// Route defines a route interface for the web package, this allows us to
+// register this routes.
+type Route interface {
+	Register(context.Context, *httptreemux.TreeMux, Middleware)
 }
-
-// Register registers the route with the giving path mux.
-func (r *route) Register(ctx context.Context, mux *httptreemux.TreeMux, m Middleware) {
-	h := m(r.handler)
-	mux.Handle(r.verb, r.path, func(w http.ResponseWriter, rq *http.Request, params map[string]string) {
-		rs := &ResponseRequest{ResponseWriter: w, R: rq}
-		if err := h(ctx, rs, Param(params)); err != nil {
-			rs.RespondError(http.StatusBadRequest, err)
-		}
-	})
-}
-
-//==============================================================================
 
 // PageRoute adds a new route to a app http Server.
 func PageRoute(app interface{}, verb string, path string, h Handler) {
@@ -126,9 +111,22 @@ func PageRoute(app interface{}, verb string, path string, h Handler) {
 	}
 }
 
-// ContentRoute adds a new route to a app http Server.
-func ContentRoute(app interface{}, c *ContentResponse, verb string, path string, h Handler) {
-	PageRoute(app, verb, path, c.Do)
+// route implements the Route interface, registering a route as needed.
+type route struct {
+	verb    string
+	path    string
+	handler Handler
+}
+
+// Register registers the route with the giving path mux.
+func (r *route) Register(ctx context.Context, mux *httptreemux.TreeMux, m Middleware) {
+	h := m(r.handler)
+	mux.Handle(r.verb, r.path, func(w http.ResponseWriter, rq *http.Request, params map[string]string) {
+		rs := &ResponseRequest{ResponseWriter: w, R: rq}
+		if err := h(ctx, rs, Param(params)); err != nil {
+			rs.RespondError(http.StatusBadRequest, err)
+		}
+	})
 }
 
 //==============================================================================
