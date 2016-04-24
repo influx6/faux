@@ -83,7 +83,8 @@ type Context interface {
 	WhenExpired() <-chan struct{}
 
 	// New returns a new context based on the fileds of the context which its
-	// called from, it does not inherits the lifetime or limits of the context.
+	// called from, it does inherits the lifetime limits of the context its
+	// called from.
 	New() Context
 
 	// WithTimeout returns a new Context from the previous with the given timeout

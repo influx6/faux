@@ -123,7 +123,7 @@ func (r *route) Register(ctx context.Context, mux *httptreemux.TreeMux, m Middle
 	h := m(r.handler)
 	mux.Handle(r.verb, r.path, func(w http.ResponseWriter, rq *http.Request, params map[string]string) {
 		rs := &ResponseRequest{ResponseWriter: w, R: rq}
-		if err := h(ctx, rs, Param(params)); err != nil {
+		if err := h(ctx.New(), rs, Param(params)); err != nil {
 			rs.RespondError(http.StatusBadRequest, err)
 		}
 	})
