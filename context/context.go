@@ -76,7 +76,7 @@ type Context interface {
 	IsExpired() bool
 
 	// Get returns the giving value for the provided key if it exists else nil.
-	Get(key interface{}) interface{}
+	Get(key interface{}) (interface{}, bool)
 
 	// WhenExpired returns a channel which gets closed when the given channel
 	// expires else closes immediately if its not an expiring context.
@@ -221,9 +221,9 @@ func (c *context) Set(key, val interface{}) {
 }
 
 // Get returns the value for the necessary key within the context.
-func (c *context) Get(key interface{}) interface{} {
-	val, _ := c.fields.Get(key)
-	return val
+func (c *context) Get(key interface{}) (item interface{}, found bool) {
+	item, found = c.fields.Get(key)
+	return
 }
 
 // newChild returns a new context from this one.
