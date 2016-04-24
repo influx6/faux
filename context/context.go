@@ -95,6 +95,9 @@ type Context interface {
 	// Set adds a key and value pair into the context store.
 	Set(key interface{}, value interface{})
 
+	// // SetParent adds a key and value pair into the context store.
+	// SetParent(key interface{}, value interface{})
+
 	// WithValue returns a new context then adds the key and value pair into the
 	// context's store.
 	WithValue(key interface{}, value interface{}) Context
@@ -123,6 +126,7 @@ type context struct {
 	lifetime time.Time
 	timer    *time.Timer
 	duration time.Duration
+	parent   Context
 }
 
 // New returns a new context from with the configuration limits of this one.
@@ -229,6 +233,18 @@ func (c *context) Cancel() {
 	c.timer.Stop()
 }
 
+// SetParent adds the giving value using the given key into the map into the
+// root parent of the context to have this persist to new context else sets
+// the value on itself if it has no parent.
+func (c *context) SetParent(key, val interface{}) {
+	if c.parent == nil {
+		c.parent.Set(key, val)
+		return
+	}
+
+	c.fields = Append(c.fields, key, val)
+}
+
 // Set adds the giving value using the given key into the map.
 func (c *context) Set(key, val interface{}) {
 	c.fields = Append(c.fields, key, val)
@@ -243,6 +259,7 @@ func (c *context) Get(key interface{}) (item interface{}, found bool) {
 // newChild returns a new fresh context based on the fields of this context.
 func (c *context) newChild() *context {
 	return &context{
+		parent:   c,
 		fields:   c.fields,
 		lifetime: c.lifetime,
 		duration: c.duration,
