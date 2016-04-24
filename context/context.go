@@ -24,11 +24,7 @@ type Pair struct {
 // Append returns a new Pair with the giving key and with the provded Pair set as
 // it's previous link.
 func Append(p *Pair, key, value interface{}) *Pair {
-	return &Pair{
-		prev:  p,
-		key:   key,
-		value: value,
-	}
+	return p.Append(key, value)
 }
 
 // Fields returns all internal pair data as a map.
@@ -44,6 +40,16 @@ func (p *Pair) Fields() Fields {
 	f = p.prev.Fields()
 	f[p.key] = p.value
 	return f
+}
+
+// Append returns a new pair with the giving key and value and its previous
+// set to this pair.
+func (p *Pair) Append(key, val interface{}) *Pair {
+	return &Pair{
+		prev:  p,
+		key:   key,
+		value: val,
+	}
 }
 
 // Get collects the value of a key if it exists.
