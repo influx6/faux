@@ -82,6 +82,10 @@ type Context interface {
 	// expires else closes immediately if its not an expiring context.
 	WhenExpired() <-chan struct{}
 
+	// New returns a new context based on the fileds of the context which its
+	// called from, it does not inherits the lifetime or limits of the context.
+	New() Context
+
 	// WithTimeout returns a new Context from the previous with the given timeout
 	// if the timeout is still further than the previous in expiration date else uses
 	// the previous expiration date instead since that is still further in the future.
@@ -118,6 +122,15 @@ type context struct {
 	lifetime time.Time
 	timer    *time.Timer
 	duration time.Duration
+}
+
+// New returns a new context from with the configuration limits of this one.
+func (c *context) New() Context {
+	if c.timer != nil {
+		return c.WithTimeout(c.duration)
+	}
+
+	return c.newChild()
 }
 
 // WithTimeout returns a new context whoes internal value expires
@@ -226,7 +239,7 @@ func (c *context) Get(key interface{}) (item interface{}, found bool) {
 	return
 }
 
-// newChild returns a new context from this one.
+// newChild returns a new fresh context based on the fields of this context.
 func (c *context) newChild() *context {
 	return &context{
 		fields:   c.fields,
