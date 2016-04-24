@@ -98,7 +98,6 @@ type App struct {
 	log     Log
 	gm      []Middleware
 	options httptreemux.HandlerFunc
-	ctx     context.Context
 	headers map[string]string
 }
 
@@ -114,7 +113,6 @@ func New(l Log, cors bool, m map[string]string, mh ...Middleware) *App {
 
 	app := App{
 		TreeMux: httptreemux.New(),
-		ctx:     context.New(),
 		log:     l,
 		gm:      mh,
 		headers: m,
@@ -140,10 +138,6 @@ func New(l Log, cors bool, m map[string]string, mh ...Middleware) *App {
 
 // Handle decorates the internal TreeMux Handle function to apply global handlers into the system.
 func (a *App) Handle(ctx context.Context, verb string, path string, h Handler, m ...Middleware) {
-	if ctx == nil {
-		ctx = a.ctx
-	}
-
 	base := h
 
 	// Apply the global handlers which calls its next handler in reverse order.
