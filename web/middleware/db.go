@@ -5,9 +5,9 @@ import (
 	"github.com/influx6/faux/web/app"
 )
 
-// DBKey defines the key used to retrieve the configuration for creating a mongodb
-// session.
-var DBKey = "db"
+// MongoDBKey defines the key used to retrieve the configuration for creating a
+// mongodb session in a context.
+var MongoDBKey = "MONGO_DB"
 
 // MongoDB returns the middleware which creates a mongo database session for
 // the giving context.
