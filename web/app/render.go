@@ -20,40 +20,6 @@ type JSONError struct {
 	Fields []Field `json:"fields,omitempty"`
 }
 
-//==============================================================================
-
-// ResponseRequest defines a response object which holds the request  object
-// associated with it and allows you write out the behaviour.
-type ResponseRequest struct {
-	// FormParams Param
-	Params Param
-	http.ResponseWriter
-	R *http.Request
-}
-
-// Respond renders out a JSON response and status code giving using the Render
-// function.
-func (r *ResponseRequest) Respond(code int, data interface{}) {
-	Render(code, r.R, r, data)
-}
-
-// RespondError renders out a error response into the request object.
-func (r *ResponseRequest) RespondError(code int, err error) {
-	RenderErrorWithStatus(code, err, r.R, r)
-}
-
-// // PopulateFormParam populates the parameter list with values received
-// // from the form object.
-// func (r *ResponseRequest) PopulateFormParam() error {
-// 	if err := r.R.ParseForm(); err != nil {
-// 		return err
-// 	}
-//
-// 	r.R.
-// }
-
-//==============================================================================
-
 // Render writes the giving data into the response as JSON.
 func Render(code int, r *http.Request, w http.ResponseWriter, data interface{}) {
 	if code == http.StatusNoContent {

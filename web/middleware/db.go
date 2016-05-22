@@ -9,9 +9,9 @@ import (
 
 //==============================================================================
 
-// Log defines event logger that allows us to record events for a specific
+// Logs defines event logger that allows us to record events for a specific
 // action that occured.
-type Log interface {
+type Logs interface {
 	Dev(context interface{}, name string, message string, data ...interface{})
 	User(context interface{}, name string, message string, data ...interface{})
 	Error(context interface{}, name string, err error, message string, data ...interface{})
@@ -36,16 +36,16 @@ func (l eventlog) Error(context interface{}, name string, err error, message str
 
 // MongoSessionKey defines the key which locks the mongo session provided into
 // the passed context using the mongo middleware.
-var MongoSessionKey = "MONGO_DB_SESSION"
+const MongoSessionKey = "MONGO_DB_SESSION"
 
 // MongoDatabaseKey defines the key which locks the mongo database to be used
 // directly from the giving mongo configuration. It lets you access the proper
 // db without knowledge of the name by using the config DB attribute.
-var MongoDatabaseKey = "MONGO_DB_DATABASE"
+const MongoDatabaseKey = "MONGO_DB_DATABASE"
 
 // MongoDB returns the middleware which creates a mongo database session for
 // the giving context.
-func MongoDB(c mongo.Config, l Log) app.Middleware {
+func MongoDB(c mongo.Config, l Logs) app.Middleware {
 	if l == nil {
 		l = events
 	}
@@ -75,7 +75,7 @@ func MongoDB(c mongo.Config, l Log) app.Middleware {
 
 // MongoDBEnv returns a middleware which loads its configuration from the
 // environment variables of the host system.
-func MongoDBEnv(configName string, l Log) app.Middleware {
+func MongoDBEnv(configName string, l Logs) app.Middleware {
 	if l == nil {
 		l = events
 	}

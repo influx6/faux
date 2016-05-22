@@ -159,7 +159,7 @@ func (a *App) Handle(ctx context.Context, verb string, path string, h Handler, m
 	}
 
 	a.TreeMux.Handle(verb, path, func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		h(ctx.New(), &ResponseRequest{ResponseWriter: w, R: r, Params: Param(params)})
+		h(ctx.New(), &ResponseRequest{ResponseWriter: NewResponseWriter(w), R: r, Params: Param(params)})
 	})
 }
 

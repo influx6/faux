@@ -1,136 +1,105 @@
 package app
 
 import (
+	"bufio"
 	"fmt"
+	"net"
 	"net/http"
-	"strings"
-	"sync"
-
-	"github.com/dimfeld/httptreemux"
-	"github.com/influx6/faux/context"
-	"github.com/influx6/faux/sumex"
 )
 
 //==============================================================================
 
-// ContentPipe defines a immutable pipe which registers content-type based
-// routes which gets handled by a muxilator, these allows appending
-// multiple responders based on content type for a server.
-type ContentPipe struct {
-	prev    *ContentPipe
-	content string
-	handle  Handler
+// ResponseRequest defines a response object which holds the request  object
+// associated with it and allows you write out the behaviour.
+type ResponseRequest struct {
+	// FormParams Param
+	Params Param
+	ResponseWriter
+	R *http.Request
 }
 
-// Get returns the appropriate handler for the specific content-type if found.
-func (c *ContentPipe) Get(req *http.Request) (handler Handler, found bool) {
-	found = strings.Contains(req.Header.Get("Content-Type"), c.content)
-	if !found && c.prev == nil {
-		return c.prev.Get(req)
-	}
-
-	if !found {
-		return
-	}
-
-	handler = c.handle
-	return
+// Respond renders out a JSON response and status code giving using the Render
+// function.
+func (r *ResponseRequest) Respond(code int, data interface{}) {
+	Render(code, r.R, r, data)
 }
 
-// Append adds a new content type into the change and allows us to provide
-// a possible request chain where a request is processed else failed if
-// the handler for its content type does not exists.
-func (c *ContentPipe) Append(content string, handler Handler) *ContentPipe {
-	ch := ContentPipe{
-		prev:    c,
-		content: content,
-		handle:  handler,
-	}
-
-	return &ch
+// RespondError renders out a error response into the request object.
+func (r *ResponseRequest) RespondError(code int, err error) {
+	RenderErrorWithStatus(code, err, r.R, r)
 }
 
 //==============================================================================
 
-// ContentRoute adds a new route to a app http Server.
-func ContentRoute(app interface{}, c *ContentResponse, verb string, path string, h Handler) {
-	PageRoute(app, verb, path, c.Do)
+// ResponseWriter is a wrapper around http.ResponseWriter that provides extra information about
+// the response. It is recommended that middleware handlers use this construct to wrap a responsewriter
+// if the functionality calls for it.
+type ResponseWriter interface {
+	http.ResponseWriter
+	http.Flusher
+	// Status returns the status code of the response or 0 if the response has not been written.
+	Status() int
+	// Written returns whether or not the ResponseWriter has been written.
+	Written() bool
+	// Size returns the size of the response body.
+	Size() int
 }
 
-// ContentResponse provides a concurrently-safe router for handle response
-// functions for a routes content-type, it uses a mutex to safe-guard the
-// addition and use of new content-providers.
-type ContentResponse struct {
-	mu   sync.Mutex
-	pipe *ContentPipe
+// NewResponseWriter creates a ResponseWriter that wraps an http.ResponseWriter
+func NewResponseWriter(rw http.ResponseWriter) ResponseWriter {
+	return &responseWriter{rw, 0, 0}
 }
 
-// Add adds a new handler for a specific content type.
-func (c *ContentResponse) Add(content string, handler Handler) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.pipe = c.pipe.Append(content, handler)
+type responseWriter struct {
+	http.ResponseWriter
+	status int
+	size   int
 }
 
-// Do works with the content response pipes to provide the appropriate response
-// for the giving route.
-func (c *ContentResponse) Do(ctx context.Context, rs *ResponseRequest) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (rw *responseWriter) WriteHeader(s int) {
+	rw.status = s
+	rw.ResponseWriter.WriteHeader(s)
+}
 
-	handler, ok := c.pipe.Get(rs.R)
+func (rw *responseWriter) Write(b []byte) (int, error) {
+	if !rw.Written() {
+		// The status will be StatusOK if WriteHeader has not been called yet
+		rw.WriteHeader(http.StatusOK)
+	}
+	size, err := rw.ResponseWriter.Write(b)
+	rw.size += size
+	return size, err
+}
+
+func (rw *responseWriter) Status() int {
+	return rw.status
+}
+
+func (rw *responseWriter) Size() int {
+	return rw.size
+}
+
+func (rw *responseWriter) Written() bool {
+	return rw.status != 0
+}
+
+func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hijacker, ok := rw.ResponseWriter.(http.Hijacker)
 	if !ok {
-		rs.WriteHeader(http.StatusBadRequest)
-		return fmt.Errorf("Unknown Content-Type[%s]", rs.R.Header.Get("Content-Type"))
+		return nil, nil, fmt.Errorf("the ResponseWriter doesn't support the Hijacker interface")
 	}
-
-	return handler(ctx, rs)
+	return hijacker.Hijack()
 }
 
-//==============================================================================
-
-// Route defines a route interface for the web package, this allows us to
-// register this routes.
-type Route interface {
-	Register(context.Context, *httptreemux.TreeMux, Middleware)
+func (rw *responseWriter) CloseNotify() <-chan bool {
+	return rw.ResponseWriter.(http.CloseNotifier).CloseNotify()
 }
 
-// PageRoute adds a new route to a app http Server.
-func PageRoute(app interface{}, verb string, path string, h Handler) {
-	rm := route{
-		verb:    verb,
-		path:    path,
-		handler: h,
+func (rw *responseWriter) Flush() {
+	flusher, ok := rw.ResponseWriter.(http.Flusher)
+	if ok {
+		flusher.Flush()
 	}
-
-	switch app.(type) {
-	case sumex.Stream:
-		(app.(sumex.Stream)).Data(nil, &rm)
-	case *App:
-		(app.(*App)).Do(nil, nil, &rm)
-	}
-}
-
-// route implements the Route interface, registering a route as needed.
-type route struct {
-	verb    string
-	path    string
-	handler Handler
-}
-
-// Register registers the route with the giving path mux.
-func (r *route) Register(ctx context.Context, mux *httptreemux.TreeMux, m Middleware) {
-	if ctx == nil {
-		ctx = ctx.New()
-	}
-
-	h := m(r.handler)
-	mux.Handle(r.verb, r.path, func(w http.ResponseWriter, rq *http.Request, params map[string]string) {
-		rs := &ResponseRequest{ResponseWriter: w, R: rq, Params: Param(params)}
-		if err := h(ctx.New(), rs); err != nil {
-			rs.RespondError(http.StatusBadRequest, err)
-		}
-	})
 }
 
 //==============================================================================

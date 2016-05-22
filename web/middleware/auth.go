@@ -13,7 +13,7 @@ var ErrNotAuthorized = errors.New("Not Authorized")
 
 // AuthKey defines the auth key which is used to store the authentication details
 // for the usage of the BasicAuth middleware.
-var AuthKey = "BASICAUTH"
+const AuthKey = "BASICAUTH"
 
 // BasicAuth defines a middleware for adding BasicAuth into the response for a request.
 func BasicAuth(h app.Handler) app.Handler {
