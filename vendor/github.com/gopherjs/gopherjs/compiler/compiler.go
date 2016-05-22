@@ -17,7 +17,7 @@ import (
 
 var sizes32 = &types.StdSizes{WordSize: 4, MaxAlign: 8}
 var reservedKeywords = make(map[string]bool)
-var _ = ___GOPHERJS_REQUIRES_GO_VERSION_1_5___ // compile error on earlier Go versions
+var _ = ___GOPHERJS_REQUIRES_GO_VERSION_1_6___ // compile error on earlier Go versions
 
 func init() {
 	for _, keyword := range []string{"abstract", "arguments", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "debugger", "default", "delete", "do", "double", "else", "enum", "eval", "export", "extends", "false", "final", "finally", "float", "for", "function", "goto", "if", "implements", "import", "in", "instanceof", "int", "interface", "let", "long", "native", "new", "null", "package", "private", "protected", "public", "return", "short", "static", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "true", "try", "typeof", "undefined", "var", "void", "volatile", "while", "with", "yield"} {
@@ -40,8 +40,6 @@ type Archive struct {
 	IncJSCode    []byte
 	FileSet      []byte
 	Minified     bool
-
-	types *types.Package
 }
 
 type Decl struct {
@@ -241,11 +239,10 @@ func ReadArchive(filename, path string, r io.Reader, packages map[string]*types.
 	}
 
 	var err error
-	_, a.types, err = importer.ImportData(packages, a.ExportData)
+	_, packages[path], err = importer.ImportData(packages, a.ExportData)
 	if err != nil {
 		return nil, err
 	}
-	packages[path] = a.types
 
 	return &a, nil
 }

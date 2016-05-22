@@ -12,8 +12,7 @@ var MongoDBKey = "MONGO_DB"
 // MongoDB returns the middleware which creates a mongo database session for
 // the giving context.
 func MongoDB(h app.Handler) app.Handler {
-	return func(ctx context.Context, w *app.ResponseRequest, params app.Param) error {
-
-		return h(ctx, w, params)
+	return func(ctx context.Context, w *app.ResponseRequest) error {
+		return h(ctx, w)
 	}
 }

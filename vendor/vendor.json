@@ -1,31 +1,31 @@
 {
 	"comment": "",
-	"ignore": "",
+	"ignore": "test",
 	"package": [
 		{
 			"path": "github.com/ardanlabs/kit/cfg",
-			"revision": "0849a3acf1daf42c03d109846b7c96b53e7e79df",
-			"revisionTime": "2015-12-30T13:39:03-07:00"
+			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
+			"revisionTime": "2016-04-27T13:18:54-04:00"
 		},
 		{
 			"path": "github.com/ardanlabs/kit/db",
-			"revision": "0849a3acf1daf42c03d109846b7c96b53e7e79df",
-			"revisionTime": "2015-12-30T13:39:03-07:00"
+			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
+			"revisionTime": "2016-04-27T13:18:54-04:00"
 		},
 		{
 			"path": "github.com/ardanlabs/kit/db/mongo",
-			"revision": "0849a3acf1daf42c03d109846b7c96b53e7e79df",
-			"revisionTime": "2015-12-30T13:39:03-07:00"
+			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
+			"revisionTime": "2016-04-27T13:18:54-04:00"
 		},
 		{
 			"path": "github.com/ardanlabs/kit/log",
-			"revision": "0849a3acf1daf42c03d109846b7c96b53e7e79df",
-			"revisionTime": "2015-12-30T13:39:03-07:00"
+			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
+			"revisionTime": "2016-04-27T13:18:54-04:00"
 		},
 		{
 			"path": "github.com/ardanlabs/kit/tests",
-			"revision": "0849a3acf1daf42c03d109846b7c96b53e7e79df",
-			"revisionTime": "2015-12-30T13:39:03-07:00"
+			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
+			"revisionTime": "2016-04-27T13:18:54-04:00"
 		},
 		{
 			"path": "github.com/dimfeld/httppath",
@@ -49,48 +49,48 @@
 		},
 		{
 			"path": "github.com/gopherjs/gopherjs/build",
-			"revision": "76dd0e02d28e5192523ef1ee98becbd86c918cff",
-			"revisionTime": "2016-02-05T16:25:13-08:00"
+			"revision": "64858154c27789453689ac91041a736c89abd49d",
+			"revisionTime": "2016-03-28T11:50:26+02:00"
 		},
 		{
 			"path": "github.com/gopherjs/gopherjs/compiler",
-			"revision": "76dd0e02d28e5192523ef1ee98becbd86c918cff",
-			"revisionTime": "2016-02-05T16:25:13-08:00"
+			"revision": "64858154c27789453689ac91041a736c89abd49d",
+			"revisionTime": "2016-03-28T11:50:26+02:00"
 		},
 		{
 			"path": "github.com/gopherjs/gopherjs/compiler/analysis",
-			"revision": "76dd0e02d28e5192523ef1ee98becbd86c918cff",
-			"revisionTime": "2016-02-05T16:25:13-08:00"
+			"revision": "64858154c27789453689ac91041a736c89abd49d",
+			"revisionTime": "2016-03-28T11:50:26+02:00"
 		},
 		{
 			"path": "github.com/gopherjs/gopherjs/compiler/astutil",
-			"revision": "76dd0e02d28e5192523ef1ee98becbd86c918cff",
-			"revisionTime": "2016-02-05T16:25:13-08:00"
+			"revision": "64858154c27789453689ac91041a736c89abd49d",
+			"revisionTime": "2016-03-28T11:50:26+02:00"
 		},
 		{
 			"path": "github.com/gopherjs/gopherjs/compiler/filter",
-			"revision": "76dd0e02d28e5192523ef1ee98becbd86c918cff",
-			"revisionTime": "2016-02-05T16:25:13-08:00"
+			"revision": "64858154c27789453689ac91041a736c89abd49d",
+			"revisionTime": "2016-03-28T11:50:26+02:00"
 		},
 		{
 			"path": "github.com/gopherjs/gopherjs/compiler/prelude",
-			"revision": "76dd0e02d28e5192523ef1ee98becbd86c918cff",
-			"revisionTime": "2016-02-05T16:25:13-08:00"
+			"revision": "64858154c27789453689ac91041a736c89abd49d",
+			"revisionTime": "2016-03-28T11:50:26+02:00"
 		},
 		{
 			"path": "github.com/gopherjs/gopherjs/compiler/typesutil",
-			"revision": "76dd0e02d28e5192523ef1ee98becbd86c918cff",
-			"revisionTime": "2016-02-05T16:25:13-08:00"
+			"revision": "64858154c27789453689ac91041a736c89abd49d",
+			"revisionTime": "2016-03-28T11:50:26+02:00"
 		},
 		{
 			"path": "github.com/gopherjs/gopherjs/js",
-			"revision": "76dd0e02d28e5192523ef1ee98becbd86c918cff",
-			"revisionTime": "2016-02-05T16:25:13-08:00"
+			"revision": "64858154c27789453689ac91041a736c89abd49d",
+			"revisionTime": "2016-03-28T11:50:26+02:00"
 		},
 		{
 			"path": "github.com/gopherjs/gopherjs/third_party/importer",
-			"revision": "76dd0e02d28e5192523ef1ee98becbd86c918cff",
-			"revisionTime": "2016-02-05T16:25:13-08:00"
+			"revision": "64858154c27789453689ac91041a736c89abd49d",
+			"revisionTime": "2016-03-28T11:50:26+02:00"
 		},
 		{
 			"path": "github.com/influx6/flux",
@@ -108,6 +108,12 @@
 			"revisionTime": "2015-11-02T10:20:00-08:00"
 		},
 		{
+			"origin": "github.com/gopherjs/gopherjs/compiler/vendor/github.com/neelance/astrewrite",
+			"path": "github.com/neelance/astrewrite",
+			"revision": "64858154c27789453689ac91041a736c89abd49d",
+			"revisionTime": "2016-03-28T11:50:26+02:00"
+		},
+		{
 			"path": "github.com/neelance/sourcemap",
 			"revision": "8c68805598ab8d5637b1a72b5f7d381ea0f39c31",
 			"revisionTime": "2015-10-28T02:37:22+01:00"
@@ -119,7 +125,8 @@
 		},
 		{
 			"path": "github.com/satori/go.uuid",
-			"revision": ""
+			"revision": "e673fdd4dea8a7334adbbe7f57b7e4b00bdc5502",
+			"revisionTime": "2016-02-18T23:57:46Z"
 		},
 		{
 			"path": "github.com/shurcooL/sanitized_anchor_name",
@@ -142,11 +149,6 @@
 			"revisionTime": "2016-03-09T00:07:18+01:00"
 		},
 		{
-			"path": "golang.org/x/tools/go/gcimporter",
-			"revision": "824b504fc734b5a1937a7860175838a86642481f",
-			"revisionTime": "2016-03-09T00:07:18+01:00"
-		},
-		{
 			"path": "golang.org/x/tools/go/types",
 			"revision": "824b504fc734b5a1937a7860175838a86642481f",
 			"revisionTime": "2016-03-09T00:07:18+01:00"
@@ -157,39 +159,28 @@
 			"revisionTime": "2016-03-09T00:07:18+01:00"
 		},
 		{
-			"path": "gopkg.in/fsnotify.v1",
-			"revision": "8611c35ab31c1c28aa903d33cf8b6e44a399b09e",
-			"revisionTime": "2016-01-10T16:04:37+01:00"
-		},
-		{
+			"origin": "github.com/ardanlabs/kit/vendor/gopkg.in/mgo.v2",
 			"path": "gopkg.in/mgo.v2",
-			"revision": "b6e2fa371e64216a45e61072a96d4e3859f169da",
-			"revisionTime": "2016-02-23T08:38:14-05:00"
+			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
+			"revisionTime": "2016-04-27T13:18:54-04:00"
 		},
 		{
+			"origin": "github.com/ardanlabs/kit/vendor/gopkg.in/mgo.v2/bson",
 			"path": "gopkg.in/mgo.v2/bson",
-			"revision": "b6e2fa371e64216a45e61072a96d4e3859f169da",
-			"revisionTime": "2016-02-23T08:38:14-05:00"
+			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
+			"revisionTime": "2016-04-27T13:18:54-04:00"
 		},
 		{
+			"origin": "github.com/ardanlabs/kit/vendor/gopkg.in/mgo.v2/internal/sasl",
 			"path": "gopkg.in/mgo.v2/internal/sasl",
-			"revision": "b6e2fa371e64216a45e61072a96d4e3859f169da",
-			"revisionTime": "2016-02-23T08:38:14-05:00"
+			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
+			"revisionTime": "2016-04-27T13:18:54-04:00"
 		},
 		{
+			"origin": "github.com/ardanlabs/kit/vendor/gopkg.in/mgo.v2/internal/scram",
 			"path": "gopkg.in/mgo.v2/internal/scram",
-			"revision": "b6e2fa371e64216a45e61072a96d4e3859f169da",
-			"revisionTime": "2016-02-23T08:38:14-05:00"
-		},
-		{
-			"path": "gopkg.in/yaml.v2",
-			"revision": "f7716cbe52baa25d2e9b0d0da546fcf909fc16b4",
-			"revisionTime": "2015-12-01T14:27:45-02:00"
-		},
-		{
-			"path": "honnef.co/go/js/dom",
-			"revision": "ef247f60aa88ed944d605c82cb56a9873c2f9b2e",
-			"revisionTime": "2016-01-27T08:58:48+01:00"
+			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
+			"revisionTime": "2016-04-27T13:18:54-04:00"
 		}
 	]
 }

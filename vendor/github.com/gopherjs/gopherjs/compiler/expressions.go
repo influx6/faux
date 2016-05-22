@@ -42,19 +42,19 @@ func (c *funcContext) translateExpr(expr ast.Expr) *expression {
 		case isInteger(basic):
 			if is64Bit(basic) {
 				if basic.Kind() == types.Int64 {
-					d, ok := constant.Int64Val(value)
+					d, ok := constant.Int64Val(constant.ToInt(value))
 					if !ok {
 						panic("could not get exact uint")
 					}
 					return c.formatExpr("new %s(%s, %s)", c.typeName(exprType), strconv.FormatInt(d>>32, 10), strconv.FormatUint(uint64(d)&(1<<32-1), 10))
 				}
-				d, ok := constant.Uint64Val(value)
+				d, ok := constant.Uint64Val(constant.ToInt(value))
 				if !ok {
 					panic("could not get exact uint")
 				}
 				return c.formatExpr("new %s(%s, %s)", c.typeName(exprType), strconv.FormatUint(d>>32, 10), strconv.FormatUint(d&(1<<32-1), 10))
 			}
-			d, ok := constant.Int64Val(value)
+			d, ok := constant.Int64Val(constant.ToInt(value))
 			if !ok {
 				panic("could not get exact int")
 			}
@@ -110,7 +110,7 @@ func (c *funcContext) translateExpr(expr ast.Expr) *expression {
 			zero := c.translateExpr(c.zeroValue(elementType)).String()
 			for _, element := range e.Elts {
 				if kve, isKve := element.(*ast.KeyValueExpr); isKve {
-					key, ok := constant.Int64Val(c.p.Types[kve.Key].Value)
+					key, ok := constant.Int64Val(constant.ToInt(c.p.Types[kve.Key].Value))
 					if !ok {
 						panic("could not get exact int")
 					}
@@ -371,14 +371,18 @@ func (c *funcContext) translateExpr(expr ast.Expr) *expression {
 				if e.Op == token.SHR && isUnsigned(basic) {
 					op = ">>>"
 				}
-				if c.p.Types[e.Y].Value != nil {
-					return c.fixNumber(c.formatExpr("%e %s %e", e.X, op, e.Y), basic)
+				if v := c.p.Types[e.Y].Value; v != nil {
+					i, _ := constant.Uint64Val(constant.ToInt(v))
+					if i >= 32 {
+						return c.formatExpr("0")
+					}
+					return c.fixNumber(c.formatExpr("%e %s %s", e.X, op, strconv.FormatUint(i, 10)), basic)
 				}
 				if e.Op == token.SHR && !isUnsigned(basic) {
-					return c.fixNumber(c.formatParenExpr("%e >> $min(%e, 31)", e.X, e.Y), basic)
+					return c.fixNumber(c.formatParenExpr("%e >> $min(%f, 31)", e.X, e.Y), basic)
 				}
 				y := c.newVariable("y")
-				return c.fixNumber(c.formatExpr("(%s = %s, %s < 32 ? (%e %s %s) : 0)", y, c.translateImplicitConversion(e.Y, types.Typ[types.Uint]), y, e.X, op, y), basic)
+				return c.fixNumber(c.formatExpr("(%s = %f, %s < 32 ? (%e %s %s) : 0)", y, e.Y, y, e.X, op, y), basic)
 			case token.AND, token.OR:
 				if isUnsigned(basic) {
 					return c.formatParenExpr("(%e %t %e) >>> 0", e.X, e.Op, e.Y)
@@ -1313,7 +1317,7 @@ func (c *funcContext) formatExprInternal(format string, a []interface{}, parens 
 		case 'f':
 			e := a[n].(ast.Expr)
 			if val := c.p.Types[e].Value; val != nil {
-				d, _ := constant.Int64Val(val)
+				d, _ := constant.Int64Val(constant.ToInt(val))
 				out.WriteString(strconv.FormatInt(d, 10))
 				return
 			}
@@ -1327,7 +1331,7 @@ func (c *funcContext) formatExprInternal(format string, a []interface{}, parens 
 		case 'h':
 			e := a[n].(ast.Expr)
 			if val := c.p.Types[e].Value; val != nil {
-				d, _ := constant.Uint64Val(val)
+				d, _ := constant.Uint64Val(constant.ToInt(val))
 				if c.p.TypeOf(e).Underlying().(*types.Basic).Kind() == types.Int64 {
 					out.WriteString(strconv.FormatInt(int64(d)>>32, 10))
 					return
@@ -1338,7 +1342,7 @@ func (c *funcContext) formatExprInternal(format string, a []interface{}, parens 
 			writeExpr(".$high")
 		case 'l':
 			if val := c.p.Types[a[n].(ast.Expr)].Value; val != nil {
-				d, _ := constant.Uint64Val(val)
+				d, _ := constant.Uint64Val(constant.ToInt(val))
 				out.WriteString(strconv.FormatUint(d&(1<<32-1), 10))
 				return
 			}
