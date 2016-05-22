@@ -149,12 +149,12 @@ func (a *App) Handle(ctx context.Context, verb string, path string, h Handler, m
 	}
 
 	// Apply the global handlers which calls its next handler in reverse order.
-	for i := len(a.gm); i >= 0; i-- {
+	for i := len(a.gm) - 1; i >= 0; i-- {
 		h = a.gm[i](h)
 	}
 
 	// Apply the local handlers which calls its next handler in reverse order.
-	for i := len(m); i >= 0; i-- {
+	for i := len(m) - 1; i >= 0; i-- {
 		h = m[i](h)
 	}
 
