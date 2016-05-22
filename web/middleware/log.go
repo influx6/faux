@@ -24,7 +24,7 @@ func Log(h app.Handler) app.Handler {
 		log.Dev("middleware.Log", "Log", "Started : Method[%s] : From[%s] : Path[%s] : Query[%s]: Server[%s]", w.R.Method, w.R.URL.Host, w.R.URL.Path, w.R.URL.RawQuery, w.R.RemoteAddr)
 
 		err := h(ctx, w)
-		log.Dev("middleware.Log", "Log", "Info : Status[%s] : Method[%s] : From[%s] : Path[%s] : Server[%s]", w.Status(), w.R.Method, w.R.URL.Host, w.R.URL.Path, w.R.RemoteAddr)
+		log.Dev("middleware.Log", "Log", "Info : Status[%d] : Method[%s] : From[%s] : Path[%s] : Server[%s]", w.Status(), w.R.Method, w.R.URL.Host, w.R.URL.Path, w.R.RemoteAddr)
 
 		if err != nil {
 			log.Error("middleware.Log", "Log", err, "Completed")
