@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"fmt"
-
 	"github.com/ardanlabs/kit/log"
 	"github.com/influx6/faux/context"
 	"github.com/influx6/faux/web/app"
@@ -16,7 +14,7 @@ const LogExcludeKey = "ExcludeFromLog"
 // into the app.
 func Log(h app.Handler) app.Handler {
 	return func(ctx context.Context, w *app.ResponseRequest) error {
-		fmt.Printf("Captured")
+
 		// Do we excluse this call from the logs?
 		_, ok := ctx.Get(LogExcludeKey)
 		if ok {
