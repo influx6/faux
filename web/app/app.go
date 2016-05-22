@@ -145,7 +145,7 @@ func New(l Log, cors bool, m map[string]string, mh ...Middleware) *App {
 // Handle decorates the internal TreeMux Handle function to apply global handlers into the system.
 func (a *App) Handle(ctx context.Context, verb string, path string, h Handler, m ...Middleware) {
 	if ctx == nil {
-		ctx = ctx.New()
+		ctx = context.New()
 	}
 
 	// Apply the global handlers which calls its next handler in reverse order.

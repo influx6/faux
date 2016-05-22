@@ -127,7 +127,7 @@ type route struct {
 // Register registers the route with the giving path mux.
 func (r *route) Register(ctx context.Context, mux *httptreemux.TreeMux, m Middleware) {
 	if ctx == nil {
-		ctx = ctx.New()
+		ctx = context.New()
 	}
 
 	h := m(r.handler)
