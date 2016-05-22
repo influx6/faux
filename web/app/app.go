@@ -14,8 +14,9 @@ import (
 // Log defines event logger that allows us to record events for a specific
 // action that occured.
 type Log interface {
-	Log(context interface{}, level int, name string, message string, data ...interface{})
-	Error(context interface{}, level int, name string, err error, message string, data ...interface{})
+	Dev(context interface{}, name string, message string, data ...interface{})
+	User(context interface{}, name string, message string, data ...interface{})
+	Error(context interface{}, name string, err error, message string, data ...interface{})
 }
 
 var events eventlog
@@ -24,11 +25,15 @@ var events eventlog
 type eventlog struct{}
 
 // Log logs all standard log reports.
-func (l eventlog) Log(context interface{}, lvl int, name string, message string, data ...interface{}) {
+func (l eventlog) Dev(context interface{}, name string, message string, data ...interface{}) {
+}
+
+// Log logs all standard log reports.
+func (l eventlog) User(context interface{}, name string, message string, data ...interface{}) {
 }
 
 // Error logs all error reports.
-func (l eventlog) Error(context interface{}, lvl int, name string, err error, message string, data ...interface{}) {
+func (l eventlog) Error(context interface{}, name string, err error, message string, data ...interface{}) {
 }
 
 //==============================================================================
@@ -171,10 +176,9 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Do performs the needed operation for handling a app-server.
 func (a *App) Do(ctx context.Context, err error, data interface{}) (interface{}, error) {
-	a.log.Log("App", 0, "Do", "Started : Data : %+v", data)
 
 	if err != nil {
-		a.log.Error("App", 0, "Do", err, "Completed")
+		a.log.Error("App", "Do", err, "Completed")
 		return nil, err
 	}
 
@@ -189,13 +193,11 @@ func (a *App) Do(ctx context.Context, err error, data interface{}) (interface{},
 
 	switch data.(type) {
 	case Route:
-		a.log.Log("App", 0, "Do", "Info : Adding Route")
 		(data.(Route)).Register(ctx, a.TreeMux, wrap)
-		a.log.Log("App", 0, "Do", "Completed")
 		return nil, nil
 	default:
 		err := errors.New("Unknwon Action")
-		a.log.Error("App", 0, "Do", err, "Completed")
+		a.log.Error("App", "Do", err, "Completed")
 		return nil, err
 	}
 }

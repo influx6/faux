@@ -17,10 +17,10 @@ var AuthKey = "BASICAUTH"
 
 // BasicAuth defines a middleware for adding BasicAuth into the response for a request.
 func BasicAuth(h app.Handler) app.Handler {
-	return func(ctx context.Context, w *app.ResponseRequest, params app.Param) error {
+	return func(ctx context.Context, w *app.ResponseRequest) error {
 		_, ok := ctx.Get(AuthKey)
 		if !ok {
-			return h(ctx, w, params)
+			return h(ctx, w)
 		}
 
 		token := w.Header().Get("Authorization")
@@ -29,6 +29,6 @@ func BasicAuth(h app.Handler) app.Handler {
 			return ErrNotAuthorized
 		}
 
-		return h(ctx, w, params)
+		return h(ctx, w)
 	}
 }
