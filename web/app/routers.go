@@ -65,6 +65,12 @@ type ContentResponse struct {
 	pipe *ContentPipe
 }
 
+// NewContentResponse returns a new instance of a ContentResponse.
+func NewContentResponse(content string, h Handler) *ContentResponse {
+	cn := ContentResponse{pipe: &ContentPipe{handle: h, content: content}}
+	return &cn
+}
+
 // Add adds a new handler for a specific content type.
 func (c *ContentResponse) Add(content string, handler Handler) {
 	c.mu.Lock()
