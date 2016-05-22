@@ -25,6 +25,7 @@ func Log(h app.Handler) app.Handler {
 
 		err := h(ctx, w)
 		log.Dev("middleware.Log", "Log", "Info : Status[%s] : Method[%s] : From[%s] : Path[%s] : Server[%s]", w.Status(), w.R.Method, w.R.URL.Host, w.R.URL.Path, w.R.RemoteAddr)
+
 		if err != nil {
 			log.Error("middleware.Log", "Log", err, "Completed")
 			return err
