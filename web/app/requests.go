@@ -74,7 +74,7 @@ func (c *ContentResponse) Add(content string, handler Handler) {
 
 // Do works with the content response pipes to provide the appropriate response
 // for the giving route.
-func (c *ContentResponse) Do(ctx context.Context, rs *ResponseRequest, params Param) error {
+func (c *ContentResponse) Do(ctx context.Context, rs *ResponseRequest) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -84,7 +84,7 @@ func (c *ContentResponse) Do(ctx context.Context, rs *ResponseRequest, params Pa
 		return fmt.Errorf("Unknown Content-Type[%s]", rs.R.Header.Get("Content-Type"))
 	}
 
-	return handler(ctx, rs, params)
+	return handler(ctx, rs)
 }
 
 //==============================================================================
@@ -120,10 +120,14 @@ type route struct {
 
 // Register registers the route with the giving path mux.
 func (r *route) Register(ctx context.Context, mux *httptreemux.TreeMux, m Middleware) {
+	if ctx == nil {
+		ctx = ctx.New()
+	}
+
 	h := m(r.handler)
 	mux.Handle(r.verb, r.path, func(w http.ResponseWriter, rq *http.Request, params map[string]string) {
-		rs := &ResponseRequest{ResponseWriter: w, R: rq}
-		if err := h(ctx.New(), rs, Param(params)); err != nil {
+		rs := &ResponseRequest{ResponseWriter: w, R: rq, Params: Param(params)}
+		if err := h(ctx.New(), rs); err != nil {
 			rs.RespondError(http.StatusBadRequest, err)
 		}
 	})

@@ -25,6 +25,8 @@ type JSONError struct {
 // ResponseRequest defines a response object which holds the request  object
 // associated with it and allows you write out the behaviour.
 type ResponseRequest struct {
+	// FormParams Param
+	Params Param
 	http.ResponseWriter
 	R *http.Request
 }
@@ -39,6 +41,16 @@ func (r *ResponseRequest) Respond(code int, data interface{}) {
 func (r *ResponseRequest) RespondError(code int, err error) {
 	RenderErrorWithStatus(code, err, r.R, r)
 }
+
+// // PopulateFormParam populates the parameter list with values received
+// // from the form object.
+// func (r *ResponseRequest) PopulateFormParam() error {
+// 	if err := r.R.ParseForm(); err != nil {
+// 		return err
+// 	}
+//
+// 	r.R.
+// }
 
 //==============================================================================
 
@@ -65,6 +77,18 @@ func Render(code int, r *http.Request, w http.ResponseWriter, data interface{}) 
 	io.WriteString(w, string(jsd))
 }
 
+// RenderResponse writes the giving data into the response as JSON to the passed
+// ResponseRequest.
+func RenderResponse(code int, r *ResponseRequest, data interface{}) {
+	Render(code, r.R, r, data)
+}
+
+// RenderResponseErrorWithStatus renders the giving error as a json response to
+// the ResponseRequest.
+func RenderResponseErrorWithStatus(status int, err error, r *ResponseRequest) {
+	Render(status, r.R, r, JSONError{Error: err.Error()})
+}
+
 // RenderErrorWithStatus renders the giving error as a json response.
 func RenderErrorWithStatus(status int, err error, r *http.Request, w http.ResponseWriter) {
 	Render(status, r, w, JSONError{Error: err.Error()})
@@ -73,4 +97,10 @@ func RenderErrorWithStatus(status int, err error, r *http.Request, w http.Respon
 // RenderError renders the giving error as a json response.
 func RenderError(err error, r *http.Request, w http.ResponseWriter) {
 	Render(http.StatusBadRequest, r, w, JSONError{Error: err.Error()})
+}
+
+// RenderResponseError renders the giving error as a json response to the
+// passed ResponseRequest object.
+func RenderResponseError(err error, r *ResponseRequest) {
+	Render(http.StatusBadRequest, r.R, r, JSONError{Error: err.Error()})
 }
