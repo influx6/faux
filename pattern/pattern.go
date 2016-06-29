@@ -29,7 +29,7 @@ type Matchers []Matchable
 
 // URIMatcher defines an interface for a URI matcher.
 type URIMatcher interface {
-	Validate(string) (Params, bool)
+	Validate(string) (Params, string, bool)
 	Pattern() string
 	Priority() int
 }
@@ -45,7 +45,7 @@ type matchProvider struct {
 // New returns a new instance of a URIMatcher.
 func New(pattern string) URIMatcher {
 
-	ps := stripLastSlash(pattern)
+	ps := stripAndClean(pattern)
 
 	pm := SegmentList(ps)
 
@@ -71,25 +71,22 @@ func (m *matchProvider) Pattern() string {
 
 // Validate returns true/false if the giving string matches the pattern, returning
 // a map of parameters match against segments of the pattern.
-func (m *matchProvider) Validate(f string) (Params, bool) {
-	var state bool
-
-	f = strings.Replace(f, "#", "/", -1)
-	cleaned := strings.TrimSuffix(cleanPath(f), "/")
-	cleaned = stripLastSlash(cleaned)
+func (m *matchProvider) Validate(f string) (Params, string, bool) {
+	cleaned := cleanPath(stripAndClean(f))
 	src := splitPattern(cleaned)
 
 	total := len(m.matchers)
 	srclen := len(src)
 
 	if !m.endless && (total < srclen || total > srclen) {
-		return nil, false
+		return nil, "", false
 	}
+
+	var state bool
 
 	param := make(Params)
 
 	for k, v := range m.matchers {
-
 		if k >= srclen {
 			state = false
 			break
@@ -109,7 +106,14 @@ func (m *matchProvider) Validate(f string) (Params, bool) {
 		}
 	}
 
-	return param, state
+	var rem string
+	if total < srclen {
+		cut := cleanPath(strings.Join(src[:total], "/"))
+		part := stripAndCleanButHash(f)
+		rem = strings.Replace(part, cut, "", 1)
+	}
+
+	return param, rem, state
 }
 
 //==============================================================================

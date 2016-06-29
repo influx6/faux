@@ -187,7 +187,7 @@ func removeBracket(s string) string {
 func splitPattern(c string) []string {
 	parts := strings.Split(c, "/")
 
-	// Re-add the first slash to respect root suremacy.
+	// Re-add the first slash to respect root supremacy.
 	if len(parts) > 0 && parts[0] == "" {
 		parts[0] = "/"
 	}
@@ -197,7 +197,12 @@ func splitPattern(c string) []string {
 
 //==============================================================================
 
-// stripLastSlash strips the slahes from the path.
-func stripLastSlash(c string) string {
+// stripAndClean strips the slahes from the path.
+func stripAndClean(c string) string {
 	return strings.Replace(strings.TrimSuffix(strings.TrimSuffix(c, "/*"), "/"), "#", "/", -1)
+}
+
+// stripAndCleanButHash strips the slahes from the path.
+func stripAndCleanButHash(c string) string {
+	return strings.TrimSuffix(strings.TrimSuffix(c, "/*"), "/")
 }

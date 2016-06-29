@@ -55,17 +55,31 @@ func TestSpecialChecker(t *testing.T) {
 func TestNamePattern(t *testing.T) {
 	r := pattern.New(`/name/:id`)
 
-	param, state := r.Validate(`/name/12`)
+	param, _, state := r.Validate(`/name/12`)
 	if !state {
 		t.Fatalf("incorrect pattern: %+s %t", param, state)
 	}
 
 }
 
+func TestEndlessPattern(t *testing.T) {
+	r := pattern.New(`/github.com/influx6/*`)
+
+	param, rem, state := r.Validate(`/github.com/influx6/examples/views#blob`)
+	if !state {
+		t.Fatalf("Incorrect pattern: %+s %t", param, state)
+	}
+
+	expected := "/examples/views#blob"
+	if rem != expected {
+		t.Fatalf("Incorrect remaining path(Expected: %s Found: %s)", expected, rem)
+	}
+}
+
 func TestHashedPattern(t *testing.T) {
 	r := pattern.New(`/github.com/influx6/examples#views`)
 
-	param, state := r.Validate(`/github.com/influx6/examples/views`)
+	param, _, state := r.Validate(`/github.com/influx6/examples/views`)
 	if !state {
 		t.Fatalf("incorrect pattern: %+s %t", param, state)
 	}
@@ -74,7 +88,7 @@ func TestHashedPattern(t *testing.T) {
 func TestRegExpPattern(t *testing.T) {
 	r := pattern.New(`/name/{id:[\d+]}/`)
 
-	param, state := r.Validate(`/name/12/d`)
+	param, _, state := r.Validate(`/name/12/d`)
 
 	if state {
 		t.Fatalf("incorrect pattern: %+s %t", param, state)
