@@ -76,6 +76,19 @@ func TestEndlessPattern(t *testing.T) {
 	}
 }
 
+func TestHashedWithRemainder(t *testing.T) {
+	r := pattern.New(`/colors/*`)
+
+	param, rem, state := r.Validate(`#colors/red`)
+	if !state {
+		t.Fatalf("incorrect pattern: %+s %t", param, state)
+	}
+
+	if rem != "/red" {
+		t.Fatalf("incorrect remainer: Expected[%s] Got[%s]", "/red", rem)
+	}
+}
+
 func TestHashedPatternWithRemainder(t *testing.T) {
 	r := pattern.New(`/github.com/influx6/examples/*`)
 
