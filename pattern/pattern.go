@@ -72,7 +72,8 @@ func (m *matchProvider) Pattern() string {
 // Validate returns true/false if the giving string matches the pattern, returning
 // a map of parameters match against segments of the pattern.
 func (m *matchProvider) Validate(f string) (Params, string, bool) {
-	cleaned := cleanPath(stripAndClean(f))
+	stripped := stripAndClean(f)
+	cleaned := cleanPath(stripped)
 	src := splitPattern(cleaned)
 
 	total := len(m.matchers)
@@ -108,9 +109,18 @@ func (m *matchProvider) Validate(f string) (Params, string, bool) {
 
 	var rem string
 	if total < srclen {
-		cut := cleanPath(strings.Join(src[:total], "/"))
-		part := stripAndCleanButHash(f)
-		rem = strings.Replace(part, cut, "", 1)
+		csrc := stripAndCleanButHash(f)
+		hashIndex := strings.IndexRune(csrc, '#')
+
+		fsrc := stripAndClean(strings.Join(src[:total], "/"))
+		fcount := len([]byte(fsrc))
+
+		if hashIndex < fcount {
+			rem = strings.Replace(stripped, fsrc, "", 1)
+		} else {
+			rem = strings.Replace(csrc, fsrc, "", 1)
+		}
+		// fmt.Printf("Rem: %s : %s -> %s\n", csrc, fsrc, rem)
 	}
 
 	return param, rem, state

@@ -199,10 +199,10 @@ func splitPattern(c string) []string {
 
 // stripAndClean strips the slahes from the path.
 func stripAndClean(c string) string {
-	return strings.Replace(strings.TrimSuffix(strings.TrimSuffix(c, "/*"), "/"), "#", "/", -1)
+	return CleanSlashes(strings.Replace(strings.TrimSuffix(strings.TrimSuffix(c, "/*"), "/"), "#", "/", -1))
 }
 
 // stripAndCleanButHash strips the slahes from the path.
 func stripAndCleanButHash(c string) string {
-	return strings.TrimSuffix(strings.TrimSuffix(c, "/*"), "/")
+	return CleanSlashes(strings.TrimSuffix(strings.TrimSuffix(c, "/*"), "/"))
 }
