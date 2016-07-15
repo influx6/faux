@@ -38,6 +38,12 @@
 			"revisionTime": "2016-04-05T10:43:20-05:00"
 		},
 		{
+			"checksumSHA1": "xgjI2W3RGiQwNlxsOW2V9fJ9kaM=",
+			"path": "github.com/fsnotify/fsnotify",
+			"revision": "a8a77c9133d2d6fd8334f3260d06f60e8d80a5fb",
+			"revisionTime": "2016-06-29T01:11:04Z"
+		},
+		{
 			"path": "github.com/go-fsnotify/fsnotify",
 			"revision": "8611c35ab31c1c28aa903d33cf8b6e44a399b09e",
 			"revisionTime": "2016-01-10T16:04:37+01:00"
@@ -144,6 +150,12 @@
 			"revisionTime": "2016-03-08T20:16:50-06:00"
 		},
 		{
+			"checksumSHA1": "8fD/im5Kwvy3JgmxulDTambmE8w=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "a408501be4d17ee978c04a618e7a1b22af058c0e",
+			"revisionTime": "2016-07-03T23:56:20Z"
+		},
+		{
 			"path": "golang.org/x/tools/go/exact",
 			"revision": "824b504fc734b5a1937a7860175838a86642481f",
 			"revisionTime": "2016-03-09T00:07:18+01:00"
@@ -182,5 +194,6 @@
 			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
 			"revisionTime": "2016-04-27T13:18:54-04:00"
 		}
-	]
+	],
+	"rootPath": "github.com/influx6/faux"
 }
