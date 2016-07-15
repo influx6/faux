@@ -15,7 +15,7 @@ var ErrNotAuthorized = errors.New("Not Authorized")
 // for the usage of the BasicAuth middleware.
 const AuthKey = "BASICAUTH"
 
-// BasicAuth defines a middleware for adding BasicAuth into the response for a request.
+// BasicAuth defines a middleware for checking BasicAuth into the response for a request.
 func BasicAuth(h app.Handler) app.Handler {
 	return func(ctx context.Context, w *app.ResponseRequest) error {
 		_, ok := ctx.Get(AuthKey)
