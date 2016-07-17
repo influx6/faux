@@ -334,7 +334,7 @@ func (s *worker) manage() {
 
 				// Collect the current stats.
 				stat := s.Stats()
-				s.config.Log.Log(s.uuid, "worker", "Info : Stat : {%s}")
+				s.config.Log.Log(s.uuid, "worker", "Info : Stat : {%+s}", stat)
 
 				// If we have more workers more than requests then shave off extra luggage.
 				if stat.TotalWorkers > stat.Pending {
@@ -388,7 +388,7 @@ func (s *worker) manage() {
 				// time.Sleep(20 * time.Nanosecond)
 
 				newStat := s.Stats()
-				s.config.Log.Log(s.uuid, "worker", "Info : New Stat : {%s}")
+				s.config.Log.Log(s.uuid, "worker", "Info : Stat : {%+s}", mewStat)
 
 				var newWorkersAdded bool
 
