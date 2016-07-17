@@ -570,7 +570,6 @@ func StreamListings(config ListingConfig) (pub.Publisher, error) {
 					if err != nil {
 						rel = real
 					}
-					// log.Printf("Sending %s -> %s -> %s", files.AbsDir, real, rel)
 					root.Reply(rel)
 				} else {
 					root.Reply(filepath.Join(files.Dir, real))

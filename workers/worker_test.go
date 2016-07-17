@@ -1,19 +1,21 @@
-package sumex_test
+package workers_test
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/ardanlabs/kit/tests"
 	"github.com/influx6/faux/context"
-	"github.com/influx6/faux/sumex"
+	"github.com/influx6/faux/workers"
 )
 
 //==============================================================================
+
 var events eventlog
 
 // logg provides a concrete implementation of a logger.
@@ -40,12 +42,13 @@ func (w writer) Do(ctx context.Context, err error, value interface{}) (interface
 		return nil, err
 	}
 
-	json, err := json.Marshal(value)
-	if err != nil {
+	var b bytes.Buffer
+
+	if err := json.NewEncoder(&b).Encode(&value); err != nil {
 		return nil, err
 	}
 
-	return json, nil
+	return b.Bytes(), nil
 }
 
 //==============================================================================
@@ -89,10 +92,10 @@ func TestStreams(t *testing.T) {
 
 	monsterName := "Willow"
 
-	ws := sumex.New(events, 3, writer{})
-	rs := ws.Stream(sumex.New(events, 3, reader{}))
-	rc, _ := sumex.Receive(rs)
-	erc, _ := sumex.ReceiveError(rs)
+	ws := workers.New(workers.Config{Log: events}, writer{})
+	rs := ws.Next(workers.New(workers.Config{Log: events}, reader{}))
+	rc, _ := workers.Receive(rs)
+	erc, _ := workers.ReceiveError(rs)
 
 	ws.Data(nil, &monster{Name: monsterName})
 
@@ -114,7 +117,7 @@ func TestStreams(t *testing.T) {
 	ex := errors.New("Bad Data")
 	ws.Error(nil, ex)
 
-	err, ok = <-erc
+	err = <-erc
 	if err == nil {
 		t.Fatalf("\t%s\tShould have received an error(%s) from stream: %s", tests.Failed, ex, err)
 	}
@@ -142,17 +145,27 @@ func TestStreams(t *testing.T) {
 func BenchmarkOneWorkerStreams(t *testing.B) {
 	t.ResetTimer()
 	t.ReportAllocs()
+
+	ws := workers.New(workers.Config{Min: 3, Max: 40}, writer{})
+	defer ws.Shutdown()
+
 	for i := 0; i < t.N; i++ {
-		ws := sumex.New(nil, 1, writer{})
-		rc, _ := sumex.Receive(ws)
+		var wg sync.WaitGroup
+		rc, rs := workers.Receive(ws)
 
-		defer ws.Shutdown()
-
-		for j := 0; j < 10; j++ {
+		wg.Add(200)
+		for j := 0; j < 200; j++ {
 			go ws.Data(nil, &monster{Name: fmt.Sprintf("%d", j)})
 		}
 
-		<-rc
+		go func() {
+			for _ = range rc {
+				wg.Done()
+			}
+		}()
+
+		wg.Wait()
+		rs.Shutdown()
 	}
 }
 
@@ -161,16 +174,26 @@ func BenchmarkOneWorkerStreams(t *testing.B) {
 func BenchmarkNWorkerStreams(t *testing.B) {
 	t.ResetTimer()
 	t.ReportAllocs()
+
+	ws := workers.New(workers.Config{Min: 20, Max: 1000}, writer{})
+	defer ws.Shutdown()
+
 	for i := 0; i < t.N; i++ {
-		ws := sumex.New(nil, 40, writer{})
-		rc, _ := sumex.Receive(ws)
+		var wg sync.WaitGroup
+		rc, rs := workers.Receive(ws)
 
-		defer ws.Shutdown()
-
-		for j := 0; j < 10; j++ {
+		wg.Add(200)
+		for j := 0; j < 200; j++ {
 			go ws.Data(nil, &monster{Name: fmt.Sprintf("%d", j)})
 		}
 
-		<-rc
+		go func() {
+			for _ = range rc {
+				wg.Done()
+			}
+		}()
+
+		wg.Wait()
+		rs.Shutdown()
 	}
 }

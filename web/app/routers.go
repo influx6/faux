@@ -75,6 +75,7 @@ func NewContentResponse(content string, h Handler) *ContentResponse {
 func (c *ContentResponse) Add(content string, handler Handler) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
 	c.pipe = c.pipe.Append(content, handler)
 }
 
