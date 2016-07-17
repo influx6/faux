@@ -198,7 +198,7 @@ type Stat struct {
 func (s Stat) String() string {
 	return fmt.Sprintf(`
 		 Current Time: %s
-		 Total Elpased Time from Last Stat: %s
+		 Total Elapsed Time from Last Stat: %s
 		 Total Current Workers: %d
 		 Total Active Workers: %d
 		 Total Pending Task: %d
