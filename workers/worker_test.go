@@ -146,7 +146,7 @@ func BenchmarkOneWorkerStreams(t *testing.B) {
 	t.ResetTimer()
 	t.ReportAllocs()
 
-	ws := workers.New(workers.Config{Min: 3, Max: 40}, writer{})
+	ws := workers.New(workers.Config{Min: 3, Max: 40, Log: events}, writer{})
 	defer ws.Shutdown()
 
 	for i := 0; i < t.N; i++ {
@@ -175,7 +175,7 @@ func BenchmarkNWorkerStreams(t *testing.B) {
 	t.ResetTimer()
 	t.ReportAllocs()
 
-	ws := workers.New(workers.Config{Min: 20, Max: 1000}, writer{})
+	ws := workers.New(workers.Config{Min: 20, Max: 1000, Log: events}, writer{})
 	defer ws.Shutdown()
 
 	for i := 0; i < t.N; i++ {

@@ -199,13 +199,13 @@ type Stat struct {
 func (s Stat) String() string {
 	return fmt.Sprintf(`
 		 Current Time: %s
-		 Total Elpased Time for Last Stat: %s
+		 Total Elpased Time from Last Stat: %s
 		 Total Current Workers: %d
 		 Total Active Workers: %d
 		 Total Pending Task: %d
 		 Total Completed Task: %d
 		 Total Closed Workers: %d
-	`, s.Time.Format("2015-11-01 11:01:01"), s.ElapsedStat, s.TotalWorkers, s.TotalWorkersRunning, s.Pending, s.Completed, s.Closed)
+	`, s.Time.UTC(), s.ElapsedStat, s.TotalWorkers, s.TotalWorkersRunning, s.Pending, s.Completed, s.Closed)
 }
 
 // Stats reports the current operational status of the streamer
@@ -346,12 +346,13 @@ func (s *worker) manage() {
 
 					// If pending is zero, just remove all the needed
 					if stat.Pending < 1 && unUsed > s.config.Min {
+						rmCount := unUsed - s.config.Min
+						s.config.Log.Log(s.uuid, "worker", "Info : Removing Total Workers[%d]", rmCount)
+
 						if atomic.LoadInt64(&s.closed) > 0 {
 							break
 						}
 
-						rmCount := unUsed - s.config.Min
-						s.config.Log.Log(s.uuid, "worker", "Info : Removing Total Workers[%d]", rmCount)
 						for i := 0; i < rmCount; i++ {
 							s.ender <- struct{}{}
 						}
@@ -376,6 +377,11 @@ func (s *worker) manage() {
 
 					if wasted > 0 {
 						s.config.Log.Log(s.uuid, "worker", "Info : Removing Total Workers[%d]", wasted)
+
+						if atomic.LoadInt64(&s.closed) > 0 {
+							break
+						}
+
 						for i := 0; i < wasted; i++ {
 							s.ender <- struct{}{}
 						}
@@ -388,7 +394,7 @@ func (s *worker) manage() {
 				// time.Sleep(20 * time.Nanosecond)
 
 				newStat := s.Stats()
-				s.config.Log.Log(s.uuid, "worker", "Info : Stat : {%+s}", mewStat)
+				s.config.Log.Log(s.uuid, "worker", "Info : Stat : {%+s}", newStat)
 
 				var newWorkersAdded bool
 
