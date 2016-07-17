@@ -178,7 +178,6 @@ type worker struct {
 	lastStat time.Time
 
 	workerGroup sync.WaitGroup
-	dataGroup   sync.WaitGroup
 
 	pl   sync.RWMutex
 	pubs []Worker // list of listeners.
@@ -245,7 +244,6 @@ func (s *worker) Shutdown() {
 	close(s.mn)
 	close(s.ender)
 
-	s.dataGroup.Wait()
 	s.workerGroup.Wait()
 
 	s.config.Log.Log(s.uuid, "Shutdown", "Completed : Shutdown Requested")
@@ -321,6 +319,10 @@ func (s *worker) Error(ctx context.Context, e error) {
 
 func (s *worker) manage() {
 	{
+
+		defer func() {
+			s.config.Log.Log(s.uuid, "worker", "Info : Worker Manager Shutdown")
+		}()
 
 		clock := time.NewTimer(s.config.CheckDuration)
 
