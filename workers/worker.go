@@ -396,7 +396,7 @@ func (s *worker) manage() {
 				// time.Sleep(20 * time.Nanosecond)
 
 				newStat := s.Stats()
-				s.config.Log.Log(s.uuid, "worker", "Info : Stat : {%+s}", newStat)
+				s.config.Log.Log(s.uuid, "worker", "Info : New Stat : {%+s}", newStat)
 
 				var newWorkersAdded bool
 
