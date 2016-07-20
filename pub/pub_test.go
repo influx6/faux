@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/influx6/faux/pub"
 )
@@ -50,7 +49,6 @@ func BenchmarkNodes(b *testing.B) {
 	})
 
 	dudette := pub.DASync(func(r pub.Ctx, data interface{}) {
-		time.Sleep(1 * time.Millisecond)
 		r.RW().Write(r, data)
 	})
 
