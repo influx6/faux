@@ -141,6 +141,38 @@ func TestStreams(t *testing.T) {
 	}
 }
 
+//==============================================================================
+
+type dsync struct{}
+
+func (dsync) Do(ctx context.Context, err error, value interface{}) (interface{}, error) {
+	return value, err
+}
+
+type dasync struct{}
+
+func (dasync) Do(ctx context.Context, err error, value interface{}) (interface{}, error) {
+	time.Sleep(1 * time.Millisecond)
+	return value, err
+}
+
+// BenchmarkNodes benches the performance of using the Node api.
+func BenchmarkNodes(b *testing.B) {
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	ds := workers.New(workers.Config{Min: 3, Max: 40, Log: events}, dsync{})
+	das := workers.New(workers.Config{Min: 3, Max: 40, Log: events}, dasync{})
+
+	ds.Next(das)
+
+	for i := 0; i < b.N; i++ {
+		ds.Data(nil, i)
+	}
+}
+
+//==============================================================================
+
 // BenchmarkStreams measures the performance of streamers using one worker.
 func BenchmarkOneWorkerStreams(t *testing.B) {
 	t.ResetTimer()

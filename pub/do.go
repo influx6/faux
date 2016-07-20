@@ -6,11 +6,11 @@ import (
 	"github.com/influx6/faux/regos"
 )
 
-// Pubs defines a builder for creating and registering publishers creators.
+// Pubs defines a builder for creating and registering Nodes creators.
 var Pubs = regos.New()
 
 // Works define a map of
-type Works map[string]Publisher
+type Works map[string]Node
 
 // Has returns true/false if the tag exists for a built result.
 func (r Works) Has(tag string) bool {
@@ -19,7 +19,7 @@ func (r Works) Has(tag string) bool {
 }
 
 // Get returns the Result for the specified build tag.
-func (r Works) Get(tag string) Publisher {
+func (r Works) Get(tag string) Node {
 	return r[tag]
 }
 
@@ -51,7 +51,7 @@ func (d Work) Make() (Works, error) {
 				}
 			}()
 
-			pb := Pubs.NewBuild(do.Name, do.Use).(Publisher)
+			pb := Pubs.NewBuild(do.Name, do.Use).(Node)
 			res[do.Tag] = pb
 		}()
 	}
