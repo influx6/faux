@@ -3,196 +3,92 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "aho4cewIOINTlRIIYRSqd1zsXAY=",
 			"path": "github.com/ardanlabs/kit/cfg",
-			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
-			"revisionTime": "2016-04-27T13:18:54-04:00"
+			"revision": "7e5dc3389426a93400488f88e40d337aac47ef1b",
+			"revisionTime": "2016-05-11T23:39:09Z"
 		},
 		{
+			"checksumSHA1": "L3bu4NPBOnj8Jrfxqzadh8CG5uU=",
 			"path": "github.com/ardanlabs/kit/db",
-			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
-			"revisionTime": "2016-04-27T13:18:54-04:00"
+			"revision": "7e5dc3389426a93400488f88e40d337aac47ef1b",
+			"revisionTime": "2016-05-11T23:39:09Z"
 		},
 		{
+			"checksumSHA1": "JoTLoJCW8AYEYslPh+R01R8gIl8=",
 			"path": "github.com/ardanlabs/kit/db/mongo",
-			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
-			"revisionTime": "2016-04-27T13:18:54-04:00"
+			"revision": "7e5dc3389426a93400488f88e40d337aac47ef1b",
+			"revisionTime": "2016-05-11T23:39:09Z"
 		},
 		{
+			"checksumSHA1": "oKirzV4xmcaOZA3FZ2D3ZC5Df9s=",
 			"path": "github.com/ardanlabs/kit/log",
-			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
-			"revisionTime": "2016-04-27T13:18:54-04:00"
+			"revision": "7e5dc3389426a93400488f88e40d337aac47ef1b",
+			"revisionTime": "2016-05-11T23:39:09Z"
 		},
 		{
+			"checksumSHA1": "urtHLPYkazMKm0uGj7ag8QAGbuQ=",
 			"path": "github.com/ardanlabs/kit/tests",
-			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
-			"revisionTime": "2016-04-27T13:18:54-04:00"
+			"revision": "7e5dc3389426a93400488f88e40d337aac47ef1b",
+			"revisionTime": "2016-05-11T23:39:09Z"
 		},
 		{
+			"checksumSHA1": "67Ufp7gCzJyjLVW3iW3og8uVtkw=",
 			"path": "github.com/dimfeld/httppath",
 			"revision": "c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc",
-			"revisionTime": "2014-05-15T11:47:37-05:00"
+			"revisionTime": "2014-05-15T16:47:37Z"
 		},
 		{
+			"checksumSHA1": "nIykkBgco5LIwtjzs0WDcgiIAWg=",
 			"path": "github.com/dimfeld/httptreemux",
 			"revision": "612c3d8e47f5a166d9346b694cf2aeb68eff5369",
-			"revisionTime": "2016-04-05T10:43:20-05:00"
+			"revisionTime": "2016-04-05T15:43:20Z"
 		},
 		{
-			"checksumSHA1": "xgjI2W3RGiQwNlxsOW2V9fJ9kaM=",
-			"path": "github.com/fsnotify/fsnotify",
-			"revision": "a8a77c9133d2d6fd8334f3260d06f60e8d80a5fb",
-			"revisionTime": "2016-06-29T01:11:04Z"
-		},
-		{
-			"path": "github.com/go-fsnotify/fsnotify",
-			"revision": "8611c35ab31c1c28aa903d33cf8b6e44a399b09e",
-			"revisionTime": "2016-01-10T16:04:37+01:00"
-		},
-		{
+			"checksumSHA1": "l+9zkLpQoH1bWRCY3hx3nTRsAos=",
 			"path": "github.com/go-humble/detect",
 			"revision": "714e9e4d821cb7daac42b10f6f91fe5da00fa6fb",
-			"revisionTime": "2015-07-11T22:04:33-07:00"
+			"revisionTime": "2015-07-12T05:04:33Z"
 		},
 		{
-			"path": "github.com/gopherjs/gopherjs/build",
-			"revision": "64858154c27789453689ac91041a736c89abd49d",
-			"revisionTime": "2016-03-28T11:50:26+02:00"
-		},
-		{
-			"path": "github.com/gopherjs/gopherjs/compiler",
-			"revision": "64858154c27789453689ac91041a736c89abd49d",
-			"revisionTime": "2016-03-28T11:50:26+02:00"
-		},
-		{
-			"path": "github.com/gopherjs/gopherjs/compiler/analysis",
-			"revision": "64858154c27789453689ac91041a736c89abd49d",
-			"revisionTime": "2016-03-28T11:50:26+02:00"
-		},
-		{
-			"path": "github.com/gopherjs/gopherjs/compiler/astutil",
-			"revision": "64858154c27789453689ac91041a736c89abd49d",
-			"revisionTime": "2016-03-28T11:50:26+02:00"
-		},
-		{
-			"path": "github.com/gopherjs/gopherjs/compiler/filter",
-			"revision": "64858154c27789453689ac91041a736c89abd49d",
-			"revisionTime": "2016-03-28T11:50:26+02:00"
-		},
-		{
-			"path": "github.com/gopherjs/gopherjs/compiler/prelude",
-			"revision": "64858154c27789453689ac91041a736c89abd49d",
-			"revisionTime": "2016-03-28T11:50:26+02:00"
-		},
-		{
-			"path": "github.com/gopherjs/gopherjs/compiler/typesutil",
-			"revision": "64858154c27789453689ac91041a736c89abd49d",
-			"revisionTime": "2016-03-28T11:50:26+02:00"
-		},
-		{
+			"checksumSHA1": "P3zGmsNjW8m15a+nks4FdVpFKwE=",
 			"path": "github.com/gopherjs/gopherjs/js",
-			"revision": "64858154c27789453689ac91041a736c89abd49d",
-			"revisionTime": "2016-03-28T11:50:26+02:00"
+			"revision": "090403452ab6979e3b7c054ceb7ee23da91b2ae4",
+			"revisionTime": "2016-07-05T06:58:54Z"
 		},
 		{
-			"path": "github.com/gopherjs/gopherjs/third_party/importer",
-			"revision": "64858154c27789453689ac91041a736c89abd49d",
-			"revisionTime": "2016-03-28T11:50:26+02:00"
-		},
-		{
-			"path": "github.com/influx6/flux",
-			"revision": "761941aa7919a8a115f2a10a107ee51ae698b117",
-			"revisionTime": "2015-11-25T20:21:12+01:00"
-		},
-		{
-			"path": "github.com/kardianos/osext",
-			"revision": "29ae4ffbc9a6fe9fb2bc5029050ce6996ea1d3bc",
-			"revisionTime": "2015-12-22T07:32:29-08:00"
-		},
-		{
-			"path": "github.com/microcosm-cc/bluemonday",
-			"revision": "4ac6f27528d0a3f2a59e0b0a6f6b3ff0bb89fe20",
-			"revisionTime": "2015-11-02T10:20:00-08:00"
-		},
-		{
-			"origin": "github.com/gopherjs/gopherjs/compiler/vendor/github.com/neelance/astrewrite",
-			"path": "github.com/neelance/astrewrite",
-			"revision": "64858154c27789453689ac91041a736c89abd49d",
-			"revisionTime": "2016-03-28T11:50:26+02:00"
-		},
-		{
-			"path": "github.com/neelance/sourcemap",
-			"revision": "8c68805598ab8d5637b1a72b5f7d381ea0f39c31",
-			"revisionTime": "2015-10-28T02:37:22+01:00"
-		},
-		{
-			"path": "github.com/russross/blackfriday",
-			"revision": "006144af03eeeff1037240a71865a9fd61f1c25f",
-			"revisionTime": "2016-01-24T13:12:56+02:00"
-		},
-		{
+			"checksumSHA1": "1myjT8gKwUI3WNE5a/85jNPL8Fo=",
 			"path": "github.com/satori/go.uuid",
-			"revision": "e673fdd4dea8a7334adbbe7f57b7e4b00bdc5502",
-			"revisionTime": "2016-02-18T23:57:46Z"
+			"revision": "879c5887cd475cd7864858769793b2ceb0d44feb",
+			"revisionTime": "2016-06-07T14:43:47Z"
 		},
 		{
-			"path": "github.com/shurcooL/sanitized_anchor_name",
-			"revision": "10ef21a441db47d8b13ebcc5fd2310f636973c77",
-			"revisionTime": "2015-10-27T17:19:15-07:00"
-		},
-		{
-			"path": "golang.org/x/net/html",
-			"revision": "3e5cd1ed149001198e582f9d3f5bfd564cde2896",
-			"revisionTime": "2016-03-08T20:16:50-06:00"
-		},
-		{
-			"path": "golang.org/x/net/html/atom",
-			"revision": "3e5cd1ed149001198e582f9d3f5bfd564cde2896",
-			"revisionTime": "2016-03-08T20:16:50-06:00"
-		},
-		{
-			"checksumSHA1": "8fD/im5Kwvy3JgmxulDTambmE8w=",
-			"path": "golang.org/x/sys/unix",
-			"revision": "a408501be4d17ee978c04a618e7a1b22af058c0e",
-			"revisionTime": "2016-07-03T23:56:20Z"
-		},
-		{
-			"path": "golang.org/x/tools/go/exact",
-			"revision": "824b504fc734b5a1937a7860175838a86642481f",
-			"revisionTime": "2016-03-09T00:07:18+01:00"
-		},
-		{
-			"path": "golang.org/x/tools/go/types",
-			"revision": "824b504fc734b5a1937a7860175838a86642481f",
-			"revisionTime": "2016-03-09T00:07:18+01:00"
-		},
-		{
-			"path": "golang.org/x/tools/go/types/typeutil",
-			"revision": "824b504fc734b5a1937a7860175838a86642481f",
-			"revisionTime": "2016-03-09T00:07:18+01:00"
-		},
-		{
+			"checksumSHA1": "lq/sJ5rhKdIAOOIvmkNOLI2jYE0=",
 			"origin": "github.com/ardanlabs/kit/vendor/gopkg.in/mgo.v2",
 			"path": "gopkg.in/mgo.v2",
-			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
-			"revisionTime": "2016-04-27T13:18:54-04:00"
+			"revision": "03c9f3ee4c14c8e51ee521a6a7d0425658dd6f64",
+			"revisionTime": "2016-01-18T14:58:58Z"
 		},
 		{
+			"checksumSHA1": "4KPH72pWXFvwgAymK/Kk4Lkhtjk=",
 			"origin": "github.com/ardanlabs/kit/vendor/gopkg.in/mgo.v2/bson",
 			"path": "gopkg.in/mgo.v2/bson",
-			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
-			"revisionTime": "2016-04-27T13:18:54-04:00"
+			"revision": "03c9f3ee4c14c8e51ee521a6a7d0425658dd6f64",
+			"revisionTime": "2016-01-18T14:58:58Z"
 		},
 		{
+			"checksumSHA1": "lflrleHLqpORhnoOjHVHokpeq54=",
 			"origin": "github.com/ardanlabs/kit/vendor/gopkg.in/mgo.v2/internal/sasl",
 			"path": "gopkg.in/mgo.v2/internal/sasl",
-			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
-			"revisionTime": "2016-04-27T13:18:54-04:00"
+			"revision": "03c9f3ee4c14c8e51ee521a6a7d0425658dd6f64",
+			"revisionTime": "2016-01-18T14:58:58Z"
 		},
 		{
+			"checksumSHA1": "CrciG7woshiINwZxPsxisgDGL3Y=",
 			"origin": "github.com/ardanlabs/kit/vendor/gopkg.in/mgo.v2/internal/scram",
 			"path": "gopkg.in/mgo.v2/internal/scram",
-			"revision": "6f7130ae8987ad34b144a7aa4b670295e4e45b3b",
-			"revisionTime": "2016-04-27T13:18:54-04:00"
+			"revision": "03c9f3ee4c14c8e51ee521a6a7d0425658dd6f64",
+			"revisionTime": "2016-01-18T14:58:58Z"
 		}
 	],
 	"rootPath": "github.com/influx6/faux"
