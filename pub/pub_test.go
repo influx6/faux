@@ -86,6 +86,26 @@ func BenchmarkNodes(b *testing.B) {
 	}
 }
 
+// BenchmarkReflectNodes benches the performance of using the Node api.
+func BenchmarkReflectNodes(b *testing.B) {
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	dude := pub.Magic(func(r pub.Ctx, data interface{}) {
+		r.RW().Write(r, data)
+	})
+
+	dudette := pub.AsyncMagic(func(r pub.Ctx, _ error, data int) {
+		r.RW().Write(r, data)
+	})
+
+	dude.Signal(dudette)
+
+	for i := 0; i < b.N; i++ {
+		dude.Read(i)
+	}
+}
+
 func logPassed(t *testing.T, msg string, data ...interface{}) {
 	t.Logf("%s %s", fmt.Sprintf(msg, data...), succeedMark)
 }
