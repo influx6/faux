@@ -99,7 +99,8 @@ func MagicHandler(node interface{}) Handler {
 			}
 
 			dZero := reflect.Zero(errorType)
-			tm.Call([]reflect.Value{ma, dZero, mVal})
+			dArgs := []reflect.Value{ma, dZero, mVal}
+			tm.Call(dArgs)
 		}
 	}
 
@@ -349,10 +350,11 @@ func (p *pub) Write(ctx Ctx, v interface{}) {
 	{
 		for _, node := range p.subs {
 			if isErr {
-				node.Write(ctxn, err)
+				node.Read(err, ctxn.Ctx())
 				continue
 			}
-			node.Write(ctxn, v)
+
+			node.Read(v, ctxn.Ctx())
 		}
 	}
 	p.rw.RUnlock()
@@ -411,32 +413,6 @@ func (p *pub) WriteEvery(ctx Ctx, v interface{}, finder NthFinder) {
 type Reactor interface {
 	Signal(interface{}) Node
 	AsyncSignal(interface{}) Node
-
-	SignalD(DataHandler) Node
-	AsyncSignalD(DataHandler) Node
-
-	SignalE(ErrorHandler) Node
-	AsyncSignalE(ErrorHandler) Node
-}
-
-// SignalD binds the provided Handler to recieve data feeds only synchronously.
-func (p *pub) SignalD(dh DataHandler) Node {
-	return p.Signal(WrapData(dh))
-}
-
-// AsyncSignalD binds the provided Handler to recieve data feeds only asynchronously.
-func (p *pub) AsyncSignalD(dh DataHandler) Node {
-	return p.AsyncSignal(WrapData(dh))
-}
-
-// SignalE binds the provided Handler to recieve error feeds only synchronously.
-func (p *pub) SignalE(dh ErrorHandler) Node {
-	return p.Signal(WrapError(dh))
-}
-
-// AsyncSignalE binds the provided Handler to recieve error feeds only asynchronously.
-func (p *pub) AsyncSignalE(dh ErrorHandler) Node {
-	return p.AsyncSignal(WrapError(dh))
 }
 
 // AsyncSignal sends the response signal from this Node to the provided node

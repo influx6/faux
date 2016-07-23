@@ -95,7 +95,11 @@ func BenchmarkReflectNodes(b *testing.B) {
 		r.RW().Write(r, data)
 	})
 
-	dudette := pub.AsyncMagic(func(r pub.Ctx, _ error, data int) {
+	dudette := pub.AsyncMagic(func(r pub.Ctx, err error, data int) {
+		r.RW().Write(r, data)
+	})
+
+	dudette.AsyncSignal(func(r pub.Ctx, err error, data int) {
 		r.RW().Write(r, data)
 	})
 
