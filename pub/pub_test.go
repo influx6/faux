@@ -56,7 +56,7 @@ func TestAutoFn(t *testing.T) {
 	})
 
 	pos.Read(errors.New("Ful"))
-	pos.Read("Word")
+	pos.Read("Word") // -> This would not be seen. Has it does not match int type.
 	pos.Read(20)
 
 	if atomic.LoadInt64(&count) != 2 {
