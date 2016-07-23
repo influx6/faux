@@ -3,10 +3,18 @@
 package pub
 
 import (
+	"fmt"
+	"reflect"
 	"sync"
 
 	"github.com/influx6/faux/context"
+	"github.com/influx6/faux/reflection"
 	"github.com/satori/go.uuid"
+)
+
+var (
+	errorType = reflect.TypeOf((*error)(nil)).Elem()
+	ctxType   = reflect.TypeOf((*Ctx)(nil)).Elem()
 )
 
 // ReadWriter defines a type which defines a Reader and Writer interface conforming
@@ -63,9 +71,9 @@ func ASync(op Handler) Node {
 // replies alone.
 type DataHandler func(Ctx, interface{})
 
-// WrapHandler returns a Handler which wraps a DataHandler within it, but
+// WrapData returns a Handler which wraps a DataHandler within it, but
 // passing forward all errors it receives.
-func WrapHandler(dh DataHandler) Handler {
+func WrapData(dh DataHandler) Handler {
 	return func(m Ctx, err error, data interface{}) {
 		if err != nil {
 			m.RW().Write(m, err)
@@ -75,10 +83,28 @@ func WrapHandler(dh DataHandler) Handler {
 	}
 }
 
+// ErrorHandler defines a function type that concentrates on handling only data
+// errors alone.
+type ErrorHandler func(Ctx, error)
+
+// WrapError returns a Handler which wraps a DataHandler within it, but
+// passing forward all errors it receives.
+func WrapError(dh ErrorHandler) Handler {
+	return func(m Ctx, err error, data interface{}) {
+		if err == nil {
+			dh(m, err)
+			return
+		}
+		m.RW().Write(m, data)
+	}
+}
+
+//==============================================================================
+
 // DSync returns a new functional Node using the DataHandler.
 func DSync(dh DataHandler) Node {
 	node := pub{
-		op:   WrapHandler(dh),
+		op:   WrapData(dh),
 		uuid: uuid.NewV4().String(),
 	}
 
@@ -89,7 +115,7 @@ func DSync(dh DataHandler) Node {
 func DASync(dh DataHandler) Node {
 	node := pub{
 		async: true,
-		op:    WrapHandler(dh),
+		op:    WrapData(dh),
 		uuid:  uuid.NewV4().String(),
 	}
 
@@ -260,6 +286,124 @@ func (p *pub) WriteEvery(ctx Ctx, v interface{}, finder NthFinder) {
 // Reactor defines the core connecting methods used for binding with a Node.
 type Reactor interface {
 	Signal(interface{}) Node
+	AsyncSignal(interface{}) Node
+
+	SignalD(DataHandler) Node
+	AsyncSignalD(DataHandler) Node
+
+	SignalE(ErrorHandler) Node
+	AsyncSignalE(ErrorHandler) Node
+}
+
+// SignalD binds the provided Handler to recieve data feeds only synchronously.
+func (p *pub) SignalD(dh DataHandler) Node {
+	return p.Signal(WrapData(dh))
+}
+
+// AsyncSignalD binds the provided Handler to recieve data feeds only asynchronously.
+func (p *pub) AsyncSignalD(dh DataHandler) Node {
+	return p.AsyncSignal(WrapData(dh))
+}
+
+// SignalE binds the provided Handler to recieve error feeds only synchronously.
+func (p *pub) SignalE(dh ErrorHandler) Node {
+	return p.Signal(WrapError(dh))
+}
+
+// AsyncSignalE binds the provided Handler to recieve error feeds only asynchronously.
+func (p *pub) AsyncSignalE(dh ErrorHandler) Node {
+	return p.AsyncSignal(WrapError(dh))
+}
+
+// AsyncSignal sends the response signal from this Node to the provided node
+// within a goroutine. If the input is a Node then it is returned.
+func (p *pub) AsyncSignal(node interface{}) Node {
+	var n Node
+
+	switch node.(type) {
+	case Node:
+		n = node.(Node)
+	case Handler:
+		n = ASync(node.(Handler))
+	case ErrorHandler:
+		dh := node.(ErrorHandler)
+		n = ASync(func(m Ctx, err error, val interface{}) {
+			if err == nil {
+				dh(m, err)
+				return
+			}
+
+			m.RW().Write(m, val)
+		})
+	case DataHandler:
+		dh := node.(DataHandler)
+		n = ASync(func(m Ctx, err error, val interface{}) {
+			if err != nil {
+				m.RW().Write(m, err)
+				return
+			}
+			dh(m, val)
+		})
+	default:
+		fmt.Printf("Calling sync default\n")
+		if !reflection.IsFuncType(node) {
+			return nil
+		}
+
+		tm, _ := reflection.FuncValue(node)
+		args, _ := reflection.GetFuncArgumentsType(node)
+
+		if alen := len(args); alen < 3 || alen > 3 {
+			return nil
+		}
+
+		// Check if this first item is a pub.Ctx type.
+		if ok, _ := reflection.CanSetForType(ctxType, args[0]); !ok {
+			return nil
+		}
+
+		// Check if this second item is a error type.
+		if ok, _ := reflection.CanSetForType(errorType, args[1]); !ok {
+			return nil
+		}
+
+		data := args[2]
+		n = ASync(func(m Ctx, err error, val interface{}) {
+			ma := reflect.ValueOf(m)
+			erm := reflect.ValueOf(err)
+
+			if err != nil {
+				tm.Call([]reflect.Value{ma, erm, reflect.ValueOf(nil)})
+				return
+			}
+
+			mVal := reflect.ValueOf(val)
+
+			ok, convert := reflection.CanSetFor(data, mVal)
+			if !ok {
+				return
+			}
+
+			var relVal reflect.Value
+			if convert {
+				relVal, err = reflection.Convert(data, mVal)
+				if err != nil {
+					return
+				}
+			}
+
+			tm.Call([]reflect.Value{ma, erm, relVal})
+		})
+
+	}
+
+	p.rw.Lock()
+	{
+		p.subs = append(p.subs, n)
+	}
+	p.rw.Unlock()
+
+	return n
 }
 
 // Signal sends the response signal from this Node to the provided node.
@@ -273,6 +417,16 @@ func (p *pub) Signal(node interface{}) Node {
 		n = node.(Node)
 	case Handler:
 		n = Sync(node.(Handler))
+	case ErrorHandler:
+		dh := node.(ErrorHandler)
+		n = Sync(func(m Ctx, err error, val interface{}) {
+			if err == nil {
+				dh(m, err)
+				return
+			}
+
+			m.RW().Write(m, val)
+		})
 	case DataHandler:
 		dh := node.(DataHandler)
 		n = Sync(func(m Ctx, err error, val interface{}) {
@@ -283,7 +437,55 @@ func (p *pub) Signal(node interface{}) Node {
 			dh(m, val)
 		})
 	default:
-		return nil
+		fmt.Printf("Calling sync default\n")
+		if !reflection.IsFuncType(node) {
+			return nil
+		}
+
+		tm, _ := reflection.FuncValue(node)
+		args, _ := reflection.GetFuncArgumentsType(node)
+
+		if alen := len(args); alen < 3 || alen > 3 {
+			return nil
+		}
+
+		// Check if this first item is a pub.Ctx type.
+		if ok, _ := reflection.CanSetForType(ctxType, args[0]); !ok {
+			return nil
+		}
+
+		// Check if this second item is a error type.
+		if ok, _ := reflection.CanSetForType(errorType, args[1]); !ok {
+			return nil
+		}
+
+		data := args[2]
+		n = Sync(func(m Ctx, err error, val interface{}) {
+			ma := reflect.ValueOf(m)
+			erm := reflect.ValueOf(err)
+
+			if err != nil {
+				tm.Call([]reflect.Value{ma, erm, reflect.ValueOf(nil)})
+				return
+			}
+
+			mVal := reflect.ValueOf(val)
+
+			ok, convert := reflection.CanSetFor(data, mVal)
+			if !ok {
+				return
+			}
+
+			var relVal reflect.Value
+			if convert {
+				relVal, err = reflection.Convert(data, mVal)
+				if err != nil {
+					return
+				}
+			}
+
+			tm.Call([]reflect.Value{ma, erm, relVal})
+		})
 	}
 
 	p.rw.Lock()
