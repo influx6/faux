@@ -71,7 +71,7 @@ func BenchmarkNodes(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
-	dude := pub.Magic(func(r pub.Ctx, data interface{}) {
+	dude := pub.Magic(func(r pub.Ctx, err error, data interface{}) {
 		r.RW().Write(r, data)
 	})
 

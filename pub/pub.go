@@ -210,13 +210,31 @@ type Node interface {
 	UUID() string
 }
 
+// InverseMagic returns a new functional Node.
+func InverseMagic(op interface{}) Node {
+	hl := MagicHandler(op)
+	if hl == nil {
+		panic("invalid type provided")
+	}
+	return nSync(hl, true)
+}
+
+// InverseAsyncMagic returns a new functional Node.
+func InverseAsyncMagic(op interface{}) Node {
+	hl := MagicHandler(op)
+	if hl == nil {
+		panic("invalid type provided")
+	}
+	return aSync(hl, true)
+}
+
 // Magic returns a new functional Node.
 func Magic(op interface{}) Node {
 	hl := MagicHandler(op)
 	if hl == nil {
 		panic("invalid type provided")
 	}
-	return nSync(hl)
+	return nSync(hl, false)
 }
 
 // AsyncMagic returns a new functional Node.
@@ -225,7 +243,7 @@ func AsyncMagic(op interface{}) Node {
 	if hl == nil {
 		panic("invalid type provided")
 	}
-	return aSync(hl)
+	return aSync(hl, false)
 }
 
 // pub provides a pure functional Node, which uses an internal wait group to
@@ -235,27 +253,30 @@ type pub struct {
 	op   Handler
 	root Node
 
-	async bool
-	rw    sync.RWMutex
-	subs  []Node
+	async   bool
+	inverse bool
+	rw      sync.RWMutex
+	subs    []Node
 }
 
 // nSync returns a new functional Node.
-func nSync(op Handler) Node {
+func nSync(op Handler, inverse bool) Node {
 	node := pub{
-		op:   op,
-		uuid: uuid.NewV4().String(),
+		op:      op,
+		inverse: inverse,
+		uuid:    uuid.NewV4().String(),
 	}
 
 	return &node
 }
 
 // aSync returns a new functional Node.
-func aSync(op Handler) Node {
+func aSync(op Handler, inverse bool) Node {
 	node := pub{
-		op:    op,
-		async: true,
-		uuid:  uuid.NewV4().String(),
+		op:      op,
+		inverse: inverse,
+		async:   true,
+		uuid:    uuid.NewV4().String(),
 	}
 
 	return &node
@@ -413,31 +434,8 @@ func (p *pub) WriteEvery(ctx Ctx, v interface{}, finder NthFinder) {
 type Reactor interface {
 	Signal(interface{}) Node
 	AsyncSignal(interface{}) Node
-}
-
-// AsyncSignal sends the response signal from this Node to the provided node
-// within a goroutine. If the input is a Node then it is returned.
-func (p *pub) AsyncSignal(node interface{}) Node {
-	var n Node
-
-	switch node.(type) {
-	case Node:
-		n = node.(Node)
-	default:
-		hl := MagicHandler(node)
-		if hl == nil {
-			return nil
-		}
-		n = aSync(hl)
-	}
-
-	p.rw.Lock()
-	{
-		p.subs = append(p.subs, n)
-	}
-	p.rw.Unlock()
-
-	return n
+	InverseSignal(interface{}) Node
+	InverseAsyncSignal(interface{}) Node
 }
 
 // Signal sends the response signal from this Node to the provided node.
@@ -454,7 +452,187 @@ func (p *pub) Signal(node interface{}) Node {
 		if hl == nil {
 			return nil
 		}
-		n = nSync(hl)
+		n = nSync(hl, false)
+	}
+
+	// If we have inversed this handler, then return itself, since it
+	// wishes to be the first point in entry.
+	// To INVERSE, means to redirect how things flows, normally binding
+	// flows by returning the next item in the chain, but to invert means
+	// to bind to the last item in the subscription list but return itself.
+	if p.inverse {
+		p.rw.Lock()
+		{
+
+			var newNode Node
+
+			nlen := len(p.subs) - 1
+			if nlen > 1 {
+				newNode = (p.subs[nlen]).AsyncSignal(n)
+			} else {
+				newNode = n
+			}
+
+			p.subs = append(p.subs, newNode)
+		}
+		p.rw.Unlock()
+
+		return p
+	}
+
+	p.rw.Lock()
+	{
+		p.subs = append(p.subs, n)
+	}
+	p.rw.Unlock()
+
+	return n
+}
+
+// AsyncSignal sends the response signal from this Node to the provided node
+// within a goroutine. If the input is a Node then it is returned.
+func (p *pub) AsyncSignal(node interface{}) Node {
+	var n Node
+
+	switch node.(type) {
+	case Node:
+		n = node.(Node)
+	default:
+		hl := MagicHandler(node)
+		if hl == nil {
+			return nil
+		}
+		n = aSync(hl, false)
+	}
+
+	// If we have inversed this handler, then return itself, since it
+	// wishes to be the first point in entry.
+	// To INVERSE, means to redirect how things flows, normally binding
+	// flows by returning the next item in the chain, but to invert means
+	// to bind to the last item in the subscription list but return itself.
+	if p.inverse {
+		p.rw.Lock()
+		{
+
+			var newNode Node
+
+			nlen := len(p.subs) - 1
+			if nlen > 1 {
+				newNode = (p.subs[nlen]).AsyncSignal(n)
+			} else {
+				newNode = n
+			}
+
+			p.subs = append(p.subs, newNode)
+		}
+		p.rw.Unlock()
+
+		return p
+	}
+
+	p.rw.Lock()
+	{
+		p.subs = append(p.subs, n)
+	}
+	p.rw.Unlock()
+
+	return n
+}
+
+// InverseSignal returns a new Node which inverts the flow of binding.
+// To INVERSE, means to redirect how things flows, normally binding
+// flows by returning the next item in the chain, but to invert means
+// to bind to the last item in the subscription list but return itself.
+func (p *pub) InverseSignal(node interface{}) Node {
+	var n Node
+
+	switch node.(type) {
+	case Node:
+		n = node.(Node)
+	default:
+		hl := MagicHandler(node)
+		if hl == nil {
+			return nil
+		}
+		n = nSync(hl, true)
+	}
+
+	// If we have inversed this handler, then return itself, since it
+	// wishes to be the first point in entry.
+	// To INVERSE, means to redirect how things flows, normally binding
+	// flows by returning the next item in the chain, but to invert means
+	// to bind to the last item in the subscription list but return itself.
+	if p.inverse {
+		p.rw.Lock()
+		{
+
+			var newNode Node
+
+			nlen := len(p.subs) - 1
+			if nlen > 1 {
+				newNode = (p.subs[nlen]).InverseSignal(n)
+			} else {
+				newNode = n
+			}
+
+			p.subs = append(p.subs, newNode)
+		}
+		p.rw.Unlock()
+
+		return p
+	}
+
+	p.rw.Lock()
+	{
+		p.subs = append(p.subs, n)
+	}
+	p.rw.Unlock()
+
+	return n
+}
+
+// InverseAsyncSignal returns a new asynchronouse Node which inverts the i
+// flow of binding.
+// To INVERSE, means to redirect how things flows, normally binding
+// flows by returning the next item in the chain, but to invert means
+// to bind to the last item in the subscription list but return itself.
+func (p *pub) InverseAsyncSignal(node interface{}) Node {
+	var n Node
+
+	switch node.(type) {
+	case Node:
+		n = node.(Node)
+	default:
+		hl := MagicHandler(node)
+		if hl == nil {
+			return nil
+		}
+		n = aSync(hl, true)
+	}
+
+	// If we have inversed this handler, then return itself, since it
+	// wishes to be the first point in entry.
+	// To INVERSE, means to redirect how things flows, normally binding
+	// flows by returning the next item in the chain, but to invert means
+	// to bind to the last item in the subscription list but return itself.
+	if p.inverse {
+		p.rw.Lock()
+		{
+
+			var newNode Node
+
+			nlen := len(p.subs) - 1
+			if nlen > 1 {
+				newNode = (p.subs[nlen]).InverseAsyncSignal(n)
+			} else {
+				newNode = n
+			}
+
+			p.subs = append(p.subs, newNode)
+		}
+		p.rw.Unlock()
+
+		return p
 	}
 
 	p.rw.Lock()
