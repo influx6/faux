@@ -2,6 +2,7 @@ package fs
 
 import (
 	"io"
+	"os"
 
 	"github.com/influx6/faux/pub"
 )
@@ -27,6 +28,9 @@ type FileSystem interface {
 
 	DeleteFile(string) FileSystem
 	DeleteDir(string) FileSystem
+
+	SkipStat(func(os.FileInfo) bool) FileSystem
+	UnwrapStat() FileSystem
 }
 
 // New returns a new FileSystem

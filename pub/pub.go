@@ -284,8 +284,10 @@ type pub struct {
 
 	async   bool
 	inverse bool
-	rw      sync.RWMutex
-	subs    []Node
+
+	rw   sync.RWMutex
+	subs []Node
+	ends []func()
 }
 
 // nSync returns a new functional Node.
@@ -318,6 +320,7 @@ func (p *pub) UUID() string {
 
 // Reader defines the delivery methods used to deliver data into Node process.
 type Reader interface {
+	ReadEnd()
 	Read(v interface{}, ctx ...context.Context)
 }
 
@@ -337,7 +340,23 @@ func (c contxt) RW() ReadWriter {
 	return c.rw
 }
 
-// Send applies a message value to the handler.
+// ReadEnd applies a end signal to all the subscribers.
+func (p *pub) ReadEnd() {
+	p.rw.RLock()
+	{
+		for _, node := range p.ends {
+			if p.async {
+				go node()
+				return
+			}
+
+			node()
+		}
+	}
+	p.rw.RUnlock()
+}
+
+// Read applies a message value to the handler.
 func (p *pub) Read(b interface{}, ctxs ...context.Context) {
 	var ctx context.Context
 
@@ -456,7 +475,6 @@ func (p *pub) WriteEvery(ctx Ctx, v interface{}, finder NthFinder) {
 		}
 	}
 	p.rw.RUnlock()
-
 }
 
 // Inversion defines an interface that allows the creation of an inverter Node
@@ -500,8 +518,18 @@ func (p *pub) InverseAsyncWith(node interface{}) Node {
 
 // Reactor defines the core connecting methods used for binding with a Node.
 type Reactor interface {
+	SignalEnd(func())
 	Signal(interface{}) Node
 	AsyncSignal(interface{}) Node
+}
+
+// SignalEnd signals the end of a signal run.
+func (p *pub) SignalEnd(handle func()) {
+	p.rw.Lock()
+	{
+		p.ends = append(p.ends, handle)
+	}
+	p.rw.Unlock()
 }
 
 // Signal sends the response signal from this Node to the provided node.
@@ -535,6 +563,7 @@ func (p *pub) Signal(node interface{}) Node {
 				(p.subs[nlen]).Signal(n)
 			} else {
 				p.subs = append(p.subs, n)
+				p.ends = append(p.ends, n.ReadEnd)
 			}
 
 		}
@@ -546,6 +575,7 @@ func (p *pub) Signal(node interface{}) Node {
 	p.rw.Lock()
 	{
 		p.subs = append(p.subs, n)
+		p.ends = append(p.ends, n.ReadEnd)
 	}
 	p.rw.Unlock()
 
@@ -584,6 +614,7 @@ func (p *pub) AsyncSignal(node interface{}) Node {
 				(p.subs[nlen]).AsyncSignal(n)
 			} else {
 				p.subs = append(p.subs, newNode)
+				p.ends = append(p.ends, n.ReadEnd)
 			}
 
 		}
@@ -595,6 +626,7 @@ func (p *pub) AsyncSignal(node interface{}) Node {
 	p.rw.Lock()
 	{
 		p.subs = append(p.subs, n)
+		p.ends = append(p.ends, n.ReadEnd)
 	}
 	p.rw.Unlock()
 
