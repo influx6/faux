@@ -15,9 +15,20 @@ var (
 	errorType = reflect.TypeOf((*error)(nil)).Elem()
 	ctxType   = reflect.TypeOf((*Ctx)(nil)).Elem()
 	uType     = reflect.TypeOf((*interface{})(nil)).Elem()
+
+	hlType = reflect.TypeOf((*Handler)(nil)).Elem()
+	dlType = reflect.TypeOf((*DataHandler)(nil)).Elem()
+	elType = reflect.TypeOf((*ErrorHandler)(nil)).Elem()
 )
 
 //==============================================================================
+
+// Ctx defines a type which is passed into all Handlers to provide access
+// to an underline context.Context provider and the source Read and Write methods.
+type Ctx interface {
+	Ctx() context.Context
+	RW() ReadWriter
+}
 
 // Handler defines a function type which processes data and accepts a ReadWriter
 // through which it sends its reply.
@@ -31,12 +42,16 @@ func MagicHandler(node interface{}) Handler {
 	var hl Handler
 
 	switch node.(type) {
-	case Handler:
-		hl = node.(Handler)
-	case ErrorHandler:
-		hl = WrapError(node.(ErrorHandler))
-	case DataHandler:
-		hl = WrapData(node.(DataHandler))
+	case func(Ctx, error, interface{}):
+		hl = node.(func(Ctx, error, interface{}))
+	case func(Ctx, error):
+		hl = WrapError(node.(func(Ctx, error)))
+	case func(Ctx, interface{}):
+		hl = WrapData(node.(func(Ctx, interface{})))
+	case func(interface{}) interface{}:
+		hl = WrapDataOnly(node.(func(interface{}) interface{}))
+	case func(interface{}) error:
+		hl = WrapErrorOnly(node.(func(interface{}) error))
 	default:
 		if !reflection.IsFuncType(node) {
 			return nil
@@ -49,7 +64,7 @@ func MagicHandler(node interface{}) Handler {
 			return nil
 		}
 
-		// Check if this first item is a pub.Ctx type.
+		// Check if this first item is a Ctx type.
 		if ok, _ := reflection.CanSetForType(ctxType, args[0]); !ok {
 			return nil
 		}
@@ -119,11 +134,35 @@ func WrapData(dh DataHandler) Handler {
 	}
 }
 
+// DataOnlyHandler defines a function type that concentrates on handling only data
+// replies alone.
+type DataOnlyHandler func(interface{}) interface{}
+
+// WrapDataOnly returns a Handler which wraps a DataHandler within it, but
+// passing forward all errors it receives.
+func WrapDataOnly(dh DataOnlyHandler) Handler {
+	return func(m Ctx, err error, data interface{}) {
+		if err != nil {
+			m.RW().Write(m, err)
+			return
+		}
+
+		res := dh(data)
+
+		if ers, ok := res.(error); ok {
+			m.RW().Write(m, ers)
+			return
+		}
+
+		m.RW().Write(m, res)
+	}
+}
+
 // ErrorHandler defines a function type that concentrates on handling only data
 // errors alone.
 type ErrorHandler func(Ctx, error)
 
-// WrapError returns a Handler which wraps a DataHandler within it, but
+// WrapError returns a Handler which wraps a DataOnlyHandler within it, but
 // passing forward all errors it receives.
 func WrapError(dh ErrorHandler) Handler {
 	return func(m Ctx, err error, data interface{}) {
@@ -132,6 +171,23 @@ func WrapError(dh ErrorHandler) Handler {
 			return
 		}
 		m.RW().Write(m, data)
+	}
+}
+
+// ErrorOnlyHandler defines a function type that concentrates on handling only error
+// replies alone.
+type ErrorOnlyHandler func(interface{}) error
+
+// WrapErrorOnly returns a Handler which wraps a ErrorOnlyHandler within it, but
+// passing forward all errors it receives.
+func WrapErrorOnly(dh ErrorOnlyHandler) Handler {
+	return func(m Ctx, err error, data interface{}) {
+		if err != nil {
+			m.RW().Write(m, err)
+			return
+		}
+
+		m.RW().Write(m, dh(data))
 	}
 }
 
@@ -155,19 +211,20 @@ type Node interface {
 
 // Magic returns a new functional Node.
 func Magic(op interface{}) Node {
-	return nSync(MagicHandler(op))
+	hl := MagicHandler(op)
+	if hl == nil {
+		panic("invalid type provided")
+	}
+	return nSync(hl)
 }
 
 // AsyncMagic returns a new functional Node.
 func AsyncMagic(op interface{}) Node {
-	return aSync(MagicHandler(op))
-}
-
-// Ctx defines a type which is passed into all Handlers to provide access
-// to an underline context.Context provider and the source Read and Write methods.
-type Ctx interface {
-	Ctx() context.Context
-	RW() ReadWriter
+	hl := MagicHandler(op)
+	if hl == nil {
+		panic("invalid type provided")
+	}
+	return aSync(hl)
 }
 
 // pub provides a pure functional Node, which uses an internal wait group to
@@ -390,76 +447,12 @@ func (p *pub) AsyncSignal(node interface{}) Node {
 	switch node.(type) {
 	case Node:
 		n = node.(Node)
-	case Handler:
-		n = aSync(node.(Handler))
-	case ErrorHandler:
-		dh := node.(ErrorHandler)
-		n = aSync(func(m Ctx, err error, val interface{}) {
-			if err == nil {
-				dh(m, err)
-				return
-			}
-
-			m.RW().Write(m, val)
-		})
-	case DataHandler:
-		dh := node.(DataHandler)
-		n = aSync(func(m Ctx, err error, val interface{}) {
-			if err != nil {
-				m.RW().Write(m, err)
-				return
-			}
-			dh(m, val)
-		})
 	default:
-		if !reflection.IsFuncType(node) {
+		hl := MagicHandler(node)
+		if hl == nil {
 			return nil
 		}
-
-		tm, _ := reflection.FuncValue(node)
-		args, _ := reflection.GetFuncArgumentsType(node)
-
-		if alen := len(args); alen < 3 || alen > 3 {
-			return nil
-		}
-
-		// Check if this first item is a pub.Ctx type.
-		if ok, _ := reflection.CanSetForType(ctxType, args[0]); !ok {
-			return nil
-		}
-
-		// Check if this second item is a error type.
-		if ok, _ := reflection.CanSetForType(errorType, args[1]); !ok {
-			return nil
-		}
-
-		data := args[2]
-		n = aSync(func(m Ctx, err error, val interface{}) {
-			ma := reflect.ValueOf(m)
-
-			if err != nil {
-				dZero := reflect.Zero(data)
-				tm.Call([]reflect.Value{ma, reflect.ValueOf(err), dZero})
-				return
-			}
-
-			mVal := reflect.ValueOf(val)
-			ok, convert := reflection.CanSetFor(data, mVal)
-			if !ok {
-				return
-			}
-
-			if convert {
-				mVal, err = reflection.Convert(data, mVal)
-				if err != nil {
-					return
-				}
-			}
-
-			dZero := reflect.Zero(errorType)
-			tm.Call([]reflect.Value{ma, dZero, mVal})
-		})
-
+		n = aSync(hl)
 	}
 
 	p.rw.Lock()
@@ -480,75 +473,12 @@ func (p *pub) Signal(node interface{}) Node {
 	switch node.(type) {
 	case Node:
 		n = node.(Node)
-	case Handler:
-		n = nSync(node.(Handler))
-	case ErrorHandler:
-		dh := node.(ErrorHandler)
-		n = nSync(func(m Ctx, err error, val interface{}) {
-			if err == nil {
-				dh(m, err)
-				return
-			}
-
-			m.RW().Write(m, val)
-		})
-	case DataHandler:
-		dh := node.(DataHandler)
-		n = nSync(func(m Ctx, err error, val interface{}) {
-			if err != nil {
-				m.RW().Write(m, err)
-				return
-			}
-			dh(m, val)
-		})
 	default:
-		if !reflection.IsFuncType(node) {
+		hl := MagicHandler(node)
+		if hl == nil {
 			return nil
 		}
-
-		tm, _ := reflection.FuncValue(node)
-		args, _ := reflection.GetFuncArgumentsType(node)
-
-		if alen := len(args); alen < 3 || alen > 3 {
-			return nil
-		}
-
-		// Check if this first item is a pub.Ctx type.
-		if ok, _ := reflection.CanSetForType(ctxType, args[0]); !ok {
-			return nil
-		}
-
-		// Check if this second item is a error type.
-		if ok, _ := reflection.CanSetForType(errorType, args[1]); !ok {
-			return nil
-		}
-
-		data := args[2]
-		n = nSync(func(m Ctx, err error, val interface{}) {
-			ma := reflect.ValueOf(m)
-
-			if err != nil {
-				dZero := reflect.Zero(data)
-				tm.Call([]reflect.Value{ma, reflect.ValueOf(err), dZero})
-				return
-			}
-
-			mVal := reflect.ValueOf(val)
-			ok, convert := reflection.CanSetFor(data, mVal)
-			if !ok {
-				return
-			}
-
-			if convert {
-				mVal, err = reflection.Convert(data, mVal)
-				if err != nil {
-					return
-				}
-			}
-
-			dZero := reflect.Zero(errorType)
-			tm.Call([]reflect.Value{ma, dZero, mVal})
-		})
+		n = nSync(hl)
 	}
 
 	p.rw.Lock()
