@@ -94,9 +94,9 @@ func BenchmarkReflectNodes(b *testing.B) {
 		r.RW().Write(r, data)
 	})
 
-	dudette.AsyncSignal(func(r pub.Ctx, err error, data int) {
+	dudette.Signal(func(r pub.Ctx, err error, data int) {
 		r.RW().Write(r, data)
-	})
+	}, true)
 
 	dude.Signal(dudette)
 

@@ -291,7 +291,7 @@ type pub struct {
 }
 
 // nSync returns a new functional Node.
-func nSync(op Handler, inverse bool) Node {
+func nSync(op Handler, inverse bool) *pub {
 	node := pub{
 		op:      op,
 		inverse: inverse,
@@ -302,7 +302,7 @@ func nSync(op Handler, inverse bool) Node {
 }
 
 // aSync returns a new functional Node.
-func aSync(op Handler, inverse bool) Node {
+func aSync(op Handler, inverse bool) *pub {
 	node := pub{
 		op:      op,
 		async:   true,
@@ -484,8 +484,7 @@ func (p *pub) WriteEvery(ctx Ctx, v interface{}, finder NthFinder) {
 // of creation for Nodes.
 type Inversion interface {
 	Inverse() Node
-	InverseWith(interface{}) Node
-	InverseAsyncWith(interface{}) Node
+	InverseWith(interface{}, ...bool) Node
 }
 
 // Inverse creates a inversed Node with a IdentityHandler which inverts every
@@ -497,30 +496,25 @@ func (p *pub) Inverse() Node {
 }
 
 // InverseAsyncWith allows you to create a synchronouse inversed Node.
-func (p *pub) InverseWith(node interface{}) Node {
+func (p *pub) InverseWith(node interface{}, flags ...bool) Node {
 	hl := MagicHandler(node)
 	if hl == nil {
 		return nil
 	}
 
-	return nSync(hl, true)
-}
+	snode := nSync(hl, true)
 
-// InverseAsyncWith allows you to create a asynchronouse inversed Node.
-func (p *pub) InverseAsyncWith(node interface{}) Node {
-	hl := MagicHandler(node)
-	if hl == nil {
-		return nil
+	if len(flags) > 0 && flags[0] {
+		snode.async = true
 	}
 
-	return aSync(hl, true)
+	return p.Signal(snode, flags...)
 }
 
 // Reactor defines the core connecting methods used for binding with a Node.
 type Reactor interface {
 	SignalEnd(func())
-	Signal(interface{}) Node
-	AsyncSignal(interface{}) Node
+	Signal(interface{}, ...bool) Node
 }
 
 // SignalEnd signals the end of a signal run.
@@ -535,8 +529,14 @@ func (p *pub) SignalEnd(handle func()) {
 // Signal sends the response signal from this Node to the provided node.
 // If the input is a Node then it is returned, if its a Handler or DataHandler
 // then a new Node instance is returned.
-func (p *pub) Signal(node interface{}) Node {
+// Signal accepts a variable boolean flag, which it uses to set up the option
+// for asynchronouse signaling and also end notification signal. If there exists
+// atleast two 'true' boolean values then both asynchronouse and end signaling
+// is used and if there is only one 'true' value then only asynchronouse signaling
+// is used.
+func (p *pub) Signal(node interface{}, flags ...bool) Node {
 	var n Node
+	var doEnd bool
 
 	switch node.(type) {
 	case Node:
@@ -546,7 +546,20 @@ func (p *pub) Signal(node interface{}) Node {
 		if hl == nil {
 			return nil
 		}
-		n = nSync(hl, false)
+
+		flLen := len(flags)
+		if flLen < 1 {
+			n = nSync(hl, true)
+		} else {
+			if flags[0] {
+				n = aSync(hl, false)
+			}
+
+			if flLen > 1 && flags[1] {
+				doEnd = true
+			}
+		}
+
 	}
 
 	// If we have inversed this handler, then return itself, since it
@@ -563,7 +576,10 @@ func (p *pub) Signal(node interface{}) Node {
 				(p.subs[nlen]).Signal(n)
 			} else {
 				p.subs = append(p.subs, n)
-				p.ends = append(p.ends, n.ReadEnd)
+
+				if doEnd {
+					p.ends = append(p.ends, n.ReadEnd)
+				}
 			}
 
 		}
@@ -575,58 +591,9 @@ func (p *pub) Signal(node interface{}) Node {
 	p.rw.Lock()
 	{
 		p.subs = append(p.subs, n)
-		p.ends = append(p.ends, n.ReadEnd)
-	}
-	p.rw.Unlock()
-
-	return n
-}
-
-// AsyncSignal sends the response signal from this Node to the provided node
-// within a goroutine. If the input is a Node then it is returned.
-func (p *pub) AsyncSignal(node interface{}) Node {
-	var n Node
-
-	switch node.(type) {
-	case Node:
-		n = node.(Node)
-	default:
-		hl := MagicHandler(node)
-		if hl == nil {
-			return nil
+		if doEnd {
+			p.ends = append(p.ends, n.ReadEnd)
 		}
-		n = aSync(hl, false)
-	}
-
-	// If we have inversed this handler, then return itself, since it
-	// wishes to be the first point in entry.
-	// To INVERSE, means to redirect how things flows, normally binding
-	// flows by returning the next item in the chain, but to invert means
-	// to bind to the last item in the subscription list but return itself.
-	if p.inverse {
-		p.rw.Lock()
-		{
-
-			var newNode Node
-
-			nlen := len(p.subs) - 1
-			if nlen > 1 {
-				(p.subs[nlen]).AsyncSignal(n)
-			} else {
-				p.subs = append(p.subs, newNode)
-				p.ends = append(p.ends, n.ReadEnd)
-			}
-
-		}
-		p.rw.Unlock()
-
-		return p
-	}
-
-	p.rw.Lock()
-	{
-		p.subs = append(p.subs, n)
-		p.ends = append(p.ends, n.ReadEnd)
 	}
 	p.rw.Unlock()
 

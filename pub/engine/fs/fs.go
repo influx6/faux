@@ -18,19 +18,19 @@ type FileSystem interface {
 	ReadReader(io.Reader) FileSystem
 
 	WriteBytes([]byte) FileSystem
-	WriteWritter(io.Writer)
+	WriteWriter(io.Writer) FileSystem
 
 	CreateFile(string) FileSystem
 	WriteFile(string) FileSystem
 
 	ReadDir(string) FileSystem
-	MkDir(string) FileSystem
+	Mkdir(string) FileSystem
 
 	DeleteFile(string) FileSystem
 	DeleteDir(string) FileSystem
 
 	SkipStat(func(os.FileInfo) bool) FileSystem
-	UnwrapStat() FileSystem
+	UnwrapStats() FileSystem
 }
 
 // New returns a new FileSystem
@@ -58,6 +58,25 @@ func newFS(node pub.Node) *fs {
 // ReadFile adds a readFile operation whoes contents get passed to the next
 // event/Node/Task in the link.
 func (f *fs) ReadFile(path string) FileSystem {
+	f.Node = f.Signal(func(ctx pub.Ctx, d interface{}) {
 
+	})
 	return f
 }
+
+func (f *fs) ReadReader(r io.Reader) FileSystem { return f }
+
+func (f *fs) WriteBytes(data []byte) FileSystem  { return f }
+func (f *fs) WriteWriter(w io.Writer) FileSystem { return f }
+
+func (f *fs) CreateFile(path string) FileSystem { return f }
+func (f *fs) WriteFile(path string) FileSystem  { return f }
+
+func (f *fs) ReadDir(path string) FileSystem { return f }
+func (f *fs) Mkdir(path string) FileSystem   { return f }
+
+func (f *fs) DeleteFile(path string) FileSystem { return f }
+func (f *fs) DeleteDir(path string) FileSystem  { return f }
+
+func (f *fs) SkipStat(fn func(os.FileInfo) bool) FileSystem { return f }
+func (f *fs) UnwrapStats() FileSystem                       { return f }
