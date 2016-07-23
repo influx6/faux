@@ -19,28 +19,6 @@ var (
 
 //==============================================================================
 
-// Magic returns a new functional Node.
-func Magic(op interface{}) Node {
-	return nSync(MagicHandler(op))
-}
-
-// AsyncMagic returns a new functional Node.
-func AsyncMagic(op interface{}) Node {
-	return aSync(MagicHandler(op))
-}
-
-// IdentityHandler returns a new Handler which forwards it's errors or data to
-// its subscribers.
-func IdentityHandler() Handler {
-	return func(ctx Ctx, err error, data interface{}) {
-		if err != nil {
-			ctx.RW().Write(ctx, err)
-			return
-		}
-		ctx.RW().Write(ctx, data)
-	}
-}
-
 // Handler defines a function type which processes data and accepts a ReadWriter
 // through which it sends its reply.
 type Handler func(Ctx, error, interface{})
@@ -113,6 +91,18 @@ func MagicHandler(node interface{}) Handler {
 	return hl
 }
 
+// IdentityHandler returns a new Handler which forwards it's errors or data to
+// its subscribers.
+func IdentityHandler() Handler {
+	return func(ctx Ctx, err error, data interface{}) {
+		if err != nil {
+			ctx.RW().Write(ctx, err)
+			return
+		}
+		ctx.RW().Write(ctx, data)
+	}
+}
+
 // DataHandler defines a function type that concentrates on handling only data
 // replies alone.
 type DataHandler func(Ctx, interface{})
@@ -161,6 +151,16 @@ type Node interface {
 	Reactor
 
 	UUID() string
+}
+
+// Magic returns a new functional Node.
+func Magic(op interface{}) Node {
+	return nSync(MagicHandler(op))
+}
+
+// AsyncMagic returns a new functional Node.
+func AsyncMagic(op interface{}) Node {
+	return aSync(MagicHandler(op))
 }
 
 // Ctx defines a type which is passed into all Handlers to provide access
