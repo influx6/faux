@@ -19,7 +19,7 @@ const failedMark = "\u2717"
 func TestMousePosition(t *testing.T) {
 	var count int64
 
-	pos := pub.Sync(func(r pub.Ctx, err error, data interface{}) {
+	pos := pub.Magic(func(r pub.Ctx, err error, data interface{}) {
 		if err != nil {
 			r.RW().Write(r, err)
 			return
@@ -45,7 +45,7 @@ func TestMousePosition(t *testing.T) {
 func TestAutoFn(t *testing.T) {
 	var count int64
 
-	pos := pub.MagicSync(func(r pub.Ctx, err error, number int) {
+	pos := pub.Magic(func(r pub.Ctx, err error, number int) {
 		if err != nil {
 			r.RW().Write(r, err)
 			atomic.AddInt64(&count, 1)
@@ -71,11 +71,11 @@ func BenchmarkNodes(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
-	dude := pub.DSync(func(r pub.Ctx, data interface{}) {
+	dude := pub.Magic(func(r pub.Ctx, data interface{}) {
 		r.RW().Write(r, data)
 	})
 
-	dudette := pub.DASync(func(r pub.Ctx, data interface{}) {
+	dudette := pub.AsyncMagic(func(r pub.Ctx, data interface{}) {
 		r.RW().Write(r, data)
 	})
 

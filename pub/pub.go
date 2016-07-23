@@ -17,73 +17,16 @@ var (
 	uType     = reflect.TypeOf((*interface{})(nil)).Elem()
 )
 
-// ReadWriter defines a type which defines a Reader and Writer interface conforming
-// methods.
-type ReadWriter interface {
-	Reader
-	Writer
+//==============================================================================
+
+// Magic returns a new functional Node.
+func Magic(op interface{}) Node {
+	return nSync(MagicHandler(op))
 }
 
-// Node provides an interface definition for the Node type, to allow
-// compatibility by future extenders when composing with other structs.
-type Node interface {
-	ReadWriter
-	Reactor
-
-	UUID() string
-}
-
-// Ctx defines a type which is passed into all Handlers to provide access
-// to an underline context.Context provider and the source Read and Write methods.
-type Ctx interface {
-	Ctx() context.Context
-	RW() ReadWriter
-}
-
-// Handler defines a function type which processes data and accepts a ReadWriter
-// through which it sends its reply.
-type Handler func(Ctx, error, interface{})
-
-// Sync returns a new functional Node.
-func Sync(op Handler) Node {
-	node := pub{
-		op:   op,
-		uuid: uuid.NewV4().String(),
-	}
-
-	return &node
-}
-
-// ASync returns a new functional Node.
-func ASync(op Handler) Node {
-	node := pub{
-		op:    op,
-		async: true,
-		uuid:  uuid.NewV4().String(),
-	}
-
-	return &node
-}
-
-// MagicSync returns a new functional Node.
-func MagicSync(op interface{}) Node {
-	node := pub{
-		op:   MagicHandler(op),
-		uuid: uuid.NewV4().String(),
-	}
-
-	return &node
-}
-
-// MagicASync returns a new functional Node.
-func MagicASync(op Handler) Node {
-	node := pub{
-		op:    MagicHandler(op),
-		async: true,
-		uuid:  uuid.NewV4().String(),
-	}
-
-	return &node
+// AsyncMagic returns a new functional Node.
+func AsyncMagic(op interface{}) Node {
+	return aSync(MagicHandler(op))
 }
 
 // IdentityHandler returns a new Handler which forwards it's errors or data to
@@ -97,6 +40,10 @@ func IdentityHandler() Handler {
 		ctx.RW().Write(ctx, data)
 	}
 }
+
+// Handler defines a function type which processes data and accepts a ReadWriter
+// through which it sends its reply.
+type Handler func(Ctx, error, interface{})
 
 // MagicHandler returns a new Handler wrapping the provided value as needed if
 // it matches its DataHandler, ErrorHandler, Handler or magic function type.
@@ -166,8 +113,6 @@ func MagicHandler(node interface{}) Handler {
 	return hl
 }
 
-//==============================================================================
-
 // DataHandler defines a function type that concentrates on handling only data
 // replies alone.
 type DataHandler func(Ctx, interface{})
@@ -202,28 +147,28 @@ func WrapError(dh ErrorHandler) Handler {
 
 //==============================================================================
 
-// DSync returns a new functional Node using the DataHandler.
-func DSync(dh DataHandler) Node {
-	node := pub{
-		op:   WrapData(dh),
-		uuid: uuid.NewV4().String(),
-	}
-
-	return &node
+// ReadWriter defines a type which defines a Reader and Writer interface conforming
+// methods.
+type ReadWriter interface {
+	Reader
+	Writer
 }
 
-// DASync returns a new functional Node using the DataHandler.
-func DASync(dh DataHandler) Node {
-	node := pub{
-		async: true,
-		op:    WrapData(dh),
-		uuid:  uuid.NewV4().String(),
-	}
+// Node provides an interface definition for the Node type, to allow
+// compatibility by future extenders when composing with other structs.
+type Node interface {
+	ReadWriter
+	Reactor
 
-	return &node
+	UUID() string
 }
 
-//==============================================================================
+// Ctx defines a type which is passed into all Handlers to provide access
+// to an underline context.Context provider and the source Read and Write methods.
+type Ctx interface {
+	Ctx() context.Context
+	RW() ReadWriter
+}
 
 // pub provides a pure functional Node, which uses an internal wait group to
 // ensure if close is called that call values where delivered.
@@ -235,6 +180,27 @@ type pub struct {
 	async bool
 	rw    sync.RWMutex
 	subs  []Node
+}
+
+// nSync returns a new functional Node.
+func nSync(op Handler) Node {
+	node := pub{
+		op:   op,
+		uuid: uuid.NewV4().String(),
+	}
+
+	return &node
+}
+
+// aSync returns a new functional Node.
+func aSync(op Handler) Node {
+	node := pub{
+		op:    op,
+		async: true,
+		uuid:  uuid.NewV4().String(),
+	}
+
+	return &node
 }
 
 // UUID returns the Node unique identification.
@@ -425,10 +391,10 @@ func (p *pub) AsyncSignal(node interface{}) Node {
 	case Node:
 		n = node.(Node)
 	case Handler:
-		n = ASync(node.(Handler))
+		n = aSync(node.(Handler))
 	case ErrorHandler:
 		dh := node.(ErrorHandler)
-		n = ASync(func(m Ctx, err error, val interface{}) {
+		n = aSync(func(m Ctx, err error, val interface{}) {
 			if err == nil {
 				dh(m, err)
 				return
@@ -438,7 +404,7 @@ func (p *pub) AsyncSignal(node interface{}) Node {
 		})
 	case DataHandler:
 		dh := node.(DataHandler)
-		n = ASync(func(m Ctx, err error, val interface{}) {
+		n = aSync(func(m Ctx, err error, val interface{}) {
 			if err != nil {
 				m.RW().Write(m, err)
 				return
@@ -468,7 +434,7 @@ func (p *pub) AsyncSignal(node interface{}) Node {
 		}
 
 		data := args[2]
-		n = ASync(func(m Ctx, err error, val interface{}) {
+		n = aSync(func(m Ctx, err error, val interface{}) {
 			ma := reflect.ValueOf(m)
 
 			if err != nil {
@@ -515,10 +481,10 @@ func (p *pub) Signal(node interface{}) Node {
 	case Node:
 		n = node.(Node)
 	case Handler:
-		n = Sync(node.(Handler))
+		n = nSync(node.(Handler))
 	case ErrorHandler:
 		dh := node.(ErrorHandler)
-		n = Sync(func(m Ctx, err error, val interface{}) {
+		n = nSync(func(m Ctx, err error, val interface{}) {
 			if err == nil {
 				dh(m, err)
 				return
@@ -528,7 +494,7 @@ func (p *pub) Signal(node interface{}) Node {
 		})
 	case DataHandler:
 		dh := node.(DataHandler)
-		n = Sync(func(m Ctx, err error, val interface{}) {
+		n = nSync(func(m Ctx, err error, val interface{}) {
 			if err != nil {
 				m.RW().Write(m, err)
 				return
@@ -558,7 +524,7 @@ func (p *pub) Signal(node interface{}) Node {
 		}
 
 		data := args[2]
-		n = Sync(func(m Ctx, err error, val interface{}) {
+		n = nSync(func(m Ctx, err error, val interface{}) {
 			ma := reflect.ValueOf(m)
 
 			if err != nil {
