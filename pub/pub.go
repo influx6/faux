@@ -3,7 +3,6 @@
 package pub
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 
@@ -345,7 +344,6 @@ func (p *pub) AsyncSignal(node interface{}) Node {
 			dh(m, val)
 		})
 	default:
-		fmt.Printf("Calling sync default\n")
 		if !reflection.IsFuncType(node) {
 			return nil
 		}
@@ -437,7 +435,6 @@ func (p *pub) Signal(node interface{}) Node {
 			dh(m, val)
 		})
 	default:
-		fmt.Printf("Calling sync default\n")
 		if !reflection.IsFuncType(node) {
 			return nil
 		}
