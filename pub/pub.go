@@ -78,12 +78,13 @@ func MagicHandler(node interface{}) Handler {
 		}
 
 		data := args[2]
+		dZero := reflect.Zero(data)
+		dZeroError := reflect.Zero(errorType)
 
 		hl = func(ctx Ctx, err error, val interface{}) {
 			ma := reflect.ValueOf(ctx)
 
 			if err != nil {
-				dZero := reflect.Zero(data)
 				tm.Call([]reflect.Value{ma, reflect.ValueOf(err), dZero})
 				return
 			}
@@ -101,8 +102,7 @@ func MagicHandler(node interface{}) Handler {
 				}
 			}
 
-			dZero := reflect.Zero(errorType)
-			dArgs := []reflect.Value{ma, dZero, mVal}
+			dArgs := []reflect.Value{ma, dZeroError, mVal}
 			tm.Call(dArgs)
 		}
 	}
