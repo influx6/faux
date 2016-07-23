@@ -14,6 +14,7 @@ import (
 var (
 	errorType = reflect.TypeOf((*error)(nil)).Elem()
 	ctxType   = reflect.TypeOf((*Ctx)(nil)).Elem()
+	uType     = reflect.TypeOf((*interface{})(nil)).Elem()
 )
 
 // ReadWriter defines a type which defines a Reader and Writer interface conforming
@@ -62,6 +63,107 @@ func ASync(op Handler) Node {
 	}
 
 	return &node
+}
+
+// MagicSync returns a new functional Node.
+func MagicSync(op interface{}) Node {
+	node := pub{
+		op:   MagicHandler(op),
+		uuid: uuid.NewV4().String(),
+	}
+
+	return &node
+}
+
+// MagicASync returns a new functional Node.
+func MagicASync(op Handler) Node {
+	node := pub{
+		op:    MagicHandler(op),
+		async: true,
+		uuid:  uuid.NewV4().String(),
+	}
+
+	return &node
+}
+
+// IdentityHandler returns a new Handler which forwards it's errors or data to
+// its subscribers.
+func IdentityHandler() Handler {
+	return func(ctx Ctx, err error, data interface{}) {
+		if err != nil {
+			ctx.RW().Write(ctx, err)
+			return
+		}
+		ctx.RW().Write(ctx, data)
+	}
+}
+
+// MagicHandler returns a new Handler wrapping the provided value as needed if
+// it matches its DataHandler, ErrorHandler, Handler or magic function type.
+// MagicFunction type is a function which follows this type form:
+// func(Ctx, error, <CustomType>).
+func MagicHandler(node interface{}) Handler {
+	var hl Handler
+
+	switch node.(type) {
+	case Handler:
+		hl = node.(Handler)
+	case ErrorHandler:
+		hl = WrapError(node.(ErrorHandler))
+	case DataHandler:
+		hl = WrapData(node.(DataHandler))
+	default:
+		if !reflection.IsFuncType(node) {
+			return nil
+		}
+
+		tm, _ := reflection.FuncValue(node)
+		args, _ := reflection.GetFuncArgumentsType(node)
+
+		if alen := len(args); alen < 3 || alen > 3 {
+			return nil
+		}
+
+		// Check if this first item is a pub.Ctx type.
+		if ok, _ := reflection.CanSetForType(ctxType, args[0]); !ok {
+			return nil
+		}
+
+		// Check if this second item is a error type.
+		if ok, _ := reflection.CanSetForType(errorType, args[1]); !ok {
+			return nil
+		}
+
+		data := args[2]
+
+		hl = func(ctx Ctx, err error, val interface{}) {
+			ma := reflect.ValueOf(ctx)
+
+			if err != nil {
+				dZero := reflect.Zero(data)
+				tm.Call([]reflect.Value{ma, reflect.ValueOf(err), dZero})
+				return
+			}
+
+			mVal := reflect.ValueOf(val)
+			ok, convert := reflection.CanSetFor(data, mVal)
+			if !ok {
+				return
+			}
+
+			if convert {
+				mVal, err = reflection.Convert(data, mVal)
+				if err != nil {
+					return
+				}
+			}
+
+			dZero := reflect.Zero(errorType)
+			tm.Call([]reflect.Value{ma, dZero, mVal})
+		}
+	}
+
+	return hl
 }
 
 //==============================================================================
@@ -368,29 +470,28 @@ func (p *pub) AsyncSignal(node interface{}) Node {
 		data := args[2]
 		n = ASync(func(m Ctx, err error, val interface{}) {
 			ma := reflect.ValueOf(m)
-			erm := reflect.ValueOf(err)
 
 			if err != nil {
-				tm.Call([]reflect.Value{ma, erm, reflect.ValueOf(nil)})
+				dZero := reflect.Zero(data)
+				tm.Call([]reflect.Value{ma, reflect.ValueOf(err), dZero})
 				return
 			}
 
 			mVal := reflect.ValueOf(val)
-
 			ok, convert := reflection.CanSetFor(data, mVal)
 			if !ok {
 				return
 			}
 
-			var relVal reflect.Value
 			if convert {
-				relVal, err = reflection.Convert(data, mVal)
+				mVal, err = reflection.Convert(data, mVal)
 				if err != nil {
 					return
 				}
 			}
 
-			tm.Call([]reflect.Value{ma, erm, relVal})
+			dZero := reflect.Zero(errorType)
+			tm.Call([]reflect.Value{ma, dZero, mVal})
 		})
 
 	}
@@ -459,29 +560,28 @@ func (p *pub) Signal(node interface{}) Node {
 		data := args[2]
 		n = Sync(func(m Ctx, err error, val interface{}) {
 			ma := reflect.ValueOf(m)
-			erm := reflect.ValueOf(err)
 
 			if err != nil {
-				tm.Call([]reflect.Value{ma, erm, reflect.ValueOf(nil)})
+				dZero := reflect.Zero(data)
+				tm.Call([]reflect.Value{ma, reflect.ValueOf(err), dZero})
 				return
 			}
 
 			mVal := reflect.ValueOf(val)
-
 			ok, convert := reflection.CanSetFor(data, mVal)
 			if !ok {
 				return
 			}
 
-			var relVal reflect.Value
 			if convert {
-				relVal, err = reflection.Convert(data, mVal)
+				mVal, err = reflection.Convert(data, mVal)
 				if err != nil {
 					return
 				}
 			}
 
-			tm.Call([]reflect.Value{ma, erm, relVal})
+			dZero := reflect.Zero(errorType)
+			tm.Call([]reflect.Value{ma, dZero, mVal})
 		})
 	}
 

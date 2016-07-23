@@ -1,6 +1,7 @@
 package pub_test
 
 import (
+	"errors"
 	"fmt"
 	"sync/atomic"
 	"testing"
@@ -33,6 +34,32 @@ func TestMousePosition(t *testing.T) {
 	}
 
 	if atomic.LoadInt64(&count) != 2000 {
+		fatalFailed(t, "Total processed values is not equal, expected %d but got %d", 3000, count)
+	}
+
+	logPassed(t, "Total mouse data was processed with count %d", count)
+}
+
+// TestAutoFn  validates the use of reflection with giving types to test use of
+// the form in Pub.
+func TestAutoFn(t *testing.T) {
+	var count int64
+
+	pos := pub.MagicSync(func(r pub.Ctx, err error, number int) {
+		if err != nil {
+			r.RW().Write(r, err)
+			atomic.AddInt64(&count, 1)
+			return
+		}
+
+		atomic.AddInt64(&count, 1)
+	})
+
+	pos.Read(errors.New("Ful"))
+	pos.Read("Word")
+	pos.Read(20)
+
+	if atomic.LoadInt64(&count) != 2 {
 		fatalFailed(t, "Total processed values is not equal, expected %d but got %d", 3000, count)
 	}
 
