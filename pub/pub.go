@@ -1,5 +1,8 @@
 // Package pub provides a functional reactive pubsub structure to leverage a
 // pure function style reactive behaviour. Originally pulled from pub.Node.
+// NOTE: Any use of "asynchronouse" actually means to "run within a goroutine",
+// and inversely, the use of "synchronouse" means to run it within the current
+// goroutine, generally referred to as "main", or in other words.
 package pub
 
 import (
@@ -206,6 +209,7 @@ type ReadWriter interface {
 type Node interface {
 	ReadWriter
 	Reactor
+	Inversion
 
 	UUID() string
 }
@@ -428,6 +432,45 @@ func (p *pub) WriteEvery(ctx Ctx, v interface{}, finder NthFinder) {
 	}
 	p.rw.RUnlock()
 
+}
+
+// Inversion defines an interface that allows the creation of an inverter Node
+// from another Node, regardless of wether that was inverter or not. Since
+// Inversion forcefully forever makes the new Node bind to its last element the
+// added element and so on, down the chain, it provides methods suited for ease
+// of creation for Nodes.
+type Inversion interface {
+	Inverse() Node
+	InverseWith(interface{}) Node
+	InverseAsyncWith(interface{}) Node
+}
+
+// Inverse creates a inversed Node with a IdentityHandler which inverts every
+// connection you add to it, stacking them serialy down the chain line.
+func (p *pub) Inverse() Node {
+	node := aSync(IdentityHandler(), true)
+	p.Signal(node)
+	return node
+}
+
+// InverseAsyncWith allows you to create a synchronouse inversed Node.
+func (p *pub) InverseWith(node interface{}) Node {
+	hl := MagicHandler(node)
+	if hl == nil {
+		return nil
+	}
+
+	return nSync(hl, true)
+}
+
+// InverseAsyncWith allows you to create a asynchronouse inversed Node.
+func (p *pub) InverseAsyncWith(node interface{}) Node {
+	hl := MagicHandler(node)
+	if hl == nil {
+		return nil
+	}
+
+	return aSync(hl, true)
 }
 
 // Reactor defines the core connecting methods used for binding with a Node.
