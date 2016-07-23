@@ -491,7 +491,7 @@ type Inversion interface {
 // connection you add to it, stacking them serialy down the chain line.
 func (p *pub) Inverse() Node {
 	node := aSync(IdentityHandler(), true)
-	p.Signal(node)
+	p.Signal(node, false, true)
 	return node
 }
 
@@ -549,10 +549,12 @@ func (p *pub) Signal(node interface{}, flags ...bool) Node {
 
 		flLen := len(flags)
 		if flLen < 1 {
-			n = nSync(hl, true)
+			n = nSync(hl, false)
 		} else {
 			if flags[0] {
 				n = aSync(hl, false)
+			} else {
+				n = nSync(hl, false)
 			}
 
 			if flLen > 1 && flags[1] {
