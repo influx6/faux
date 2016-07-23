@@ -45,17 +45,12 @@ func TestMousePosition(t *testing.T) {
 func TestAutoFn(t *testing.T) {
 	var count int64
 
-	pos := pub.Magic(func(r pub.Ctx, err error, number int) {
-		if err != nil {
-			r.RW().Write(r, err)
-			atomic.AddInt64(&count, 1)
-			return
-		}
-
+	pos := pub.Magic(func(r pub.Ctx, number int) {
 		atomic.AddInt64(&count, 1)
 	})
 
 	pos.Read(errors.New("Ful"))
+	pos.Read(30)
 	pos.Read("Word") // -> This would not be seen. Has it does not match int type.
 	pos.Read(20)
 

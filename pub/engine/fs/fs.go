@@ -36,15 +36,6 @@ func New() FileSystem {
 	return &fu
 }
 
-// DeferFileSystem provides a core interface for FileSystem operations, where each
-// instance of this type is series of operation for a single task or objective.
-// It defers in the sense that it takes in functions as argument. This may seem
-// somewhat an inversion or an over-engineered but it becomes useful when you
-// realise that FileSystem itself once created can not change, nor does its
-// parameters. Hence DeferFileSystem allows you to pass functions in its critical
-// areas that require inputs. This allows you to create an interesting permanent
-// series of operation but with changing values.
-
 //==============================================================================
 
 type fs struct {

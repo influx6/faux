@@ -22,6 +22,8 @@ var (
 	hlType = reflect.TypeOf((*Handler)(nil)).Elem()
 	dlType = reflect.TypeOf((*DataHandler)(nil)).Elem()
 	elType = reflect.TypeOf((*ErrorHandler)(nil)).Elem()
+
+	dZeroError = reflect.Zero(errorType)
 )
 
 //==============================================================================
@@ -63,7 +65,9 @@ func MagicHandler(node interface{}) Handler {
 		tm, _ := reflection.FuncValue(node)
 		args, _ := reflection.GetFuncArgumentsType(node)
 
-		if alen := len(args); alen < 3 || alen > 3 {
+		dLen := len(args)
+
+		if dLen < 2 {
 			return nil
 		}
 
@@ -72,20 +76,35 @@ func MagicHandler(node interface{}) Handler {
 			return nil
 		}
 
-		// Check if this second item is a error type.
-		if ok, _ := reflection.CanSetForType(errorType, args[1]); !ok {
-			return nil
+		var data reflect.Type
+		var isCustorm bool
+
+		if dLen > 2 {
+
+			// Check if this second item is a error type.
+			if ok, _ := reflection.CanSetForType(errorType, args[1]); !ok {
+				return nil
+			}
+
+			data = args[2]
+		} else {
+			data = args[1]
+			isCustorm = true
 		}
 
-		data := args[2]
 		dZero := reflect.Zero(data)
-		dZeroError := reflect.Zero(errorType)
 
 		hl = func(ctx Ctx, err error, val interface{}) {
 			ma := reflect.ValueOf(ctx)
 
 			if err != nil {
-				tm.Call([]reflect.Value{ma, reflect.ValueOf(err), dZero})
+
+				if !isCustorm {
+					tm.Call([]reflect.Value{ma, reflect.ValueOf(err), dZero})
+					return
+				}
+
+				ctx.RW().Write(ctx, err)
 				return
 			}
 
@@ -102,7 +121,13 @@ func MagicHandler(node interface{}) Handler {
 				}
 			}
 
-			dArgs := []reflect.Value{ma, dZeroError, mVal}
+			if !isCustorm {
+				dArgs := []reflect.Value{ma, dZeroError, mVal}
+				tm.Call(dArgs)
+				return
+			}
+
+			dArgs := []reflect.Value{ma, mVal}
 			tm.Call(dArgs)
 		}
 	}
