@@ -2,6 +2,7 @@ package reflection_test
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/influx6/faux/reflection"
@@ -12,7 +13,6 @@ const succeedMark = "\u2713"
 
 // failedMark is the Unicode codepoint for an X mark.
 const failedMark = "\u2717"
-
 
 // mosnter provides a basic struct test case type.
 type monster struct {
@@ -34,28 +34,32 @@ func TestGetArgumentsType(t *testing.T) {
 	}
 
 	newVals := reflection.MakeArgumentsValues(args)
-	t.Logf("%+s", newVals)
 
 	if nlen, alen := len(newVals), len(args); nlen != alen {
-		t.Fatalf("\t%s\tShould have matching new values lists for arguments: %d %d", failedMark, nlen, alen)
-	} else {
-		t.Logf("\t%s\tShould have matching new values lists for arguments: %d %d", succeedMark, nlen, alen)
+		t.Fatalf("\t%s\tShould have matching new values lists for arguments", failedMark)
 	}
+	t.Logf("\t%s\tShould have matching new values lists for arguments", succeedMark)
+
+	mstring := reflect.TypeOf((*monster)(nil)).Elem()
+
+	if mstring.Kind() != newVals[0].Kind() {
+		t.Fatalf("\t%s\tShould be able to match argument kind: %s", failedMark)
+	}
+	t.Logf("\t%s\tShould be able to match argument kind", succeedMark)
 
 }
 
-func TestMatchFUncArgumentTypeWithValues(t *testing.T){
+func TestMatchFUncArgumentTypeWithValues(t *testing.T) {
 	f := func(m monster) string {
 		return fmt.Sprintf("Monster[%s] is ready!", m.Name)
 	}
 
 	var vals []reflect.Value
-	vals = append(vals, reflect.ValueOf("strongHold"))
+	vals = append(vals, reflect.ValueOf(monster{Name: "FireHouse"}))
 
-	if err := reflection.MatchFuncArgumentTypeWithValues(f, ); err != nil {
-		t.Fatalf("\t%s\tShould have matching new values lists for arguments: %d %d", failedMark, nlen, alen)
-	} else {
-		t.Logf("\t%s\tShould have matching new values lists for arguments: %d %d", succeedMark, nlen, alen)
+	if index := reflection.MatchFuncArgumentTypeWithValues(f, vals); index != -1 {
+		t.Fatalf("\t%s\tShould have matching new values lists for arguments: %d", failedMark, index)
 	}
+	t.Logf("\t%s\tShould have matching new values lists for arguments", succeedMark)
 
 }

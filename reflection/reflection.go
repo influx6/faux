@@ -2,6 +2,7 @@ package reflection
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -175,15 +176,13 @@ func Convert(target reflect.Type, val reflect.Value) (reflect.Value, error) {
 
 // MakeValueFor makes a new reflect.Value for the reflect.Type.
 func MakeValueFor(t reflect.Type) reflect.Value {
-	var input reflect.Value
-
 	mtl := reflect.New(t)
 
-	if mtl.Kind() == reflect.Ptr {
+	if t.Kind() != reflect.Ptr && mtl.Kind() == reflect.Ptr {
 		mtl = mtl.Elem()
 	}
 
-	return input
+	return mtl
 }
 
 // MakeArgumentsValues takes a list of reflect.Types and returns a new version of
@@ -192,6 +191,7 @@ func MakeArgumentsValues(args []reflect.Type) []reflect.Value {
 	var inputs []reflect.Value
 
 	for _, tl := range args {
+		fmt.Printf("Item: %s-> %s\n", tl, reflect.New(tl))
 		inputs = append(inputs, MakeValueFor(tl))
 	}
 
