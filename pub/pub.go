@@ -287,7 +287,9 @@ type pub struct {
 
 	rw   sync.RWMutex
 	subs []Node
-	ends []func()
+
+	readerEnd []func(Ctx)
+	writerEnd []func(Ctx)
 }
 
 // nSync returns a new functional Node.
@@ -320,7 +322,7 @@ func (p *pub) UUID() string {
 
 // Reader defines the delivery methods used to deliver data into Node process.
 type Reader interface {
-	ReadEnd()
+	// ReadEnd()
 	Read(v interface{}, ctx ...context.Context)
 }
 
@@ -340,17 +342,19 @@ func (c contxt) RW() ReadWriter {
 	return c.rw
 }
 
-// ReadEnd applies a end signal to all the subscribers.
-func (p *pub) ReadEnd() {
+// ReadEnd applies a end signal to all the subscribers read sequence.
+// TODO: What is the context for this, do we really need this. We want single
+// flow, does this support or break that?
+func (p *pub) ReadEnd(ctx Ctx) {
 	p.rw.RLock()
 	{
-		for _, node := range p.ends {
+		for _, node := range p.writerEnd {
 			if p.async {
-				go node()
+				go node(ctx)
 				return
 			}
 
-			node()
+			node(ctx)
 		}
 	}
 	p.rw.RUnlock()
@@ -395,18 +399,30 @@ type NthFinder func(index int, length int) (NewIndex int)
 
 // Writer defines reply methods to reply to requests
 type Writer interface {
+	WriteEnd(Ctx)
 	Write(Ctx, interface{})
 	WriteEvery(Ctx, interface{}, NthFinder)
+}
+
+// WriteEnd applies a end signal to all the subscribers.
+func (p *pub) WriteEnd(ctx Ctx) {
+	p.rw.RLock()
+	{
+		for _, node := range p.readerEnd {
+			if p.async {
+				go node(ctx)
+				return
+			}
+
+			node(ctx)
+		}
+	}
+	p.rw.RUnlock()
 }
 
 // Write allows the reply of an data message.
 // Note: We use the variadic format for the context but only one is used.
 func (p *pub) Write(ctx Ctx, v interface{}) {
-	ctxn := &contxt{
-		ctx: ctx.Ctx(),
-		rw:  p,
-	}
-
 	var isErr bool
 
 	// Grab the error if it indeed is an error once.
@@ -419,11 +435,11 @@ func (p *pub) Write(ctx Ctx, v interface{}) {
 	{
 		for _, node := range p.subs {
 			if isErr {
-				node.Read(err, ctxn.Ctx())
+				node.Read(err, ctx.Ctx())
 				continue
 			}
 
-			node.Read(v, ctxn.Ctx())
+			node.Read(v, ctx.Ctx())
 		}
 	}
 	p.rw.RUnlock()
@@ -438,11 +454,6 @@ func defaultFinder(index int, length int) int {
 // registered nodes using the finder function provided else delivers to all nodes.
 // Note: We use the variadic format for the context but only one is used.
 func (p *pub) WriteEvery(ctx Ctx, v interface{}, finder NthFinder) {
-	ctxn := &contxt{
-		ctx: ctx.Ctx(),
-		rw:  p,
-	}
-
 	if finder == nil {
 		finder = defaultFinder
 	}
@@ -466,10 +477,10 @@ func (p *pub) WriteEvery(ctx Ctx, v interface{}, finder NthFinder) {
 				node := p.subs[index]
 
 				if isErr {
-					node.Write(ctxn, err)
+					node.Read(err, ctx.Ctx())
 					continue
 				}
-				node.Write(ctxn, v)
+				node.Read(v, ctx.Ctx())
 			}
 
 		}
@@ -513,17 +524,18 @@ func (p *pub) InverseWith(node interface{}, flags ...bool) Node {
 
 // Reactor defines the core connecting methods used for binding with a Node.
 type Reactor interface {
-	SignalEnd(func())
+	SignalEnd(func(Ctx)) Node
 	Signal(interface{}, ...bool) Node
 }
 
-// SignalEnd signals the end of a signal run.
-func (p *pub) SignalEnd(handle func()) {
+// SignalEnd signals the end of a signal run. It returns itself.
+func (p *pub) SignalEnd(handle func(Ctx)) Node {
 	p.rw.Lock()
 	{
-		p.ends = append(p.ends, handle)
+		p.readerEnd = append(p.readerEnd, handle)
 	}
 	p.rw.Unlock()
+	return p
 }
 
 // Signal sends the response signal from this Node to the provided node.
@@ -580,7 +592,7 @@ func (p *pub) Signal(node interface{}, flags ...bool) Node {
 				p.subs = append(p.subs, n)
 
 				if doEnd {
-					p.ends = append(p.ends, n.ReadEnd)
+					p.readerEnd = append(p.readerEnd, n.WriteEnd)
 				}
 			}
 
@@ -594,7 +606,7 @@ func (p *pub) Signal(node interface{}, flags ...bool) Node {
 	{
 		p.subs = append(p.subs, n)
 		if doEnd {
-			p.ends = append(p.ends, n.ReadEnd)
+			p.readerEnd = append(p.readerEnd, n.WriteEnd)
 		}
 	}
 	p.rw.Unlock()
