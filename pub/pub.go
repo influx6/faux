@@ -285,8 +285,9 @@ type pub struct {
 	async   bool
 	inverse bool
 
-	rw   sync.RWMutex
-	subs []Node
+	rw       sync.RWMutex
+	subs     []Node
+	lastNode Node
 
 	readerEnd []func(Ctx)
 	writerEnd []func(Ctx)
@@ -425,6 +426,14 @@ func (p *pub) WriteEnd(ctx Ctx) {
 func (p *pub) Write(ctx Ctx, v interface{}) {
 	var isErr bool
 
+	var cx context.Context
+
+	if ctx != nil {
+		cx = ctx.Ctx()
+	} else {
+		cx = context.New()
+	}
+
 	// Grab the error if it indeed is an error once.
 	err, ok := v.(error)
 	if ok {
@@ -435,11 +444,11 @@ func (p *pub) Write(ctx Ctx, v interface{}) {
 	{
 		for _, node := range p.subs {
 			if isErr {
-				node.Read(err, ctx.Ctx())
+				node.Read(err, cx)
 				continue
 			}
 
-			node.Read(v, ctx.Ctx())
+			node.Read(v, cx)
 		}
 	}
 	p.rw.RUnlock()
@@ -519,13 +528,15 @@ func (p *pub) InverseWith(node interface{}, flags ...bool) Node {
 		snode.async = true
 	}
 
-	return p.Signal(snode, flags...)
+	p.Signal(snode, flags...)
+	return snode
 }
 
 // Reactor defines the core connecting methods used for binding with a Node.
 type Reactor interface {
 	SignalEnd(func(Ctx)) Node
 	Signal(interface{}, ...bool) Node
+	MustSignal(interface{}, ...bool) Node
 }
 
 // SignalEnd signals the end of a signal run. It returns itself.
@@ -548,7 +559,20 @@ func (p *pub) SignalEnd(handle func(Ctx)) Node {
 // is used.
 func (p *pub) Signal(node interface{}, flags ...bool) Node {
 	var n Node
+
 	var doEnd bool
+	var doAsync bool
+
+	flLen := len(flags)
+	if flLen > 0 {
+		if flags[0] {
+			doAsync = true
+		}
+
+		if flLen > 1 && flags[1] {
+			doEnd = true
+		}
+	}
 
 	switch node.(type) {
 	case Node:
@@ -559,19 +583,10 @@ func (p *pub) Signal(node interface{}, flags ...bool) Node {
 			return nil
 		}
 
-		flLen := len(flags)
-		if flLen < 1 {
-			n = nSync(hl, false)
+		if doAsync {
+			n = aSync(hl, false)
 		} else {
-			if flags[0] {
-				n = aSync(hl, false)
-			} else {
-				n = nSync(hl, false)
-			}
-
-			if flLen > 1 && flags[1] {
-				doEnd = true
-			}
+			n = nSync(hl, false)
 		}
 
 	}
@@ -585,15 +600,32 @@ func (p *pub) Signal(node interface{}, flags ...bool) Node {
 		p.rw.Lock()
 		{
 
-			nlen := len(p.subs) - 1
-			if nlen > 1 {
-				(p.subs[nlen]).Signal(n)
-			} else {
-				p.subs = append(p.subs, n)
-
-				if doEnd {
-					p.readerEnd = append(p.readerEnd, n.WriteEnd)
+			if p.lastNode != nil {
+				if nl := p.lastNode.Signal(n, doAsync, doEnd); nl != nil {
+					p.lastNode = nil
 				}
+			} else {
+
+				// If we are not empty, then select the last element in the list and
+				// use that to connect else add to the list, set as lastNode
+				nlen := len(p.subs) - 1
+				if nlen > 0 {
+
+					p.lastNode = (p.subs[nlen])
+					if nl := p.lastNode.Signal(n, doAsync, doEnd); nl != nil {
+						p.lastNode = nl
+					}
+
+				} else {
+
+					p.subs = append(p.subs, n)
+					p.lastNode = n
+
+					if doEnd {
+						p.readerEnd = append(p.readerEnd, n.WriteEnd)
+					}
+				}
+
 			}
 
 		}
@@ -612,6 +644,18 @@ func (p *pub) Signal(node interface{}, flags ...bool) Node {
 	p.rw.Unlock()
 
 	return n
+}
+
+// MustSignal follows the go idiomatic approach where a operation panics if
+// it fails. It will panic if the node asignment/generation failed due to some
+// error.
+func (p *pub) MustSignal(node interface{}, flags ...bool) Node {
+	no := p.Signal(node, flags...)
+	if no != nil {
+		return no
+	}
+
+	panic("Invalid Node Returned, Check Arguments")
 }
 
 //==============================================================================

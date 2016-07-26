@@ -29,7 +29,7 @@ type FileSystem interface {
 	CloseFile(string) FileSystem
 	WriteFile(string) FileSystem
 
-	Mkdir(string) FileSystem
+	Mkdir(string, bool) FileSystem
 	ReadDir(string) FileSystem
 	WalkDir(string) FileSystem
 
@@ -65,7 +65,7 @@ func newFS(node pub.Node) *fs {
 // ReadFile adds a readFile operation whoes contents get passed to the next
 // event/Node/Task in the link.
 func (f *fs) ReadFile(path string) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, _ interface{}) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, _ interface{}) {
 		file, err := os.Open(path)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
@@ -88,7 +88,7 @@ func (f *fs) ReadFile(path string) FileSystem {
 
 // ReadReader reads the data pulled from the reader everytime it gets called.
 func (f *fs) ReadReader(r io.Reader) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, _ interface{}) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, _ interface{}) {
 		var buf bytes.Buffer
 		_, err := io.Copy(&buf, r)
 		if err != nil && err != io.EOF {
@@ -103,7 +103,7 @@ func (f *fs) ReadReader(r io.Reader) FileSystem {
 
 // ReplayBytes resends the data provided everytime it is called.
 func (f *fs) ReplayBytes(b []byte) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, _ interface{}) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, _ interface{}) {
 		ctx.RW().Write(ctx, b)
 	})
 	return f
@@ -115,7 +115,7 @@ func (f *fs) ReplayReader(r io.Reader) FileSystem {
 	var buf bytes.Buffer
 	var read bool
 
-	f.Node = f.Signal(func(ctx pub.Ctx, _ interface{}) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, _ interface{}) {
 		if read {
 			ctx.RW().Write(ctx, buf.Bytes())
 			return
@@ -138,7 +138,7 @@ func (f *fs) ReplayReader(r io.Reader) FileSystem {
 // both allow the chain of events to continue and to allow others to use the data
 // as they please.
 func (f *fs) WriteBytes(data []byte) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, path string) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, path string) {
 		file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE, 0500)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
@@ -170,7 +170,7 @@ func (f *fs) WriteBytes(data []byte) FileSystem {
 // both allow the chain of events to continue and to allow others to use the data
 // as they please.
 func (f *fs) WriteWriterBytes(data []byte) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, w io.Writer) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, w io.Writer) {
 		written, err := w.Write(data)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
@@ -182,7 +182,7 @@ func (f *fs) WriteWriterBytes(data []byte) FileSystem {
 			return
 		}
 
-		ctx.RW().Write(ctx, data)
+		ctx.RW().Write(ctx, w)
 	})
 	return f
 }
@@ -192,7 +192,7 @@ func (f *fs) WriteWriterBytes(data []byte) FileSystem {
 // written does not match the size of the bytes. It passes the incoming data
 // down the pipeline.
 func (f *fs) WriteWriter(w io.Writer) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, data []byte) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, data []byte) {
 		written, err := w.Write(data)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
@@ -215,7 +215,7 @@ func (f *fs) WriteWriter(w io.Writer) FileSystem {
 // If it gets a []byte slice as its argument. It will write the provided slice
 // into the file.
 func (f *fs) CreateFile(path string) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, data []byte) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, data []byte) {
 		file, err := os.OpenFile(path, os.O_CREATE, 0500)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
@@ -238,7 +238,7 @@ func (f *fs) CreateFile(path string) FileSystem {
 // CloseFile expects to receive a file object which it calls the close function
 // on. It passes true if the file closed without error.
 func (f *fs) CloseFile(path string) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, f *os.File) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, f *os.File) {
 		if err := f.Close(); err != nil {
 			ctx.RW().Write(ctx, err)
 			return
@@ -254,7 +254,7 @@ func (f *fs) CloseFile(path string) FileSystem {
 // If it gets a []byte slice as its argument. It will write the provided slice
 // into the file.
 func (f *fs) WriteFile(path string) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, data []byte) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, data []byte) {
 		file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE, 0500)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
@@ -316,7 +316,7 @@ func (e extendFileInfo) Path() string {
 // with a structure that implements the ExtendFileInfo interface. It sends the
 // individual fileInfo instead of the slice of FileInfos.
 func (f *fs) ReadDir(path string) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, data []byte) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, data []byte) {
 		file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE, 0500)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
@@ -345,7 +345,7 @@ func (f *fs) ReadDir(path string) FileSystem {
 // with a structure that implements the ExtendFileInfo interface. It sends the
 // individual fileInfo instead of the slice of FileInfos.
 func (f *fs) WalkDir(path string) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, data []byte) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, _ interface{}) {
 		file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE, 0500)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
@@ -377,13 +377,22 @@ func (f *fs) WalkDir(path string) FileSystem {
 	return f
 }
 
-// Mkdir creates a directly returning the path down the pipeline.
-func (f *fs) Mkdir(path string) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, data []byte) {
+// Mkdir creates a directly returning the path down the pipeline. If the chain
+// flag is on, then mkdir when it's pipeline receives a non-empty string as
+// an argument, will join the string recieved with the path provided.
+// This allows chaining mkdir paths down the pipeline.
+func (f *fs) Mkdir(path string, chain bool) FileSystem {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, root string) {
+		if chain && path != "" {
+			path = filepath.Join(root, path)
+		}
+
 		if err := os.MkdirAll(path, 0500); err != nil {
 			ctx.RW().Write(ctx, err)
 			return
 		}
+
+		ctx.RW().Write(ctx, path)
 	})
 	return f
 }
@@ -391,7 +400,7 @@ func (f *fs) Mkdir(path string) FileSystem {
 // Remove deletes the giving path and passes the path down
 // the pipeline.
 func (f *fs) Remove(path string) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, data []byte) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, data []byte) {
 		if err := os.Remove(path); err != nil {
 			ctx.RW().Write(ctx, err)
 			return
@@ -406,7 +415,7 @@ func (f *fs) Remove(path string) FileSystem {
 // and passes the path down
 // the pipeline.
 func (f *fs) RemoveAll(path string) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, data []byte) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, data []byte) {
 		if err := os.Remove(path); err != nil {
 			ctx.RW().Write(ctx, err)
 			return
@@ -422,11 +431,11 @@ func (f *fs) RemoveAll(path string) FileSystem {
 // If the filter function returns true, then any FileInfo/ExtendFileInfo that
 // match its criteria are sent down its pipeline.
 func (f *fs) SkipStat(filter func(ExtendedFileInfo) bool) FileSystem {
-	f.Node = f.Signal(func(ctx pub.Ctx, info ExtendedFileInfo) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, info ExtendedFileInfo) {
 		if filter(info) {
 			ctx.RW().Write(ctx, info)
 		}
-	})
+	}, false, true)
 	return f
 }
 
@@ -437,8 +446,8 @@ func (f *fs) UnwrapStats() FileSystem {
 	f.Node = f.SignalEnd(func(ctx pub.Ctx) {
 		ctx.RW().Write(ctx, pack)
 		pack = nil
-	}).Signal(func(ctx pub.Ctx, info ExtendedFileInfo) {
+	}).MustSignal(func(ctx pub.Ctx, info ExtendedFileInfo) {
 		pack = append(pack, info.Path())
-	})
+	}, false, true)
 	return f
 }
