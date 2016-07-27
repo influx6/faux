@@ -10,7 +10,7 @@ import (
 var Pubs = regos.New()
 
 // Works define a map of
-type Works map[string]Node
+type Works map[string]Handler
 
 // Has returns true/false if the tag exists for a built result.
 func (r Works) Has(tag string) bool {
@@ -19,7 +19,7 @@ func (r Works) Has(tag string) bool {
 }
 
 // Get returns the Result for the specified build tag.
-func (r Works) Get(tag string) Node {
+func (r Works) Get(tag string) Handler {
 	return r[tag]
 }
 
@@ -51,7 +51,7 @@ func (d Work) Make() (Works, error) {
 				}
 			}()
 
-			pb := Pubs.NewBuild(do.Name, do.Use).(Node)
+			pb := Pubs.NewBuild(do.Name, do.Use).(Handler)
 			res[do.Tag] = pb
 		}()
 	}

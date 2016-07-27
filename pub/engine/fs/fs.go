@@ -2,6 +2,7 @@ package fs
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -323,7 +324,7 @@ func (e extendFileInfo) Path() string {
 // with a structure that implements the ExtendFileInfo interface. It sends the
 // individual fileInfo instead of the slice of FileInfos.
 func (f *fs) ReadDir(path string) FileSystem {
-	f.Node = f.MustSignal(func(ctx pub.Ctx, data []byte) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, _ interface{}) {
 		file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE, 0700)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
@@ -342,6 +343,7 @@ func (f *fs) ReadDir(path string) FileSystem {
 			ctx.RW().Write(ctx, NewExtendFileInfo(dir, path))
 		}
 
+		fmt.Println("Sending end signal")
 		ctx.RW().WriteEnd(ctx)
 	})
 	return f
@@ -450,11 +452,32 @@ func (f *fs) SkipStat(filter func(ExtendedFileInfo) bool) FileSystem {
 // full path, allows you to retrieve the strings path.
 func (f *fs) UnwrapStats() FileSystem {
 	var pack []string
-	f.Node = f.SignalEnd(func(ctx pub.Ctx) {
+
+	f.Node = f.MustSignal(func(ctx pub.Ctx, info ExtendedFileInfo) {
+		pack = append(pack, info.Path())
+	}, false, true).SignalEnd(func(ctx pub.Ctx) {
+		fmt.Println("Ending")
 		ctx.RW().Write(ctx, pack)
 		pack = nil
-	}).MustSignal(func(ctx pub.Ctx, info ExtendedFileInfo) {
-		pack = append(pack, info.Path())
-	}, false, true)
+	})
+
 	return f
+}
+
+// IsDir defines a function which returns true/false if the FileInfo
+// is a directory.
+func IsDir(ex ExtendedFileInfo) bool {
+	if ex.IsDir() {
+		return true
+	}
+	return false
+}
+
+// IsFile defines a function which returns true/false if the FileInfo
+// is a file not a directory.
+func IsFile(ex ExtendedFileInfo) bool {
+	if !ex.IsDir() {
+		return true
+	}
+	return false
 }

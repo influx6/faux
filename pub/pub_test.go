@@ -15,44 +15,20 @@ const succeedMark = "\u2713"
 // failedMark is the Unicode codepoint for an X mark.
 const failedMark = "\u2717"
 
-// TestMousePosition provides a example test of a pub.Ctx that process mouse position (a slice of two values)
-func TestMousePosition(t *testing.T) {
-	var count int64
-
-	pos := pub.Magic(func(r pub.Ctx, err error, data interface{}) {
-		if err != nil {
-			r.RW().Write(r, err)
-			return
-		}
-
-		r.RW().Write(r, data)
-		atomic.AddInt64(&count, 1)
-	})
-
-	for i := 0; i < 2000; i++ {
-		pos.Read([]int{i * 3, i + 1})
-	}
-
-	if atomic.LoadInt64(&count) != 2000 {
-		fatalFailed(t, "Total processed values is not equal, expected %d but got %d", 3000, count)
-	}
-
-	logPassed(t, "Total mouse data was processed with count %d", count)
-}
-
 // TestAutoFn  validates the use of reflection with giving types to test use of
 // the form in Pub.
 func TestAutoFn(t *testing.T) {
 	var count int64
 
-	pos := pub.Magic(func(r pub.Ctx, number int) {
+	ctx := pub.NewCtx()
+	pos := pub.Lift(func(r pub.Ctx, number int) {
 		atomic.AddInt64(&count, 1)
-	})
+	})(nil)
 
-	pos.Read(errors.New("Ful"))
-	pos.Read(30)
-	pos.Read("Word") // -> This would not be seen. Has it does not match int type.
-	pos.Read(20)
+	pos(ctx, nil, errors.New("Ful"))
+	pos(ctx, nil, 30)
+	pos(ctx, nil, "Word") // -> This would not be seen. Has it does not match int type.
+	pos(ctx, nil, 20)
 
 	if atomic.LoadInt64(&count) != 2 {
 		fatalFailed(t, "Total processed values is not equal, expected %d but got %d", 3000, count)
@@ -66,42 +42,11 @@ func BenchmarkNodes(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
-	dude := pub.Magic(func(r pub.Ctx, err error, data interface{}) {
-		r.RW().Write(r, data)
-	})
+	read := pub.Lift(func(r pub.Ctx, number int) {})(nil)
 
-	dudette := pub.AsyncMagic(func(r pub.Ctx, data interface{}) {
-		r.RW().Write(r, data)
-	})
-
-	dude.Signal(dudette)
-
+	ctx := pub.NewCtx()
 	for i := 0; i < b.N; i++ {
-		dude.Read(i)
-	}
-}
-
-// BenchmarkReflectNodes benches the performance of using the Node api.
-func BenchmarkReflectNodes(b *testing.B) {
-	b.ResetTimer()
-	b.ReportAllocs()
-
-	dude := pub.Magic(func(r pub.Ctx, data interface{}) {
-		r.RW().Write(r, data)
-	})
-
-	dudette := pub.AsyncMagic(func(r pub.Ctx, err error, data int) {
-		r.RW().Write(r, data)
-	})
-
-	dudette.Signal(func(r pub.Ctx, err error, data int) {
-		r.RW().Write(r, data)
-	}, true)
-
-	dude.Signal(dudette)
-
-	for i := 0; i < b.N; i++ {
-		dude.Read(i)
+		read(ctx, nil, i)
 	}
 }
 

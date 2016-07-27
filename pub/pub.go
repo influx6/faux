@@ -6,12 +6,12 @@
 package pub
 
 import (
+	"errors"
 	"reflect"
-	"sync"
+	"sync/atomic"
 
 	"github.com/influx6/faux/context"
 	"github.com/influx6/faux/reflection"
-	"github.com/satori/go.uuid"
 )
 
 var (
@@ -28,39 +28,81 @@ var (
 
 //==============================================================================
 
-// Ctx defines a type which is passed into all Handlers to provide access
-// to an underline context.Context provider and the source Read and Write methods.
+// Ctx defines a context interface with the ability to signal ending of a
+// stream to other recievers.
 type Ctx interface {
-	Ctx() context.Context
-	RW() ReadWriter
+	context.Context
+	End()
+	Ended() bool
+	Renew() Ctx
 }
+
+// NewCtx returns an instance of a new Ctx.
+func NewCtx() Ctx {
+	return &ctxn{
+		Context: context.New(),
+	}
+}
+
+// NewCtxWith returns an instance of a new Ctx using the provided context.Context.
+func NewCtxWith(ctx context.Context) Ctx {
+	return &ctxn{
+		Context: ctx,
+	}
+}
+
+type ctxn struct {
+	context.Context
+	streamEnded int64
+}
+
+// Renew returns a new context with the underline context.Context for this
+// context.
+func (c *ctxn) Renew() Ctx {
+	return &ctxn{Context: c.Context}
+}
+
+// End sets the context as done. A context can only end once,and provides a
+// means to signaify the end of a stream.
+func (c *ctxn) End() {
+	atomic.StoreInt64(&c.streamEnded, 1)
+}
+
+// Ended returns true/false if the current context has ended.
+func (c *ctxn) Ended() bool {
+	return atomic.LoadInt64(&c.streamEnded) != 0
+}
+
+//==============================================================================
 
 // Handler defines a function type which processes data and accepts a ReadWriter
 // through which it sends its reply.
-type Handler func(Ctx, error, interface{})
+type Handler func(Ctx, error, interface{}) (interface{}, error)
 
 // MagicHandler returns a new Handler wrapping the provided value as needed if
 // it matches its DataHandler, ErrorHandler, Handler or magic function type.
 // MagicFunction type is a function which follows this type form:
-// func(Ctx, error, <CustomType>).
+// func(context.Context, error, <CustomType>).
 func MagicHandler(node interface{}) Handler {
 	var hl Handler
 
 	switch node.(type) {
-	case func(Ctx, error, interface{}):
-		hl = node.(func(Ctx, error, interface{}))
-	case func(Ctx, error):
-		hl = WrapError(node.(func(Ctx, error)))
+	case func(Ctx, error, interface{}) (interface{}, error):
+		hl = node.(func(Ctx, error, interface{}) (interface{}, error))
+	case func(Ctx, interface{}) (interface{}, error):
+		hl = WrapData(node.(func(Ctx, interface{}) (interface{}, error)))
+	case func(interface{}) interface{}:
+		hl = WrapDataOnly(node.(func(interface{}) interface{}))
+	case func(Ctx, error) (interface{}, error):
+		hl = WrapError(node.(func(Ctx, error) (interface{}, error)))
+	case func(interface{}):
+		hl = WrapJustData(node.(func(interface{})))
 	case func(error):
 		hl = WrapJustError(node.(func(error)))
 	case func(error) error:
 		hl = WrapErrorReturn(node.(func(error) error))
-	case func(Ctx, interface{}):
-		hl = WrapData(node.(func(Ctx, interface{})))
 	case func() interface{}:
 		hl = WrapNoData(node.(func() interface{}))
-	case func(interface{}) interface{}:
-		hl = WrapDataOnly(node.(func(interface{}) interface{}))
 	case func(interface{}) error:
 		hl = WrapErrorOnly(node.(func(interface{}) error))
 	default:
@@ -100,18 +142,30 @@ func MagicHandler(node interface{}) Handler {
 
 		dZero := reflect.Zero(data)
 
-		hl = func(ctx Ctx, err error, val interface{}) {
+		hl = func(ctx Ctx, err error, val interface{}) (interface{}, error) {
 			ma := reflect.ValueOf(ctx)
 
 			if err != nil {
 
 				if !isCustorm {
-					tm.Call([]reflect.Value{ma, reflect.ValueOf(err), dZero})
-					return
+					resArgs := tm.Call([]reflect.Value{ma, reflect.ValueOf(err), dZero})
+					if len(resArgs) < 1 {
+						return nil, nil
+					}
+
+					if len(resArgs) == 1 {
+						dx, ok := ((resArgs[0].Interface()).(error))
+						if ok {
+							return nil, dx
+						}
+
+						return dx, nil
+					}
+
+					return resArgs[0].Interface(), (resArgs[1].Interface().(error))
 				}
 
-				ctx.RW().Write(ctx, err)
-				return
+				return nil, err
 			}
 
 			mVal := dZero
@@ -121,13 +175,13 @@ func MagicHandler(node interface{}) Handler {
 
 				ok, convert := reflection.CanSetFor(data, mVal)
 				if !ok {
-					return
+					return nil, errors.New("Invalid Type Received")
 				}
 
 				if convert {
 					mVal, err = reflection.Convert(data, mVal)
 					if err != nil {
-						return
+						return nil, errors.New("Type Conversion Failed")
 					}
 				}
 
@@ -135,12 +189,40 @@ func MagicHandler(node interface{}) Handler {
 
 			if !isCustorm {
 				dArgs := []reflect.Value{ma, dZeroError, mVal}
-				tm.Call(dArgs)
-				return
+				resArgs := tm.Call(dArgs)
+				if len(resArgs) < 1 {
+					return nil, nil
+				}
+
+				if len(resArgs) == 1 {
+					dx, ok := ((resArgs[0].Interface()).(error))
+					if ok {
+						return nil, dx
+					}
+
+					return dx, nil
+				}
+
+				return resArgs[0].Interface(), (resArgs[1].Interface().(error))
 			}
 
 			dArgs := []reflect.Value{ma, mVal}
-			tm.Call(dArgs)
+
+			resArgs := tm.Call(dArgs)
+			if len(resArgs) < 1 {
+				return nil, nil
+			}
+
+			if len(resArgs) == 1 {
+				dx, ok := ((resArgs[0].Interface()).(error))
+				if ok {
+					return nil, dx
+				}
+
+				return dx, nil
+			}
+
+			return resArgs[0].Interface(), (resArgs[1].Interface().(error))
 		}
 	}
 
@@ -150,28 +232,27 @@ func MagicHandler(node interface{}) Handler {
 // IdentityHandler returns a new Handler which forwards it's errors or data to
 // its subscribers.
 func IdentityHandler() Handler {
-	return func(ctx Ctx, err error, data interface{}) {
+	return func(ctx Ctx, err error, data interface{}) (interface{}, error) {
 		if err != nil {
-			ctx.RW().Write(ctx, err)
-			return
+			return nil, err
 		}
-		ctx.RW().Write(ctx, data)
+		return data, nil
 	}
 }
 
 // DataHandler defines a function type that concentrates on handling only data
 // replies alone.
-type DataHandler func(Ctx, interface{})
+type DataHandler func(Ctx, interface{}) (interface{}, error)
 
 // WrapData returns a Handler which wraps a DataHandler within it, but
 // passing forward all errors it receives.
 func WrapData(dh DataHandler) Handler {
-	return func(m Ctx, err error, data interface{}) {
+	return func(m Ctx, err error, data interface{}) (interface{}, error) {
 		if err != nil {
-			m.RW().Write(m, err)
-			return
+			return nil, err
 		}
-		dh(m, data)
+
+		return dh(m, data)
 	}
 }
 
@@ -183,42 +264,17 @@ type NoDataHandler func() interface{}
 // forwards all errors it receives. It calls its internal function
 // with no arguments taking the response and sending that out.
 func WrapNoData(dh NoDataHandler) Handler {
-	return func(m Ctx, err error, data interface{}) {
+	return func(m Ctx, err error, data interface{}) (interface{}, error) {
 		if err != nil {
-			m.RW().Write(m, err)
-			return
-		}
-
-		m.RW().Write(m, data)
-
-		res := dh()
-		if ers, ok := res.(error); ok {
-			m.RW().Write(m, ers)
-			return
-		}
-
-		m.RW().Write(m, res)
-	}
-}
-
-// WrapNoDataAndPassReturnOnly returns a Handler which wraps a NoDataHandler
-// within it, it ignores all incoming data but passing forward all returned values
-// it receives from the NoDataHandler.
-func WrapNoDataAndPassReturnOnly(dh NoDataHandler) Handler {
-	return func(m Ctx, err error, _ interface{}) {
-		if err != nil {
-			m.RW().Write(m, err)
-			return
+			return nil, err
 		}
 
 		res := dh()
-
-		if ers, ok := res.(error); ok {
-			m.RW().Write(m, ers)
-			return
+		if erx, ok := res.(error); ok {
+			return nil, erx
 		}
 
-		m.RW().Write(m, res)
+		return res, nil
 	}
 }
 
@@ -229,38 +285,49 @@ type DataOnlyHandler func(interface{}) interface{}
 // WrapDataOnly returns a Handler which wraps a DataOnlyHandler within it, but
 // passing forward all errors it receives.
 func WrapDataOnly(dh DataOnlyHandler) Handler {
-	return func(m Ctx, err error, data interface{}) {
+	return func(m Ctx, err error, data interface{}) (interface{}, error) {
 		if err != nil {
-			m.RW().Write(m, err)
-			return
+			return nil, err
 		}
 
 		res := dh(data)
-
-		if ers, ok := res.(error); ok {
-			m.RW().Write(m, ers)
-			return
+		if erx, ok := res.(error); ok {
+			return nil, erx
 		}
 
-		m.RW().Write(m, res)
+		return res, nil
 	}
 }
 
-// JustErrorHandler defines a function type that concentrates on handling only data
+// JustDataHandler defines a function type which expects one argument.
+type JustDataHandler func(interface{})
+
+// WrapJustData wraps a JustDataHandler and returns it as a Handler.
+func WrapJustData(dh JustDataHandler) Handler {
+	return func(ctx Ctx, err error, d interface{}) (interface{}, error) {
+		if err != nil {
+			return nil, err
+		}
+
+		dh(d)
+		return d, nil
+	}
+}
+
+// JustErrorHandler defines a function type that concentrates on handling only
 // errors alone.
 type JustErrorHandler func(error)
 
 // WrapJustError returns a Handler which wraps a DataOnlyHandler within it, but
 // passing forward all errors it receives.
 func WrapJustError(dh JustErrorHandler) Handler {
-	return func(ctx Ctx, err error, d interface{}) {
+	return func(ctx Ctx, err error, d interface{}) (interface{}, error) {
 		if err != nil {
 			dh(err)
-			ctx.RW().Write(ctx, err)
-			return
+			return nil, err
 		}
 
-		ctx.RW().Write(ctx, d)
+		return d, nil
 	}
 }
 
@@ -271,28 +338,28 @@ type ErrorReturnHandler func(error) error
 // WrapErrorReturn returns a Handler which wraps a DataOnlyHandler within it, but
 // passing forward all errors it receives.
 func WrapErrorReturn(dh ErrorReturnHandler) Handler {
-	return func(ctx Ctx, err error, d interface{}) {
+	return func(ctx Ctx, err error, d interface{}) (interface{}, error) {
 		if err != nil {
-			ctx.RW().Write(ctx, dh(err))
-			return
+			return nil, dh(err)
 		}
-		ctx.RW().Write(ctx, d)
+
+		return d, nil
 	}
 }
 
 // ErrorHandler defines a function type that concentrates on handling only data
 // errors alone.
-type ErrorHandler func(Ctx, error)
+type ErrorHandler func(Ctx, error) (interface{}, error)
 
 // WrapError returns a Handler which wraps a DataOnlyHandler within it, but
 // passing forward all errors it receives.
 func WrapError(dh ErrorHandler) Handler {
-	return func(m Ctx, err error, data interface{}) {
+	return func(m Ctx, err error, data interface{}) (interface{}, error) {
 		if err != nil {
-			dh(m, err)
-			return
+			return dh(m, err)
 		}
-		m.RW().Write(m, data)
+
+		return data, nil
 	}
 }
 
@@ -303,502 +370,147 @@ type ErrorOnlyHandler func(interface{}) error
 // WrapErrorOnly returns a Handler which wraps a ErrorOnlyHandler within it, but
 // passing forward all errors it receives.
 func WrapErrorOnly(dh ErrorOnlyHandler) Handler {
-	return func(m Ctx, err error, data interface{}) {
+	return func(m Ctx, err error, data interface{}) (interface{}, error) {
 		if err != nil {
-			m.RW().Write(m, err)
-			return
+			return nil, dh(data)
 		}
 
-		m.RW().Write(m, dh(data))
+		return data, nil
 	}
 }
 
 //==============================================================================
 
-// ReadWriter defines a type which defines a Reader and Writer interface conforming
-// methods.
-type ReadWriter interface {
-	Reader
-	Writer
-}
-
-// Node provides an interface definition for the Node type, to allow
-// compatibility by future extenders when composing with other structs.
-type Node interface {
-	ReadWriter
-	Reactor
-	Inversion
-
-	UUID() string
-}
-
-// Magic returns a new functional Node.
-func Magic(op interface{}) Node {
-	hl := MagicHandler(op)
-	if hl == nil {
-		panic("invalid type provided")
+// Wrap returns a new handler where the first wraps the second with its returned
+// values.
+func Wrap(h1 Handler, h2 Handler) Handler {
+	return func(ctx Ctx, err error, data interface{}) (interface{}, error) {
+		m1, e1 := h1(ctx, err, data)
+		return h2(ctx, e1, m1)
 	}
-	return nSync(hl, false)
 }
 
-// AsyncMagic returns a new functional Node.
-func AsyncMagic(op interface{}) Node {
-	hl := MagicHandler(op)
-	if hl == nil {
-		panic("invalid type provided")
-	}
-	return aSync(hl, false)
-}
+//==============================================================================
 
-// InverseMagic returns a new functional Node.
-func InverseMagic(op interface{}) Node {
-	hl := MagicHandler(op)
-	if hl == nil {
-		panic("invalid type provided")
-	}
-	return nSync(hl, true)
-}
+// LiftHandler defines the type the Node function returns which allows providers
+// to assign handlers to use for
+type LiftHandler func(...Handler) Handler
 
-// InverseAsyncMagic returns a new functional Node.
-func InverseAsyncMagic(op interface{}) Node {
-	hl := MagicHandler(op)
-	if hl == nil {
-		panic("invalid type provided")
-	}
-	return aSync(hl, true)
-}
-
-// pub provides a pure functional Node, which uses an internal wait group to
-// ensure if close is called that call values where delivered.
-type pub struct {
-	uuid string
-	op   Handler
-	root Node
-
-	async   bool
-	inverse bool
-	boost   bool
-
-	rw       sync.RWMutex
-	subs     []Node
-	lastNode Node
-
-	readerEnd []func(Ctx)
-	writerEnd []func(Ctx)
-}
-
-// nSync returns a new functional Node.
-func nSync(op Handler, inverse bool) *pub {
-	node := pub{
-		op:      op,
-		inverse: inverse,
-		uuid:    uuid.NewV4().String(),
+// Lift returns the a serializing handler where the passed in handler is the
+// last function to be called. If the value of the argument is not a function,
+// then it panics.
+func Lift(handle interface{}) LiftHandler {
+	mh := MagicHandler(handle)
+	if mh == nil {
+		panic("Expected handle passed into be a function")
 	}
 
-	return &node
-}
+	// We will stack the handlers where one outputs becomes the input of the next.
+	return func(lifts ...Handler) Handler {
+		var base Handler
 
-// aSync returns a new functional Node.
-func aSync(op Handler, inverse bool) *pub {
-	node := pub{
-		op:      op,
-		async:   true,
-		inverse: inverse,
-		uuid:    uuid.NewV4().String(),
-	}
-
-	return &node
-}
-
-// UUID returns the Node unique identification.
-func (p *pub) UUID() string {
-	return p.uuid
-}
-
-// Reader defines the delivery methods used to deliver data into Node process.
-type Reader interface {
-	// ReadEnd()
-	Read(v interface{}, ctx ...context.Context)
-}
-
-// context defines a struct which composes both a context.Ctx and a
-type contxt struct {
-	ctx context.Context
-	rw  ReadWriter
-}
-
-// Ctx returns the context.Context for this struct.
-func (c contxt) Ctx() context.Context {
-	return c.ctx
-}
-
-// RW returns the ReadWriter for this struct.
-func (c contxt) RW() ReadWriter {
-	return c.rw
-}
-
-// ReadEnd applies a end signal to all the subscribers read sequence.
-// TODO: What is the context for this, do we really need this. We want single
-// flow, does this support or break that?
-func (p *pub) ReadEnd(ctx Ctx) {
-	p.rw.RLock()
-	{
-		for _, node := range p.writerEnd {
-			if p.async {
-				go node(ctx)
-				return
-			}
-
-			node(ctx)
-		}
-	}
-	p.rw.RUnlock()
-}
-
-// Read applies a message value to the handler.
-func (p *pub) Read(b interface{}, ctxs ...context.Context) {
-	var ctx context.Context
-
-	if len(ctxs) < 1 {
-		ctx = context.New()
-	} else {
-		ctx = ctxs[0]
-	}
-
-	ctxn := &contxt{
-		ctx: ctx,
-		rw:  p,
-	}
-
-	if err, ok := b.(error); ok {
-		if p.async {
-			go p.op(ctxn, err, nil)
-			return
-		}
-
-		p.op(ctxn, err, nil)
-		return
-	}
-
-	if p.async {
-		go p.op(ctxn, nil, b)
-		return
-	}
-
-	p.op(ctxn, nil, b)
-}
-
-// NthFinder defines a function type which takes the length and index to
-// return a new index value.
-type NthFinder func(index int, length int) (NewIndex int)
-
-// Writer defines reply methods to reply to requests
-type Writer interface {
-	WriteEnd(Ctx)
-	Write(Ctx, interface{})
-	WriteEvery(Ctx, interface{}, NthFinder)
-}
-
-// WriteEnd applies a end signal to all the subscribers.
-func (p *pub) WriteEnd(ctx Ctx) {
-	p.rw.RLock()
-	{
-		for _, node := range p.readerEnd {
-			if p.async {
-				go node(ctx)
-				return
-			}
-
-			node(ctx)
-		}
-	}
-	p.rw.RUnlock()
-}
-
-// Write allows the reply of an data message.
-// Note: We use the variadic format for the context but only one is used.
-func (p *pub) Write(ctx Ctx, v interface{}) {
-	var isErr bool
-
-	var cx context.Context
-
-	if ctx != nil {
-		cx = ctx.Ctx()
-	} else {
-		cx = context.New()
-	}
-
-	// Grab the error if it indeed is an error once.
-	err, ok := v.(error)
-	if ok {
-		isErr = true
-	}
-
-	p.rw.RLock()
-	{
-		for _, node := range p.subs {
-			if isErr {
-				node.Read(err, cx)
+		for i := len(lifts) - 1; i >= 0; i-- {
+			if base == nil {
+				base = lifts[i]
 				continue
 			}
 
-			node.Read(v, cx)
+			base = Wrap(lifts[i], base)
 		}
-	}
-	p.rw.RUnlock()
 
-}
-
-func defaultFinder(index int, length int) int {
-	return index
-}
-
-// WriteEvery allows the delivery/publish of a response to selected index of
-// registered nodes using the finder function provided else delivers to all nodes.
-// Note: We use the variadic format for the context but only one is used.
-func (p *pub) WriteEvery(ctx Ctx, v interface{}, finder NthFinder) {
-	if finder == nil {
-		finder = defaultFinder
-	}
-
-	var isErr bool
-
-	// Grab the error if it indeed is an error once.
-	err, ok := v.(error)
-	if ok {
-		isErr = true
-	}
-
-	nlen := len(p.subs)
-
-	p.rw.RLock()
-	{
-		for index := 0; index < nlen; index++ {
-			newIndex := finder(index, nlen)
-
-			if newIndex > 0 && newIndex < nlen {
-				node := p.subs[index]
-
-				if isErr {
-					node.Read(err, ctx.Ctx())
-					continue
-				}
-				node.Read(v, ctx.Ctx())
+		return func(ctx Ctx, err error, data interface{}) (interface{}, error) {
+			if base != nil {
+				return base(ctx, err, data)
 			}
 
+			return data, err
 		}
 	}
-	p.rw.RUnlock()
 }
 
-// Inversion defines an interface that allows the creation of an inverter Node
-// from another Node, regardless of wether that was inverter or not. Since
-// Inversion forcefully forever makes the new Node bind to its last element the
-// added element and so on, down the chain, it provides methods suited for ease
-// of creation for Nodes.
-type Inversion interface {
-	Inverse() Node
-	InverseWith(interface{}, ...bool) Node
-}
-
-// Inverse creates a inversed Node with a IdentityHandler which inverts every
-// connection you add to it, stacking them serialy down the chain line.
-func (p *pub) Inverse() Node {
-	node := nSync(IdentityHandler(), true)
-	p.Signal(node, false, true)
-	return node
-}
-
-// InverseAsyncWith allows you to create a synchronouse inversed Node.
-func (p *pub) InverseWith(node interface{}, flags ...bool) Node {
-	hl := MagicHandler(node)
-	if hl == nil {
-		return nil
+// Distribute takes the output from the provided handle and distribute
+// it's returned values to the provided Handlers.
+func Distribute(handle interface{}) LiftHandler {
+	mh := MagicHandler(handle)
+	if mh == nil {
+		panic("Expected handle passed into be a function")
 	}
 
-	snode := nSync(hl, true)
+	// We will stack the handlers where one outputs becomes the input of the next.
+	return func(lifts ...Handler) Handler {
+		return func(ctx Ctx, err error, data interface{}) (interface{}, error) {
+			m1, e1 := mh(ctx, err, data)
 
-	if len(flags) > 0 && flags[0] {
-		snode.async = true
-	}
-
-	p.Signal(snode, flags...)
-	return snode
-}
-
-// Reactor defines the core connecting methods used for binding with a Node.
-type Reactor interface {
-	Replay(interface{}) Node
-	SignalEnd(func(Ctx)) Node
-	ReplayOnly(interface{}) Node
-	Signal(interface{}, ...bool) Node
-	MustSignal(interface{}, ...bool) Node
-}
-
-// Replay replays only the provided value and down the pipeline when called,
-// ignoring all received values. Its argument is never treated as a signal Handler.
-func (p *pub) ReplayOnly(node interface{}) Node {
-	return p.Signal(WrapNoDataAndPassReturnOnly(func() interface{} {
-		return node
-	}))
-}
-
-// Replay replays the provided value and all recieved values down the pipeline
-//when called. Its argument is never treated as a signal Handler.
-func (p *pub) Replay(node interface{}) Node {
-	return p.Signal(func() interface{} { return node })
-}
-
-// SignalEnd signals the end of a signal run. It returns itself.
-func (p *pub) SignalEnd(handle func(Ctx)) Node {
-	p.rw.Lock()
-	{
-		p.readerEnd = append(p.readerEnd, handle)
-	}
-	p.rw.Unlock()
-	return p
-}
-
-// Signal sends the response signal from this Node to the provided node.
-// If the input is a Node then it is returned, if its a Handler or DataHandler
-// then a new Node instance is returned.
-// Signal accepts a variable boolean flag, which it uses to set up the option
-// for asynchronouse signaling and also end notification signal. If there exists
-// atleast two 'true' boolean values then both asynchronouse and end signaling
-// is used and if there is only one 'true' value then only asynchronouse signaling
-// is used.
-func (p *pub) Signal(node interface{}, flags ...bool) Node {
-	var n Node
-
-	var doEnd bool
-	var doAsync bool
-
-	flLen := len(flags)
-	if flLen > 0 {
-		if flags[0] {
-			doAsync = true
-		}
-
-		if flLen > 1 && flags[1] {
-			doEnd = true
-		}
-	}
-
-	switch node.(type) {
-	case Node:
-		n = node.(Node)
-	default:
-		hl := MagicHandler(node)
-		if hl == nil {
-			return nil
-		}
-
-		if doAsync {
-			n = aSync(hl, false)
-		} else {
-			n = nSync(hl, false)
-		}
-
-	}
-
-	// If we have inversed this handler, then return itself, since it
-	// wishes to be the first point in entry.
-	// To INVERSE, means to redirect how things flows, normally binding
-	// flows by returning the next item in the chain, but to invert means
-	// to bind to the last item in the subscription list but return itself.
-	if p.inverse {
-		p.rw.Lock()
-		{
-
-			if p.lastNode != nil {
-				if nl := p.lastNode.Signal(n, doAsync, doEnd); nl != nil {
-					p.lastNode = nl
-				}
-			} else {
-
-				// If we are not empty, then select the last element in the list and
-				// use that to connect else add to the list, set as lastNode
-				nlen := len(p.subs) - 1
-				if nlen > 0 {
-					p.lastNode = (p.subs[nlen])
-
-					if nl := p.lastNode.Signal(n, doAsync, doEnd); nl != nil {
-						p.lastNode = nl
-					}
-
-				} else {
-
-					p.subs = append(p.subs, n)
-					p.lastNode = n
-
-					if doEnd {
-						p.readerEnd = append(p.readerEnd, n.WriteEnd)
-					}
-				}
-
+			for _, lh := range lifts {
+				lh(ctx, e1, m1)
 			}
 
-		}
-		p.rw.Unlock()
-
-		return p
-	}
-
-	p.rw.Lock()
-	{
-		p.subs = append(p.subs, n)
-		if doEnd {
-			p.readerEnd = append(p.readerEnd, n.WriteEnd)
+			return m1, e1
 		}
 	}
-	p.rw.Unlock()
-
-	return n
 }
 
-// MustSignal follows the go idiomatic approach where a operation panics if
-// it fails. It will panic if the node asignment/generation failed due to some
-// error.
-func (p *pub) MustSignal(node interface{}, flags ...bool) Node {
-	no := p.Signal(node, flags...)
-	if no != nil {
-		return no
+// Response defines a struct for collecting the response from the Handlers.
+type Response struct {
+	Err   error
+	Value interface{}
+}
+
+// DistributeButPack takes the output from the provided handle and distribute
+// it's returned values to the provided Handlers and packs their responses in a
+// slice []Response and returns that as the final response.
+func DistributeButPack(handle interface{}) LiftHandler {
+	mh := MagicHandler(handle)
+	if mh == nil {
+		panic("Expected handle passed into be a function")
 	}
 
-	panic("Invalid Node Returned, Check Arguments")
+	// We will stack the handlers where one outputs becomes the input of the next.
+	return func(lifts ...Handler) Handler {
+		return func(ctx Ctx, err error, data interface{}) (interface{}, error) {
+			var pack []Response
+
+			m1, e1 := mh(ctx, err, data)
+
+			for _, lh := range lifts {
+				ld, le := lh(ctx, e1, m1)
+				pack = append(pack, Response{
+					Err:   le,
+					Value: ld,
+				})
+			}
+
+			return pack, nil
+		}
+	}
+}
+
+// Collect takes all the returned values by passing the recieved arguments and
+// applying them to the handle. Where the responses of the handle is packed into
+// an array of type []Collected and then returned as the response of the function.
+func Collect(handle interface{}) LiftHandler {
+	mh := MagicHandler(handle)
+	if mh == nil {
+		panic("Expected handle passed into be a function")
+	}
+
+	// We will stack the handlers where one outputs becomes the input of the next.
+	return func(lifts ...Handler) Handler {
+		return func(ctx Ctx, err error, data interface{}) (interface{}, error) {
+			var pack []Response
+
+			for _, lh := range lifts {
+				m1, e1 := lh(ctx, err, data)
+				d1, de := mh(ctx, e1, m1)
+				pack = append(pack, Response{
+					Err:   de,
+					Value: d1,
+				})
+			}
+
+			return pack, nil
+		}
+	}
 }
 
 //==============================================================================
-
-// Lift runs through the giving list of ReadWriters and connects them serialy.
-// Chain the next to the previous node.
-func Lift(rws ...Reactor) {
-	rwsLen := len(rws)
-
-	for index := 0; index < rwsLen; index++ {
-		if index < 1 {
-			continue
-		}
-
-		node := rws[index]
-		pnode := rws[index-1]
-		pnode.Signal(node)
-	}
-}
-
-// DeLift runs through the giving list of ReadWriters and connects them
-// inversely serialy, chaining the nodes in the inverse order.
-func DeLift(rws ...Reactor) {
-	rwsLen := len(rws)
-
-	for index := rwsLen - 1; index >= 0; index-- {
-		if index >= rwsLen-1 {
-			continue
-		}
-
-		pnode := rws[index]
-		node := rws[index-1]
-
-		pnode.Signal(node)
-	}
-}
