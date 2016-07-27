@@ -17,17 +17,19 @@ type FileSystem interface {
 	pub.Node
 
 	ReadFile(string) FileSystem
+	ReadIncomingReader() FileSystem
 	ReadReader(io.Reader) FileSystem
 	ReplayBytes([]byte) FileSystem
 	ReplayReader(io.Reader) FileSystem
 
 	WriteBytes([]byte) FileSystem
-	WriteWriterBytes([]byte) FileSystem
 	WriteWriter(io.Writer) FileSystem
 
-	CreateFile(string) FileSystem
-	CloseFile(string) FileSystem
-	WriteFile(string) FileSystem
+	Close() FileSystem
+
+	CreateFile(string, bool) FileSystem
+	OpenFile(string, bool) FileSystem
+	MkFile(string, bool) FileSystem
 
 	Mkdir(string, bool) FileSystem
 	ReadDir(string) FileSystem
@@ -86,6 +88,22 @@ func (f *fs) ReadFile(path string) FileSystem {
 	return f
 }
 
+// ReadIncomingReader reads the data pulled from the received reader from the
+// pipeline.
+func (f *fs) ReadIncomingReader() FileSystem {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, r io.Reader) {
+		var buf bytes.Buffer
+		_, err := io.Copy(&buf, r)
+		if err != nil && err != io.EOF {
+			ctx.RW().Write(ctx, err)
+			return
+		}
+
+		ctx.RW().Write(ctx, buf.Bytes())
+	})
+	return f
+}
+
 // ReadReader reads the data pulled from the reader everytime it gets called.
 func (f *fs) ReadReader(r io.Reader) FileSystem {
 	f.Node = f.MustSignal(func(ctx pub.Ctx, _ interface{}) {
@@ -103,7 +121,11 @@ func (f *fs) ReadReader(r io.Reader) FileSystem {
 
 // ReplayBytes resends the data provided everytime it is called.
 func (f *fs) ReplayBytes(b []byte) FileSystem {
-	f.Node = f.MustSignal(func(ctx pub.Ctx, _ interface{}) {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, d interface{}) {
+		if dl, ok := d.([]byte); ok {
+			ctx.RW().Write(ctx, dl)
+		}
+
 		ctx.RW().Write(ctx, b)
 	})
 	return f
@@ -138,38 +160,6 @@ func (f *fs) ReplayReader(r io.Reader) FileSystem {
 // both allow the chain of events to continue and to allow others to use the data
 // as they please.
 func (f *fs) WriteBytes(data []byte) FileSystem {
-	f.Node = f.MustSignal(func(ctx pub.Ctx, path string) {
-		file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE, 0500)
-		if err != nil {
-			ctx.RW().Write(ctx, err)
-			return
-		}
-
-		defer file.Close()
-
-		written, err := file.Write(data)
-		if err != nil {
-			ctx.RW().Write(ctx, err)
-			return
-		}
-
-		if written != len(data) {
-			ctx.RW().Write(ctx, err)
-			return
-		}
-
-		ctx.RW().Write(ctx, data)
-	})
-	return f
-}
-
-// WriteWriterBytes writes the giving bytes to a giving writer it receives when
-// the previous node sends out its data. It appends the provided data to that
-// path continously.
-// It passes the data passed in to the its subscribers to
-// both allow the chain of events to continue and to allow others to use the data
-// as they please.
-func (f *fs) WriteWriterBytes(data []byte) FileSystem {
 	f.Node = f.MustSignal(func(ctx pub.Ctx, w io.Writer) {
 		written, err := w.Write(data)
 		if err != nil {
@@ -182,7 +172,7 @@ func (f *fs) WriteWriterBytes(data []byte) FileSystem {
 			return
 		}
 
-		ctx.RW().Write(ctx, w)
+		ctx.RW().Write(ctx, data)
 	})
 	return f
 }
@@ -209,22 +199,41 @@ func (f *fs) WriteWriter(w io.Writer) FileSystem {
 	return f
 }
 
-// CreateFile creates the giving file within the provided path and returns the
-// file object down its pipeline. The file it creates is always in create mode,
-// hence over-written any file by the same name at the provided path.
-// If it gets a []byte slice as its argument. It will write the provided slice
-// into the file.
-func (f *fs) CreateFile(path string) FileSystem {
+// Close expects to receive a closer in its pipeline and closest the closer.
+func (f *fs) Close() FileSystem {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, w io.Closer) {
+		if err := w.Close(); err != nil {
+			ctx.RW().Write(ctx, err)
+			return
+		}
+
+		ctx.RW().Write(ctx, true)
+	})
+	return f
+}
+
+// OpenFile creates the giving file within the provided directly and
+// writes the any recieved data into the file. It sends the file Handler,
+// down the piepline.
+func (f *fs) OpenFile(path string, append bool) FileSystem {
 	f.Node = f.MustSignal(func(ctx pub.Ctx, data []byte) {
-		file, err := os.OpenFile(path, os.O_CREATE, 0500)
+		var mode int
+
+		if append {
+			mode = os.O_APPEND | os.O_WRONLY
+		} else {
+			mode = os.O_WRONLY
+		}
+
+		file, err := os.OpenFile(path, mode, os.ModeAppend)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
 			return
 		}
 
 		if len(data) > 0 {
-			_, err := file.Write(data)
-			if err != nil {
+			if _, err := file.Write(data); err != nil {
+				file.Close()
 				ctx.RW().Write(ctx, err)
 				return
 			}
@@ -235,38 +244,38 @@ func (f *fs) CreateFile(path string) FileSystem {
 	return f
 }
 
-// CloseFile expects to receive a file object which it calls the close function
-// on. It passes true if the file closed without error.
-func (f *fs) CloseFile(path string) FileSystem {
-	f.Node = f.MustSignal(func(ctx pub.Ctx, f *os.File) {
-		if err := f.Close(); err != nil {
-			ctx.RW().Write(ctx, err)
-			return
+// CreateFile creates the giving file within the provided directly and sends
+// out the file handler.
+func (f *fs) CreateFile(path string, useRoot bool) FileSystem {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, root string) {
+		if useRoot && root != "" {
+			path = filepath.Join(root, path)
 		}
 
-		ctx.RW().Write(ctx, true)
-	})
-	return f
-}
-
-// WriteFile either creates or opens an existing file for appending. It passes
-// the file object for this files down its pipeline.
-// If it gets a []byte slice as its argument. It will write the provided slice
-// into the file.
-func (f *fs) WriteFile(path string) FileSystem {
-	f.Node = f.MustSignal(func(ctx pub.Ctx, data []byte) {
-		file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE, 0500)
+		file, err := os.OpenFile(path, os.O_WRONLY, os.ModeAppend)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
 			return
 		}
 
-		if len(data) > 0 {
-			_, err := file.Write(data)
-			if err != nil {
-				ctx.RW().Write(ctx, err)
-				return
-			}
+		ctx.RW().Write(ctx, file)
+	})
+	return f
+}
+
+// MkFile either creates or opens an existing file for appending. It passes
+// the file object for this files down its pipeline. If it gets a string from
+// the pipeline, it uses that string if not empty as its root path.
+func (f *fs) MkFile(path string, useRoot bool) FileSystem {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, root string) {
+		if useRoot && root != "" {
+			path = filepath.Join(root, path)
+		}
+
+		file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+		if err != nil {
+			ctx.RW().Write(ctx, err)
+			return
 		}
 
 		ctx.RW().Write(ctx, file)
@@ -317,7 +326,7 @@ func (e extendFileInfo) Path() string {
 // individual fileInfo instead of the slice of FileInfos.
 func (f *fs) ReadDir(path string) FileSystem {
 	f.Node = f.MustSignal(func(ctx pub.Ctx, data []byte) {
-		file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE, 0500)
+		file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE, 0700)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
 			return
@@ -346,7 +355,7 @@ func (f *fs) ReadDir(path string) FileSystem {
 // individual fileInfo instead of the slice of FileInfos.
 func (f *fs) WalkDir(path string) FileSystem {
 	f.Node = f.MustSignal(func(ctx pub.Ctx, _ interface{}) {
-		file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE, 0500)
+		file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE, 0700)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
 			return
@@ -383,11 +392,11 @@ func (f *fs) WalkDir(path string) FileSystem {
 // This allows chaining mkdir paths down the pipeline.
 func (f *fs) Mkdir(path string, chain bool) FileSystem {
 	f.Node = f.MustSignal(func(ctx pub.Ctx, root string) {
-		if chain && path != "" {
+		if chain && root != "" {
 			path = filepath.Join(root, path)
 		}
 
-		if err := os.MkdirAll(path, 0500); err != nil {
+		if err := os.MkdirAll(path, 0700); err != nil {
 			ctx.RW().Write(ctx, err)
 			return
 		}

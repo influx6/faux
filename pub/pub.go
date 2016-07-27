@@ -51,8 +51,14 @@ func MagicHandler(node interface{}) Handler {
 		hl = node.(func(Ctx, error, interface{}))
 	case func(Ctx, error):
 		hl = WrapError(node.(func(Ctx, error)))
+	case func(error):
+		hl = WrapJustError(node.(func(error)))
+	case func(error) error:
+		hl = WrapErrorReturn(node.(func(error) error))
 	case func(Ctx, interface{}):
 		hl = WrapData(node.(func(Ctx, interface{})))
+	case func() interface{}:
+		hl = WrapNoData(node.(func() interface{}))
 	case func(interface{}) interface{}:
 		hl = WrapDataOnly(node.(func(interface{}) interface{}))
 	case func(interface{}) error:
@@ -163,11 +169,58 @@ func WrapData(dh DataHandler) Handler {
 	}
 }
 
+// NoDataHandler defines an Handler which allows a return value when called
+// but has no data passed in.
+type NoDataHandler func() interface{}
+
+// WrapNoData returns a Handler which wraps a NoDataHandler within it, but
+// forwards all errors it receives. It calls its internal function
+// with no arguments taking the response and sending that out.
+func WrapNoData(dh NoDataHandler) Handler {
+	return func(m Ctx, err error, data interface{}) {
+		if err != nil {
+			m.RW().Write(m, err)
+			return
+		}
+
+		m.RW().Write(m, data)
+
+		res := dh()
+		if ers, ok := res.(error); ok {
+			m.RW().Write(m, ers)
+			return
+		}
+
+		m.RW().Write(m, res)
+	}
+}
+
+// WrapNoDataAndPassReturnOnly returns a Handler which wraps a NoDataHandler
+// within it, it ignores all incoming data but passing forward all returned values
+// it receives from the NoDataHandler.
+func WrapNoDataAndPassReturnOnly(dh NoDataHandler) Handler {
+	return func(m Ctx, err error, _ interface{}) {
+		if err != nil {
+			m.RW().Write(m, err)
+			return
+		}
+
+		res := dh()
+
+		if ers, ok := res.(error); ok {
+			m.RW().Write(m, ers)
+			return
+		}
+
+		m.RW().Write(m, res)
+	}
+}
+
 // DataOnlyHandler defines a function type that concentrates on handling only data
 // replies alone.
 type DataOnlyHandler func(interface{}) interface{}
 
-// WrapDataOnly returns a Handler which wraps a DataHandler within it, but
+// WrapDataOnly returns a Handler which wraps a DataOnlyHandler within it, but
 // passing forward all errors it receives.
 func WrapDataOnly(dh DataOnlyHandler) Handler {
 	return func(m Ctx, err error, data interface{}) {
@@ -187,6 +240,40 @@ func WrapDataOnly(dh DataOnlyHandler) Handler {
 	}
 }
 
+// JustErrorHandler defines a function type that concentrates on handling only data
+// errors alone.
+type JustErrorHandler func(error)
+
+// WrapJustError returns a Handler which wraps a DataOnlyHandler within it, but
+// passing forward all errors it receives.
+func WrapJustError(dh JustErrorHandler) Handler {
+	return func(ctx Ctx, err error, d interface{}) {
+		if err != nil {
+			dh(err)
+			ctx.RW().Write(ctx, err)
+			return
+		}
+
+		ctx.RW().Write(ctx, d)
+	}
+}
+
+// ErrorReturnHandler defines a function type that concentrates on handling only data
+// errors alone.
+type ErrorReturnHandler func(error) error
+
+// WrapErrorReturn returns a Handler which wraps a DataOnlyHandler within it, but
+// passing forward all errors it receives.
+func WrapErrorReturn(dh ErrorReturnHandler) Handler {
+	return func(ctx Ctx, err error, d interface{}) {
+		if err != nil {
+			ctx.RW().Write(ctx, dh(err))
+			return
+		}
+		ctx.RW().Write(ctx, d)
+	}
+}
+
 // ErrorHandler defines a function type that concentrates on handling only data
 // errors alone.
 type ErrorHandler func(Ctx, error)
@@ -195,7 +282,7 @@ type ErrorHandler func(Ctx, error)
 // passing forward all errors it receives.
 func WrapError(dh ErrorHandler) Handler {
 	return func(m Ctx, err error, data interface{}) {
-		if err == nil {
+		if err != nil {
 			dh(m, err)
 			return
 		}
@@ -284,6 +371,7 @@ type pub struct {
 
 	async   bool
 	inverse bool
+	boost   bool
 
 	rw       sync.RWMutex
 	subs     []Node
@@ -510,7 +598,7 @@ type Inversion interface {
 // Inverse creates a inversed Node with a IdentityHandler which inverts every
 // connection you add to it, stacking them serialy down the chain line.
 func (p *pub) Inverse() Node {
-	node := aSync(IdentityHandler(), true)
+	node := nSync(IdentityHandler(), true)
 	p.Signal(node, false, true)
 	return node
 }
@@ -534,9 +622,25 @@ func (p *pub) InverseWith(node interface{}, flags ...bool) Node {
 
 // Reactor defines the core connecting methods used for binding with a Node.
 type Reactor interface {
+	Replay(interface{}) Node
 	SignalEnd(func(Ctx)) Node
+	ReplayOnly(interface{}) Node
 	Signal(interface{}, ...bool) Node
 	MustSignal(interface{}, ...bool) Node
+}
+
+// Replay replays only the provided value and down the pipeline when called,
+// ignoring all received values. Its argument is never treated as a signal Handler.
+func (p *pub) ReplayOnly(node interface{}) Node {
+	return p.Signal(WrapNoDataAndPassReturnOnly(func() interface{} {
+		return node
+	}))
+}
+
+// Replay replays the provided value and all recieved values down the pipeline
+//when called. Its argument is never treated as a signal Handler.
+func (p *pub) Replay(node interface{}) Node {
+	return p.Signal(func() interface{} { return node })
 }
 
 // SignalEnd signals the end of a signal run. It returns itself.
@@ -602,7 +706,7 @@ func (p *pub) Signal(node interface{}, flags ...bool) Node {
 
 			if p.lastNode != nil {
 				if nl := p.lastNode.Signal(n, doAsync, doEnd); nl != nil {
-					p.lastNode = nil
+					p.lastNode = nl
 				}
 			} else {
 
@@ -610,8 +714,8 @@ func (p *pub) Signal(node interface{}, flags ...bool) Node {
 				// use that to connect else add to the list, set as lastNode
 				nlen := len(p.subs) - 1
 				if nlen > 0 {
-
 					p.lastNode = (p.subs[nlen])
+
 					if nl := p.lastNode.Signal(n, doAsync, doEnd); nl != nil {
 						p.lastNode = nl
 					}
