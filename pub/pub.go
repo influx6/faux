@@ -114,17 +114,23 @@ func MagicHandler(node interface{}) Handler {
 				return
 			}
 
-			mVal := reflect.ValueOf(val)
-			ok, convert := reflection.CanSetFor(data, mVal)
-			if !ok {
-				return
-			}
+			mVal := dZero
 
-			if convert {
-				mVal, err = reflection.Convert(data, mVal)
-				if err != nil {
+			if val != nil {
+				mVal = reflect.ValueOf(val)
+
+				ok, convert := reflection.CanSetFor(data, mVal)
+				if !ok {
 					return
 				}
+
+				if convert {
+					mVal, err = reflection.Convert(data, mVal)
+					if err != nil {
+						return
+					}
+				}
+
 			}
 
 			if !isCustorm {

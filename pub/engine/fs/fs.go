@@ -17,8 +17,8 @@ type FileSystem interface {
 	pub.Node
 
 	ReadFile(string) FileSystem
-	ReadIncomingReader() FileSystem
-	ReadReader(io.Reader) FileSystem
+	ReadReader() FileSystem
+	ReadReaderAndClose() FileSystem
 	ReplayBytes([]byte) FileSystem
 	ReplayReader(io.Reader) FileSystem
 
@@ -88,13 +88,18 @@ func (f *fs) ReadFile(path string) FileSystem {
 	return f
 }
 
-// ReadIncomingReader reads the data pulled from the received reader from the
+// ReadReaderAndClose reads the data pulled from the received reader from the
 // pipeline.
-func (f *fs) ReadIncomingReader() FileSystem {
-	f.Node = f.MustSignal(func(ctx pub.Ctx, r io.Reader) {
+func (f *fs) ReadReaderAndClose() FileSystem {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, r io.ReadCloser) {
 		var buf bytes.Buffer
 		_, err := io.Copy(&buf, r)
 		if err != nil && err != io.EOF {
+			ctx.RW().Write(ctx, err)
+			return
+		}
+
+		if err := r.Close(); err != nil {
 			ctx.RW().Write(ctx, err)
 			return
 		}
@@ -104,9 +109,10 @@ func (f *fs) ReadIncomingReader() FileSystem {
 	return f
 }
 
-// ReadReader reads the data pulled from the reader everytime it gets called.
-func (f *fs) ReadReader(r io.Reader) FileSystem {
-	f.Node = f.MustSignal(func(ctx pub.Ctx, _ interface{}) {
+// ReadReader reads the data pulled from the received reader from the
+// pipeline.
+func (f *fs) ReadReader() FileSystem {
+	f.Node = f.MustSignal(func(ctx pub.Ctx, r io.Reader) {
 		var buf bytes.Buffer
 		_, err := io.Copy(&buf, r)
 		if err != nil && err != io.EOF {
@@ -172,7 +178,7 @@ func (f *fs) WriteBytes(data []byte) FileSystem {
 			return
 		}
 
-		ctx.RW().Write(ctx, data)
+		ctx.RW().Write(ctx, w)
 	})
 	return f
 }
@@ -207,7 +213,7 @@ func (f *fs) Close() FileSystem {
 			return
 		}
 
-		ctx.RW().Write(ctx, true)
+		ctx.RW().Write(ctx, nil)
 	})
 	return f
 }
@@ -217,15 +223,7 @@ func (f *fs) Close() FileSystem {
 // down the piepline.
 func (f *fs) OpenFile(path string, append bool) FileSystem {
 	f.Node = f.MustSignal(func(ctx pub.Ctx, data []byte) {
-		var mode int
-
-		if append {
-			mode = os.O_APPEND | os.O_WRONLY
-		} else {
-			mode = os.O_WRONLY
-		}
-
-		file, err := os.OpenFile(path, mode, os.ModeAppend)
+		file, err := os.Open(path)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
 			return
@@ -252,7 +250,7 @@ func (f *fs) CreateFile(path string, useRoot bool) FileSystem {
 			path = filepath.Join(root, path)
 		}
 
-		file, err := os.OpenFile(path, os.O_WRONLY, os.ModeAppend)
+		file, err := os.Create(path)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
 			return
@@ -272,7 +270,7 @@ func (f *fs) MkFile(path string, useRoot bool) FileSystem {
 			path = filepath.Join(root, path)
 		}
 
-		file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+		file, err := os.OpenFile(path, os.O_APPEND|os.O_RDWR, os.ModeAppend)
 		if err != nil {
 			ctx.RW().Write(ctx, err)
 			return

@@ -15,13 +15,15 @@ func TestFileEnding(t *testing.T) {
 
 	item.Mkdir("fixtures", false).
 		Mkdir("configs", true).
-		OpenFile("fixtures/configs/boot.cfg", false).
+		CreateFile("boot.cfg", true).
 		WriteBytes([]byte("Just got school,")).
 		WriteBytes([]byte("from soccer practice.")).
-		ReadIncomingReader().
+		Close().
+		OpenFile("fixtures/configs/boot.cfg", false).
+		ReadReader().
 		WriteWriter(&b).
 		Signal(func(err error) {
-			fmt.Println("Errors: %s\n", err)
+			fmt.Printf("Errors: %s\n", err)
 		}).
 		Read("")
 
