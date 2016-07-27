@@ -423,7 +423,7 @@ func (f *fs) Remove(path string) FileSystem {
 // the pipeline.
 func (f *fs) RemoveAll(path string) FileSystem {
 	f.Node = f.MustSignal(func(ctx pub.Ctx, data []byte) {
-		if err := os.Remove(path); err != nil {
+		if err := os.RemoveAll(path); err != nil {
 			ctx.RW().Write(ctx, err)
 			return
 		}

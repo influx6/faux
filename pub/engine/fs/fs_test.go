@@ -2,7 +2,6 @@ package fs_test
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 
 	"github.com/influx6/faux/pub/engine/fs"
@@ -22,12 +21,17 @@ func TestFileEnding(t *testing.T) {
 		OpenFile("fixtures/configs/boot.cfg", false).
 		ReadReader().
 		WriteWriter(&b).
+		RemoveAll("fixtures").
 		Signal(func(err error) {
-			fmt.Printf("Errors: %s\n", err)
+			t.Errorf("Error occured: %s", err)
 		}).
 		Read("")
 
-	// RemoveAll("fixtures").Read("")
-
-	fmt.Printf("Recieved: %+q\n", b.Bytes())
+	expected := []byte("Just got school,from soccer practice.")
+	if bytes.Compare(b.Bytes(), expected) == -1 {
+		t.Logf("Expected: %s", expected)
+		t.Logf("Recieved: %s", b.Bytes())
+		t.Fatalf("Should have recieved matching values")
+	}
+	t.Logf("Should have recieved matching values")
 }
