@@ -1,24 +1,20 @@
 package fs_test
 
-import (
-	"fmt"
-	"testing"
-
-	"github.com/influx6/faux/pub/engine/fs"
-)
+import "testing"
 
 func TestFileList(t *testing.T) {
-	item := fs.New()
+	// item := fs.New()
+	//
+	// listChan := item.ReadDir("../../..").
+	// 	SkipStat(fs.IsDir).
+	// 	UnwrapStats().
+	// 	DataPort(true)
+	//
+	// item.Read(true)
+	//
+	// list := <-listChan
+	// fmt.Printf("List: %s\n", list)
 
-	listChan := item.ReadDir("../../..").
-		SkipStat(fs.IsDir).
-		UnwrapStats().
-		DataPort(true)
-
-	item.Read(true)
-
-	list := <-listChan
-	fmt.Printf("List: %s\n", list)
 }
 
 // func TestFileEnding(t *testing.T) {

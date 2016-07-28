@@ -89,12 +89,14 @@ func MagicHandler(node interface{}) Handler {
 	switch node.(type) {
 	case func(Ctx, error, interface{}) (interface{}, error):
 		hl = node.(func(Ctx, error, interface{}) (interface{}, error))
+	case func(Ctx, interface{}) interface{}:
+		hl = WrapDataWithReturn(node.(func(Ctx, interface{}) interface{}))
 	case func(Ctx, interface{}) (interface{}, error):
 		hl = WrapData(node.(func(Ctx, interface{}) (interface{}, error)))
-	case func(interface{}) interface{}:
-		hl = WrapDataOnly(node.(func(interface{}) interface{}))
 	case func(Ctx, error) (interface{}, error):
 		hl = WrapError(node.(func(Ctx, error) (interface{}, error)))
+	case func(interface{}) interface{}:
+		hl = WrapDataOnly(node.(func(interface{}) interface{}))
 	case func(interface{}):
 		hl = WrapJustData(node.(func(interface{})))
 	case func(error):
@@ -154,12 +156,12 @@ func MagicHandler(node interface{}) Handler {
 					}
 
 					if len(resArgs) == 1 {
-						dx, ok := ((resArgs[0].Interface()).(error))
-						if ok {
+						rVal := resArgs[0].Interface()
+						if dx, ok := rVal.(error); ok {
 							return nil, dx
 						}
 
-						return dx, nil
+						return rVal, nil
 					}
 
 					return resArgs[0].Interface(), (resArgs[1].Interface().(error))
@@ -195,12 +197,12 @@ func MagicHandler(node interface{}) Handler {
 				}
 
 				if len(resArgs) == 1 {
-					dx, ok := ((resArgs[0].Interface()).(error))
-					if ok {
+					rVal := resArgs[0].Interface()
+					if dx, ok := rVal.(error); ok {
 						return nil, dx
 					}
 
-					return dx, nil
+					return rVal, nil
 				}
 
 				return resArgs[0].Interface(), (resArgs[1].Interface().(error))
@@ -214,12 +216,12 @@ func MagicHandler(node interface{}) Handler {
 			}
 
 			if len(resArgs) == 1 {
-				dx, ok := ((resArgs[0].Interface()).(error))
-				if ok {
+				rVal := resArgs[0].Interface()
+				if dx, ok := rVal.(error); ok {
 					return nil, dx
 				}
 
-				return dx, nil
+				return rVal, nil
 			}
 
 			return resArgs[0].Interface(), (resArgs[1].Interface().(error))
@@ -253,6 +255,22 @@ func WrapData(dh DataHandler) Handler {
 		}
 
 		return dh(m, data)
+	}
+}
+
+// DataWithReturnHandler defines a function type that concentrates on handling only data
+// replies alone.
+type DataWithReturnHandler func(Ctx, interface{}) interface{}
+
+// WrapDataWithReturn returns a Handler which wraps a DataHandler within it, but
+// passing forward all errors it receives.
+func WrapDataWithReturn(dh DataWithReturnHandler) Handler {
+	return func(m Ctx, err error, data interface{}) (interface{}, error) {
+		if err != nil {
+			return nil, err
+		}
+
+		return dh(m, data), nil
 	}
 }
 
@@ -409,7 +427,13 @@ func Lift(handle interface{}) LiftHandler {
 	return func(lifts ...Handler) Handler {
 		var base Handler
 
+		lifts = append(lifts, mh)
+
 		for i := len(lifts) - 1; i >= 0; i-- {
+			if lifts[i] == nil {
+				continue
+			}
+
 			if base == nil {
 				base = lifts[i]
 				continue

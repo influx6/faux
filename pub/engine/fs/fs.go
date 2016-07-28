@@ -15,8 +15,6 @@ import (
 // This allows you to construct a nice chain of events, that can be recalled
 // over and over again to do the same thing purely and nothing else.
 type FileSystem interface {
-	pub.Node
-
 	ReadFile(string) FileSystem
 	ReadReader() FileSystem
 	ReadReaderAndClose() FileSystem
