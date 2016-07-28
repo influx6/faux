@@ -8,6 +8,7 @@ package pub
 import (
 	"errors"
 	"reflect"
+	"sync"
 	"sync/atomic"
 
 	"github.com/influx6/faux/context"
@@ -146,11 +147,13 @@ func MagicHandler(node interface{}) Handler {
 
 		hl = func(ctx Ctx, err error, val interface{}) (interface{}, error) {
 			ma := reflect.ValueOf(ctx)
+			me := dZeroError
 
 			if err != nil {
+				me = reflect.ValueOf(err)
 
 				if !isCustorm {
-					resArgs := tm.Call([]reflect.Value{ma, reflect.ValueOf(err), dZero})
+					resArgs := tm.Call([]reflect.Value{ma, me, dZero})
 					if len(resArgs) < 1 {
 						return nil, nil
 					}
@@ -190,7 +193,7 @@ func MagicHandler(node interface{}) Handler {
 			}
 
 			if !isCustorm {
-				dArgs := []reflect.Value{ma, dZeroError, mVal}
+				dArgs := []reflect.Value{ma, me, mVal}
 				resArgs := tm.Call(dArgs)
 				if len(resArgs) < 1 {
 					return nil, nil
@@ -538,3 +541,91 @@ func Collect(handle interface{}) LiftHandler {
 }
 
 //==============================================================================
+
+// Pipeline defines a interface which exposes a stream like pipe which consistently
+// delivers values to subscribers when executed.
+type Pipeline interface {
+	Exec(Ctx, error, interface{}) (interface{}, error)
+	Run(Ctx, interface{}) (interface{}, error)
+	Flow(Handler) Pipeline
+	WithClose(func(Ctx)) Pipeline
+	End(Ctx)
+}
+
+// New returns a new instance of structure that matches the Pipeline interface.
+func New(main Handler) Pipeline {
+	p := pipeline{
+		main: main,
+	}
+
+	return &p
+}
+
+type pipeline struct {
+	main   Handler
+	lw     sync.RWMutex
+	lines  []Handler
+	closer []func(Ctx)
+}
+
+// End calls the close subscription and applies the context.
+func (p *pipeline) End(ctx Ctx) {
+	p.lw.RLock()
+	for _, sub := range p.closer {
+		sub(ctx)
+	}
+	p.lw.RUnlock()
+}
+
+// WithClose adds a function into the close notification lines for the pipeline.
+// Returns itself for chaining.
+func (p *pipeline) WithClose(h func(Ctx)) Pipeline {
+	p.lw.RLock()
+	p.closer = append(p.closer, h)
+	p.lw.RUnlock()
+	return p
+}
+
+// Flow connects another handler into the subscription list of this pipeline.
+// It returns itself to allow chaining.
+func (p *pipeline) Flow(h Handler) Pipeline {
+	p.lw.RLock()
+	p.lines = append(p.lines, h)
+	p.lw.RUnlock()
+	return p
+}
+
+// Run takes a context and val which it applies appropriately to the internal
+// handler for the pipeline and applies the result to its subscribers.
+func (p *pipeline) Run(ctx Ctx, val interface{}) (interface{}, error) {
+	var res interface{}
+	var err error
+
+	if eval, ok := val.(error); ok {
+		res, err = p.main(ctx, eval, nil)
+	} else {
+		res, err = p.main(ctx, nil, val)
+	}
+
+	p.lw.RLock()
+	for _, sub := range p.lines {
+		sub(ctx, err, res)
+	}
+	p.lw.RUnlock()
+
+	return res, err
+}
+
+// Run takes a context, error and val which it applies appropriately to the internal
+// handler for the pipeline and applies the result to its subscribers.
+func (p *pipeline) Exec(ctx Ctx, er error, val interface{}) (interface{}, error) {
+	res, err := p.main(ctx, er, val)
+
+	p.lw.RLock()
+	for _, sub := range p.lines {
+		sub(ctx, err, res)
+	}
+	p.lw.RUnlock()
+
+	return res, err
+}
