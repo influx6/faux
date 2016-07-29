@@ -201,3 +201,24 @@ func (a *App) Do(ctx context.Context, err error, data interface{}) (interface{},
 		return nil, err
 	}
 }
+
+func (a *App) Serve(addr string, tlsCert string, tlsKey string) {
+	var err error
+
+	go func() {
+		err = a.serve(addr, tlsCert, tlsKey)
+	}()
+
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func (a *App) serve(addr string, tlsCert string, tlsKey string) error {
+	if tlsCert == "" && tlsKey == "" {
+		return http.ListenAndServe(addr, a)
+	}
+
+	return http.ListenAndServeTLS(addr, tlsCert, tlsKey, a)
+}

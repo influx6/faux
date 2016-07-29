@@ -8,7 +8,6 @@ import (
 
 	"github.com/dimfeld/httptreemux"
 	"github.com/influx6/faux/context"
-	"github.com/influx6/faux/sumex"
 )
 
 //==============================================================================
@@ -53,7 +52,7 @@ func (c *ContentPipe) Append(content string, handler Handler) *ContentPipe {
 //==============================================================================
 
 // ContentRoute adds a new route to a app http Server.
-func ContentRoute(app interface{}, c *ContentResponse, verb string, path string, h Handler) {
+func ContentRoute(app *App, c *ContentResponse, verb string, path string, h Handler) {
 	PageRoute(app, verb, path, c.Do)
 }
 
@@ -103,19 +102,14 @@ type Route interface {
 }
 
 // PageRoute adds a new route to a app http Server.
-func PageRoute(app interface{}, verb string, path string, h Handler) {
+func PageRoute(app *App, verb string, path string, h Handler) {
 	rm := route{
 		verb:    verb,
 		path:    path,
 		handler: h,
 	}
 
-	switch app.(type) {
-	case sumex.Stream:
-		(app.(sumex.Stream)).Data(nil, &rm)
-	case *App:
-		(app.(*App)).Do(nil, nil, &rm)
-	}
+	app.Do(nil, nil, &rm)
 }
 
 // route implements the Route interface, registering a route as needed.

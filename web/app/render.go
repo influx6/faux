@@ -32,7 +32,7 @@ func Render(code int, r *http.Request, w http.ResponseWriter, data interface{}) 
 
 	jsd, err := json.Marshal(data)
 	if err != nil {
-		data = []byte("{}")
+		jsd = []byte("{}")
 	}
 
 	if cb := r.URL.Query().Get("callback"); cb != "" {
