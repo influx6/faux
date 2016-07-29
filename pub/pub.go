@@ -80,34 +80,47 @@ func (c *ctxn) Ended() bool {
 // through which it sends its reply.
 type Handler func(Ctx, error, interface{}) (interface{}, error)
 
-// MagicHandler returns a new Handler wrapping the provided value as needed if
+// MustWrap returns the Handler else panics if it fails to create the Handler
+// from the provided function type.
+func MustWrap(node interface{}) Handler {
+	dh := Wrap(node)
+	if dh != nil {
+		return dh
+	}
+
+	panic("Invalid type provided for Handler")
+}
+
+// Wrap returns a new Handler wrapping the provided value as needed if
 // it matches its DataHandler, ErrorHandler, Handler or magic function type.
 // MagicFunction type is a function which follows this type form:
 // func(context.Context, error, <CustomType>).
-func MagicHandler(node interface{}) Handler {
+func Wrap(node interface{}) Handler {
 	var hl Handler
 
 	switch node.(type) {
 	case func(Ctx, error, interface{}) (interface{}, error):
 		hl = node.(func(Ctx, error, interface{}) (interface{}, error))
+	case func(Ctx, interface{}):
+		hl = wrapDataWithNoReturn(node.(func(Ctx, interface{})))
 	case func(Ctx, interface{}) interface{}:
-		hl = WrapDataWithReturn(node.(func(Ctx, interface{}) interface{}))
+		hl = wrapDataWithReturn(node.(func(Ctx, interface{}) interface{}))
 	case func(Ctx, interface{}) (interface{}, error):
-		hl = WrapData(node.(func(Ctx, interface{}) (interface{}, error)))
+		hl = wrapData(node.(func(Ctx, interface{}) (interface{}, error)))
 	case func(Ctx, error) (interface{}, error):
-		hl = WrapError(node.(func(Ctx, error) (interface{}, error)))
+		hl = wrapError(node.(func(Ctx, error) (interface{}, error)))
 	case func(interface{}) interface{}:
-		hl = WrapDataOnly(node.(func(interface{}) interface{}))
+		hl = wrapDataOnly(node.(func(interface{}) interface{}))
 	case func(interface{}):
-		hl = WrapJustData(node.(func(interface{})))
+		hl = wrapJustData(node.(func(interface{})))
 	case func(error):
-		hl = WrapJustError(node.(func(error)))
+		hl = wrapJustError(node.(func(error)))
 	case func(error) error:
-		hl = WrapErrorReturn(node.(func(error) error))
+		hl = wrapErrorReturn(node.(func(error) error))
 	case func() interface{}:
-		hl = WrapNoData(node.(func() interface{}))
+		hl = wrapNoData(node.(func() interface{}))
 	case func(interface{}) error:
-		hl = WrapErrorOnly(node.(func(interface{}) error))
+		hl = wrapErrorOnly(node.(func(interface{}) error))
 	default:
 		if !reflection.IsFuncType(node) {
 			return nil
@@ -167,7 +180,14 @@ func MagicHandler(node interface{}) Handler {
 						return rVal, nil
 					}
 
-					return resArgs[0].Interface(), (resArgs[1].Interface().(error))
+					mr1 := resArgs[0].Interface()
+					mr2 := resArgs[1].Interface()
+
+					if emr2, ok := mr2.(error); ok {
+						return mr1, emr2
+					}
+
+					return mr1, nil
 				}
 
 				return nil, err
@@ -208,7 +228,14 @@ func MagicHandler(node interface{}) Handler {
 					return rVal, nil
 				}
 
-				return resArgs[0].Interface(), (resArgs[1].Interface().(error))
+				mr1 := resArgs[0].Interface()
+				mr2 := resArgs[1].Interface()
+
+				if emr2, ok := mr2.(error); ok {
+					return mr1, emr2
+				}
+
+				return mr1, nil
 			}
 
 			dArgs := []reflect.Value{ma, mVal}
@@ -227,7 +254,14 @@ func MagicHandler(node interface{}) Handler {
 				return rVal, nil
 			}
 
-			return resArgs[0].Interface(), (resArgs[1].Interface().(error))
+			mr1 := resArgs[0].Interface()
+			mr2 := resArgs[1].Interface()
+
+			if emr2, ok := mr2.(error); ok {
+				return mr1, emr2
+			}
+
+			return mr1, nil
 		}
 	}
 
@@ -249,9 +283,9 @@ func IdentityHandler() Handler {
 // replies alone.
 type DataHandler func(Ctx, interface{}) (interface{}, error)
 
-// WrapData returns a Handler which wraps a DataHandler within it, but
+// wrapData returns a Handler which wraps a DataHandler within it, but
 // passing forward all errors it receives.
-func WrapData(dh DataHandler) Handler {
+func wrapData(dh DataHandler) Handler {
 	return func(m Ctx, err error, data interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
@@ -261,13 +295,30 @@ func WrapData(dh DataHandler) Handler {
 	}
 }
 
+// DataWithNoReturnHandler defines a function type that concentrates on handling only data
+// replies alone.
+type DataWithNoReturnHandler func(Ctx, interface{})
+
+// wrapDataWithNoReturn returns a Handler which wraps a DataHandler within it, but
+// passing forward all errors it receives.
+func wrapDataWithNoReturn(dh DataWithNoReturnHandler) Handler {
+	return func(m Ctx, err error, data interface{}) (interface{}, error) {
+		if err != nil {
+			return nil, err
+		}
+
+		dh(m, data)
+		return data, nil
+	}
+}
+
 // DataWithReturnHandler defines a function type that concentrates on handling only data
 // replies alone.
 type DataWithReturnHandler func(Ctx, interface{}) interface{}
 
-// WrapDataWithReturn returns a Handler which wraps a DataHandler within it, but
+// wrapDataWithReturn returns a Handler which wraps a DataHandler within it, but
 // passing forward all errors it receives.
-func WrapDataWithReturn(dh DataWithReturnHandler) Handler {
+func wrapDataWithReturn(dh DataWithReturnHandler) Handler {
 	return func(m Ctx, err error, data interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
@@ -281,10 +332,10 @@ func WrapDataWithReturn(dh DataWithReturnHandler) Handler {
 // but has no data passed in.
 type NoDataHandler func() interface{}
 
-// WrapNoData returns a Handler which wraps a NoDataHandler within it, but
+// wrapNoData returns a Handler which wraps a NoDataHandler within it, but
 // forwards all errors it receives. It calls its internal function
 // with no arguments taking the response and sending that out.
-func WrapNoData(dh NoDataHandler) Handler {
+func wrapNoData(dh NoDataHandler) Handler {
 	return func(m Ctx, err error, data interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
@@ -303,9 +354,9 @@ func WrapNoData(dh NoDataHandler) Handler {
 // replies alone.
 type DataOnlyHandler func(interface{}) interface{}
 
-// WrapDataOnly returns a Handler which wraps a DataOnlyHandler within it, but
+// wrapDataOnly returns a Handler which wraps a DataOnlyHandler within it, but
 // passing forward all errors it receives.
-func WrapDataOnly(dh DataOnlyHandler) Handler {
+func wrapDataOnly(dh DataOnlyHandler) Handler {
 	return func(m Ctx, err error, data interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
@@ -323,8 +374,8 @@ func WrapDataOnly(dh DataOnlyHandler) Handler {
 // JustDataHandler defines a function type which expects one argument.
 type JustDataHandler func(interface{})
 
-// WrapJustData wraps a JustDataHandler and returns it as a Handler.
-func WrapJustData(dh JustDataHandler) Handler {
+// wrapJustData wraps a JustDataHandler and returns it as a Handler.
+func wrapJustData(dh JustDataHandler) Handler {
 	return func(ctx Ctx, err error, d interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
@@ -339,9 +390,9 @@ func WrapJustData(dh JustDataHandler) Handler {
 // errors alone.
 type JustErrorHandler func(error)
 
-// WrapJustError returns a Handler which wraps a DataOnlyHandler within it, but
+// wrapJustError returns a Handler which wraps a DataOnlyHandler within it, but
 // passing forward all errors it receives.
-func WrapJustError(dh JustErrorHandler) Handler {
+func wrapJustError(dh JustErrorHandler) Handler {
 	return func(ctx Ctx, err error, d interface{}) (interface{}, error) {
 		if err != nil {
 			dh(err)
@@ -356,9 +407,9 @@ func WrapJustError(dh JustErrorHandler) Handler {
 // errors alone.
 type ErrorReturnHandler func(error) error
 
-// WrapErrorReturn returns a Handler which wraps a DataOnlyHandler within it, but
+// wrapErrorReturn returns a Handler which wraps a DataOnlyHandler within it, but
 // passing forward all errors it receives.
-func WrapErrorReturn(dh ErrorReturnHandler) Handler {
+func wrapErrorReturn(dh ErrorReturnHandler) Handler {
 	return func(ctx Ctx, err error, d interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, dh(err)
@@ -372,9 +423,9 @@ func WrapErrorReturn(dh ErrorReturnHandler) Handler {
 // errors alone.
 type ErrorHandler func(Ctx, error) (interface{}, error)
 
-// WrapError returns a Handler which wraps a DataOnlyHandler within it, but
+// wrapError returns a Handler which wraps a DataOnlyHandler within it, but
 // passing forward all errors it receives.
-func WrapError(dh ErrorHandler) Handler {
+func wrapError(dh ErrorHandler) Handler {
 	return func(m Ctx, err error, data interface{}) (interface{}, error) {
 		if err != nil {
 			return dh(m, err)
@@ -388,9 +439,9 @@ func WrapError(dh ErrorHandler) Handler {
 // replies alone.
 type ErrorOnlyHandler func(interface{}) error
 
-// WrapErrorOnly returns a Handler which wraps a ErrorOnlyHandler within it, but
+// wrapErrorOnly returns a Handler which wraps a ErrorOnlyHandler within it, but
 // passing forward all errors it receives.
-func WrapErrorOnly(dh ErrorOnlyHandler) Handler {
+func wrapErrorOnly(dh ErrorOnlyHandler) Handler {
 	return func(m Ctx, err error, data interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, dh(data)
@@ -402,9 +453,9 @@ func WrapErrorOnly(dh ErrorOnlyHandler) Handler {
 
 //==============================================================================
 
-// Wrap returns a new handler where the first wraps the second with its returned
+// WrapHandlers returns a new handler where the first wraps the second with its returned
 // values.
-func Wrap(h1 Handler, h2 Handler) Handler {
+func WrapHandlers(h1 Handler, h2 Handler) Handler {
 	return func(ctx Ctx, err error, data interface{}) (interface{}, error) {
 		m1, e1 := h1(ctx, err, data)
 		return h2(ctx, e1, m1)
@@ -421,7 +472,7 @@ type LiftHandler func(...Handler) Handler
 // last function to be called. If the value of the argument is not a function,
 // then it panics.
 func Lift(handle interface{}) LiftHandler {
-	mh := MagicHandler(handle)
+	mh := Wrap(handle)
 	if mh == nil {
 		panic("Expected handle passed into be a function")
 	}
@@ -442,7 +493,7 @@ func Lift(handle interface{}) LiftHandler {
 				continue
 			}
 
-			base = Wrap(lifts[i], base)
+			base = WrapHandlers(lifts[i], base)
 		}
 
 		return func(ctx Ctx, err error, data interface{}) (interface{}, error) {
@@ -458,7 +509,7 @@ func Lift(handle interface{}) LiftHandler {
 // Distribute takes the output from the provided handle and distribute
 // it's returned values to the provided Handlers.
 func Distribute(handle interface{}) LiftHandler {
-	mh := MagicHandler(handle)
+	mh := Wrap(handle)
 	if mh == nil {
 		panic("Expected handle passed into be a function")
 	}
@@ -487,7 +538,7 @@ type Response struct {
 // it's returned values to the provided Handlers and packs their responses in a
 // slice []Response and returns that as the final response.
 func DistributeButPack(handle interface{}) LiftHandler {
-	mh := MagicHandler(handle)
+	mh := Wrap(handle)
 	if mh == nil {
 		panic("Expected handle passed into be a function")
 	}
@@ -516,7 +567,7 @@ func DistributeButPack(handle interface{}) LiftHandler {
 // applying them to the handle. Where the responses of the handle is packed into
 // an array of type []Collected and then returned as the response of the function.
 func Collect(handle interface{}) LiftHandler {
-	mh := MagicHandler(handle)
+	mh := Wrap(handle)
 	if mh == nil {
 		panic("Expected handle passed into be a function")
 	}
