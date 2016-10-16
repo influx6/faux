@@ -44,7 +44,10 @@ type matchProvider struct {
 
 // New returns a new instance of a URIMatcher.
 func New(pattern string) URIMatcher {
-
+	if pattern == "*"{
+		pattern = "/*"
+	}
+	
 	ps := stripAndClean(pattern)
 
 	pm := SegmentList(ps)

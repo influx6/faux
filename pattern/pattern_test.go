@@ -76,6 +76,17 @@ func TestEndlessPattern(t *testing.T) {
 	}
 }
 
+func TestAsterick(t *testing.T) {
+	r := pattern.New(`/*`)
+
+	param, rem, state := r.Validate(`/github.com/influx6/examples/views#blob`)
+	if !state {
+		t.Fatalf("Incorrect pattern: %+s %t", param, state)
+	}
+
+	t.Logf("Correct pattern: %+s %+s", param, rem)
+}
+
 func TestHashedWithRemainder(t *testing.T) {
 	r := pattern.New(`/colors/*`)
 
