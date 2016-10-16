@@ -77,7 +77,7 @@ func TestEndlessPattern(t *testing.T) {
 }
 
 func TestAsterick(t *testing.T) {
-	r := pattern.New(`/*`)
+	r := pattern.New(`*`)
 
 	param, rem, state := r.Validate(`/github.com/influx6/examples/views#blob`)
 	if !state {
