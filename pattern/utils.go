@@ -181,7 +181,6 @@ func YankSpecial(val string) (string, string, bool) {
 	}
 
 	part := strings.Split(removeCurly(val), ":")
-	// mrk := removeBracket(part[1])
 	return part[0], removeBracket(part[1]), true
 }
 
