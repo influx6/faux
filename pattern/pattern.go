@@ -20,6 +20,7 @@ type Params map[string]string
 // Matchable defines an interface for matchers.
 type Matchable interface {
 	IsParam() bool
+	IsHashed() bool
 	Segment() string
 	Validate(string) bool
 }
