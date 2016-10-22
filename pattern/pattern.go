@@ -21,6 +21,7 @@ type Params map[string]string
 // Matchable defines an interface for matchers.
 type Matchable interface {
 	IsParam() bool
+	HasHash() bool
 	Segment() string
 	Validate(string) bool
 }
@@ -45,12 +46,7 @@ type matchProvider struct {
 
 // New returns a new instance of a URIMatcher.
 func New(pattern string) URIMatcher {
-	if pattern == "*" {
-		pattern = "/*"
-	}
-
-	ps := stripAndClean(pattern)
-
+	ps := stripAndCleanButHash(pattern)
 	pm := SegmentList(ps)
 
 	m := matchProvider{
@@ -94,7 +90,9 @@ func (m *matchProvider) Validate(f string) (Params, string, bool) {
 	var state bool
 
 	param := make(Params)
+
 	var lastIndex int
+	var doneHash bool
 
 	for index, v := range m.matchers {
 		lastIndex = index
@@ -155,6 +153,19 @@ func (m *matchProvider) Validate(f string) (Params, string, bool) {
 func SegmentList(pattern string) Matchers {
 	var set Matchers
 
+	if hashIndex := strings.Index(pattern, "#"); hashIndex != -1 {
+		if hashIndex == 0 {
+			pattern = strings.Join([]string{"/", pattern}, "")
+		} else {
+
+			if pattern[hashIndex-1] != "/" {
+				splits = strings.SplitAfter(pattern, "#")
+				pattern = strings.Join()
+			}
+
+		}
+	}
+
 	for _, val := range splitPattern(pattern) {
 		set = append(set, Segment(val))
 	}
@@ -169,15 +180,12 @@ type SegmentMatcher struct {
 	*regexp.Regexp
 	original string
 	param    bool
+	hashed   bool
 }
 
 // Segment returns a Matchable for a specific part of a pattern eg. :name, age,
 // {id:[\\d+]}.
 func Segment(segment string) Matchable {
-	if segment == "*" {
-		segment = "/*"
-	}
-
 	id, rx, b := YankSpecial(segment)
 	mrk := regexp.MustCompile(rx)
 
@@ -188,6 +196,11 @@ func Segment(segment string) Matchable {
 	}
 
 	return &sm
+}
+
+// HasHashed returns true/false if this segment hash the hash.
+func (s *SegmentMatcher) HasHash() bool {
+	return s.hashed
 }
 
 // IsParam returns true/false if the segment is also a paramter.
