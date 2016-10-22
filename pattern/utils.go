@@ -90,12 +90,14 @@ func CheckPriority(patt string) int {
 	sets := splitPattern(patt)
 
 	for _, so := range sets {
-		if morespecial.MatchString(so) {
+		if moreSpecial.MatchString(so) {
 			return 1
 		}
+
 		if special.MatchString(so) {
 			return 2
 		}
+
 		continue
 	}
 

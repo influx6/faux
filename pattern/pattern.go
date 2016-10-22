@@ -10,6 +10,7 @@
 package pattern
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -76,27 +77,28 @@ func (m *matchProvider) Validate(f string) (Params, string, bool) {
 	cleaned := cleanPath(stripped)
 	src := splitPattern(cleaned)
 
-	total := len(m.matchers)
 	srclen := len(src)
+	total := len(m.matchers)
 
-	if !m.endless && (total < srclen || total > srclen) {
+	if !m.endless && total != srclen {
+		return nil, "", false
+	}
+
+	if m.endless && total > srclen {
 		return nil, "", false
 	}
 
 	var state bool
 
 	param := make(Params)
+	var lastIndex int
 
-	for k, v := range m.matchers {
-		if k >= srclen {
-			state = false
-			break
-		}
-
-		if v.Validate(src[k]) {
+	for index, v := range m.matchers {
+		lastIndex = index
+		if v.Validate(src[index]) {
 
 			if v.IsParam() {
-				param[v.Segment()] = src[k]
+				param[v.Segment()] = src[index]
 			}
 
 			state = true
@@ -107,19 +109,36 @@ func (m *matchProvider) Validate(f string) (Params, string, bool) {
 		}
 	}
 
+	fmt.Printf("Last Received index: %d -> %d\n", lastIndex, srclen)
+	if lastIndex+1 == srclen {
+		return param, "", state
+	}
+
+	remPath := strings.Join(src[lastIndex+1:], "/")
+	hashedSrc := stripAndCleanButHash(f)
+
+	if !strings.Contains(hashedSrc, "#") {
+		return param, remPath, state
+	}
+
+	var hashed string
+	if hashIndex := strings.IndexRune(hashedSrc, '#'); hashIndex != -1 {
+		hashed = hashedSrc[hashIndex:]
+	}
+
+	fmt.Printf("Last Received index: %s -> %s -> %s\n", src, remPath, hashed)
+
 	var rem string
 	if total < srclen {
-		csrc := stripAndCleanButHash(f)
-		hashIndex := strings.IndexRune(csrc, '#')
+		// fsrc := stripAndClean(strings.Join(src[:total], "/"))
+		// fcount := len([]byte(fsrc))
 
-		fsrc := stripAndClean(strings.Join(src[:total], "/"))
-		fcount := len([]byte(fsrc))
+		// if hashIndex < fcount {
+		// 	rem = strings.Replace(stripped, fsrc, "", 1)
+		// } else {
+		// 	rem = strings.Replace(csrc, fsrc, "", 1)
+		// }
 
-		if hashIndex < fcount {
-			rem = strings.Replace(stripped, fsrc, "", 1)
-		} else {
-			rem = strings.Replace(csrc, fsrc, "", 1)
-		}
 		// fmt.Printf("Rem: %s : %s -> %s\n", csrc, fsrc, rem)
 	}
 
