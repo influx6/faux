@@ -45,6 +45,9 @@ type matchProvider struct {
 
 // New returns a new instance of a URIMatcher.
 func New(pattern string) URIMatcher {
+	if pattern == "*" {
+		pattern = "/*"
+	}
 
 	ps := stripAndClean(pattern)
 
@@ -171,6 +174,10 @@ type SegmentMatcher struct {
 // Segment returns a Matchable for a specific part of a pattern eg. :name, age,
 // {id:[\\d+]}.
 func Segment(segment string) Matchable {
+	if segment == "*" {
+		segment = "/*"
+	}
+
 	id, rx, b := YankSpecial(segment)
 	mrk := regexp.MustCompile(rx)
 
