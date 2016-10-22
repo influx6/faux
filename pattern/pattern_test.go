@@ -70,7 +70,7 @@ func TestEndlessPattern(t *testing.T) {
 		t.Fatalf("Incorrect pattern: %+s %t", param, state)
 	}
 
-	expected := "/examples/views#blob"
+	expected := "examples/views/#blob"
 	if rem != expected {
 		t.Fatalf("Incorrect remaining path(Expected: %s Found: %s)", expected, rem)
 	}

@@ -93,9 +93,11 @@ func CheckPriority(patt string) int {
 		if morespecial.MatchString(so) {
 			return 1
 		}
+
 		if special.MatchString(so) {
 			return 2
 		}
+
 		continue
 	}
 
