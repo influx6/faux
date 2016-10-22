@@ -45,9 +45,7 @@ type matchProvider struct {
 
 // New returns a new instance of a URIMatcher.
 func New(pattern string) URIMatcher {
-	if pattern == "*" {
-		pattern = "/*"
-	}
+	pattern = addSlash(pattern)
 
 	pm := SegmentList(pattern)
 
@@ -73,9 +71,10 @@ func (m *matchProvider) Pattern() string {
 
 // Validate returns true/false if the giving string matches the pattern, returning
 // a map of parameters match against segments of the pattern.
-func (m *matchProvider) Validate(f string) (Params, string, bool) {
-	stripped := stripAndClean(f)
-	hashedSrc := stripAndCleanButHash(f)
+func (m *matchProvider) Validate(path string) (Params, string, bool) {
+	path = addSlash(path)
+	stripped := stripAndClean(path)
+	hashedSrc := stripAndCleanButHash(path)
 
 	cleaned := cleanPath(stripped)
 	src := splitPattern(cleaned)

@@ -54,12 +54,30 @@ func TestSpecialChecker(t *testing.T) {
 
 func TestNamePattern(t *testing.T) {
 	r := pattern.New(`/name/:id`)
+	path := `/name/12`
 
-	param, _, state := r.Validate(`/name/12`)
+	param, _, state := r.Validate(path)
 	if !state {
-		t.Fatalf("incorrect pattern: %+s %t", param, state)
+		t.Fatalf("Failed: Should have matched path: %s>%#v Params: %#v", r.Pattern(), path, param)
 	}
 
+	t.Logf("Passed: Should have matched path: %s->%#v Params: %#v", r.Pattern(), path, param)
+}
+
+func TestParam(t *testing.T) {
+	r := pattern.New(`:id`)
+
+	param, _, state := r.Validate(`12`)
+	if !state {
+		t.Fatalf("Failed: Should have matched path: %s->%#v", r.Pattern(), "/12")
+	}
+
+	val, ok := param["id"]
+	if !ok {
+		t.Fatalf("Failed: Should have matched with parameter : %s->%s but %#v", "id", "12", param)
+	}
+
+	t.Logf("Passed: Should have matched path: %s->%#v Params: %#v", r.Pattern(), val, param)
 }
 
 func TestEndlessPattern(t *testing.T) {

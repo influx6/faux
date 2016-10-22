@@ -63,32 +63,32 @@
 			"revisionTime": "2016-06-07T14:43:47Z"
 		},
 		{
-			"checksumSHA1": "lq/sJ5rhKdIAOOIvmkNOLI2jYE0=",
+			"checksumSHA1": "bDSCvmvwCYcN5mPjePIzpPyqGYM=",
 			"origin": "github.com/ardanlabs/kit/vendor/gopkg.in/mgo.v2",
 			"path": "gopkg.in/mgo.v2",
-			"revision": "03c9f3ee4c14c8e51ee521a6a7d0425658dd6f64",
-			"revisionTime": "2016-01-18T14:58:58Z"
+			"revision": "7e5dc3389426a93400488f88e40d337aac47ef1b",
+			"revisionTime": "2016-05-11T23:39:09Z"
 		},
 		{
-			"checksumSHA1": "4KPH72pWXFvwgAymK/Kk4Lkhtjk=",
+			"checksumSHA1": "zTjQOFGy4XTv4L33Kd2FhrV+mbM=",
 			"origin": "github.com/ardanlabs/kit/vendor/gopkg.in/mgo.v2/bson",
 			"path": "gopkg.in/mgo.v2/bson",
-			"revision": "03c9f3ee4c14c8e51ee521a6a7d0425658dd6f64",
-			"revisionTime": "2016-01-18T14:58:58Z"
+			"revision": "7e5dc3389426a93400488f88e40d337aac47ef1b",
+			"revisionTime": "2016-05-11T23:39:09Z"
 		},
 		{
-			"checksumSHA1": "lflrleHLqpORhnoOjHVHokpeq54=",
+			"checksumSHA1": "CkCDTsyN2Lbj1cL8+oaYKoPpI9w=",
 			"origin": "github.com/ardanlabs/kit/vendor/gopkg.in/mgo.v2/internal/sasl",
 			"path": "gopkg.in/mgo.v2/internal/sasl",
-			"revision": "03c9f3ee4c14c8e51ee521a6a7d0425658dd6f64",
-			"revisionTime": "2016-01-18T14:58:58Z"
+			"revision": "7e5dc3389426a93400488f88e40d337aac47ef1b",
+			"revisionTime": "2016-05-11T23:39:09Z"
 		},
 		{
-			"checksumSHA1": "CrciG7woshiINwZxPsxisgDGL3Y=",
+			"checksumSHA1": "+1WDRPaOphSCmRMxVPIPBV4aubc=",
 			"origin": "github.com/ardanlabs/kit/vendor/gopkg.in/mgo.v2/internal/scram",
 			"path": "gopkg.in/mgo.v2/internal/scram",
-			"revision": "03c9f3ee4c14c8e51ee521a6a7d0425658dd6f64",
-			"revisionTime": "2016-01-18T14:58:58Z"
+			"revision": "7e5dc3389426a93400488f88e40d337aac47ef1b",
+			"revisionTime": "2016-05-11T23:39:09Z"
 		}
 	],
 	"rootPath": "github.com/influx6/faux"
