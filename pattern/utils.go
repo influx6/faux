@@ -50,6 +50,15 @@ func SplitPattern(c string) []string {
 	return strings.Split(c, "/")
 }
 
+// addSlash appends a / infront of the giving string if not there.
+func addSlash(ps string) string {
+	if strings.HasPrefix(ps, "/") {
+		return ps
+	}
+
+	return "/" + ps
+}
+
 //==============================================================================
 
 //TrimEndSlashe removes the '/' at the end of string.

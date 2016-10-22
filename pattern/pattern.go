@@ -125,7 +125,7 @@ func (m *matchProvider) Validate(f string) (Params, string, bool) {
 
 	remPath := strings.Join(src[lastIndex+1:], "/")
 	if doneHash || !strings.Contains(hashedSrc, "#") {
-		return param, remPath, state
+		return param, addSlash(remPath), state
 	}
 
 	var rems []string
@@ -141,7 +141,7 @@ func (m *matchProvider) Validate(f string) (Params, string, bool) {
 		rems = append(rems, item.Segment())
 	}
 
-	return param, strings.Join(rems, "/"), state
+	return param, addSlash(strings.Join(rems, "/")), state
 }
 
 //==============================================================================
