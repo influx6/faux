@@ -4,28 +4,27 @@
 package mque
 
 import (
-	"errors"
 	"reflect"
 	"sync"
-	"sync/atomic"
 
-	"github.com/influx6/faux/loop"
 	"github.com/influx6/faux/reflection"
 )
 
 //==============================================================================
 
-// Qu defines a queue interface that defines the general queue registery.
-type Qu interface {
-	Q(interface{}) loop.Looper
-	Run(interface{})
-	Flush()
+var anytype = reflect.TypeOf((*interface{})(nil))
+
+// End defines an interface which exposes a End function.
+type End interface {
+	End()
 }
 
 // New returns a new implementer of Qu.
-func New() Qu {
-	mq := MQue{}
-	return &mq
+func New() *MQue {
+	var any mqueSub
+	any.am = anytype
+
+	return &MQue{any: &any}
 }
 
 //==============================================================================
@@ -33,10 +32,11 @@ func New() Qu {
 // MQue defines a callback queue, that accept only one argument functions.
 type MQue struct {
 	l      sync.RWMutex
-	muxers []*mqueSub
+	muxers []mqueSub
+	any    *mqueSub
 }
 
-// Flush ends the queue listeners
+// Flush ends the queue listeners.
 func (m *MQue) Flush() {
 	m.l.Lock()
 	m.muxers = nil
@@ -44,105 +44,155 @@ func (m *MQue) Flush() {
 }
 
 // Run applies the argument against the queues callbacks.
-func (m *MQue) Run(mx interface{}) {
+func (m *MQue) Run(val interface{}) {
 	m.l.RLock()
 	defer m.l.RUnlock()
+
+	ctype := reflect.TypeOf(val)
+
+	// Run the any callbacks.
+	m.any.Run(val, ctype)
+
+	// Check and Run those who match.
 	for _, mux := range m.muxers {
-		if atomic.LoadInt64(&mux.alive) > 0 {
-			mux.Run(mx)
+		if mux.CanRun(ctype) {
+			mux.Run(val, ctype)
 		}
 	}
 }
 
-//==============================================================================
-
-// ErrInvalid is returned when the provided type is not a function type.
-var ErrInvalid = errors.New("Invalid Func Type")
-
-// ErrTooMuchArgs is returned when the argument of the function is more than one.
-var ErrTooMuchArgs = errors.New("Expected One argument Function")
-
 // Q adds a new function type into the queue.
-func (m *MQue) Q(mx interface{}) loop.Looper {
+func (m *MQue) Q(mx interface{}, rmx ...func()) End {
 	if !reflection.IsFuncType(mx) {
 		return nil
 	}
 
-	m.l.RLock()
-	id := len(m.muxers)
-	m.l.RUnlock()
-
 	tm, _ := reflection.FuncValue(mx)
 
+	var hasArgs bool
 	var tu reflect.Type
-	var bit int
 
 	args, _ := reflection.GetFuncArgumentsType(mx)
 	if size := len(args); size > 0 {
 		tu = args[0]
-		bit = 1
+		hasArgs = true
 	}
 
-	mq := mqueSub{
-		id:    id,
-		mx:    mx,
-		tm:    tm,
-		qu:    m,
-		am:    tu,
-		has:   bit,
-		alive: 1,
+	if !hasArgs {
+		index := len(m.any.tms)
+		m.any.tms = append(m.any.tms, tm)
+
+		return &mqueSubIndex{
+			index:  index,
+			queue:  m.any,
+			ending: rmx,
+		}
 	}
+
+	var sub mqueSub
+	var found bool
+
+	m.l.RLock()
+	{
+		for _, sub = range m.muxers {
+			if sub.CanRun(tu) {
+				found = true
+				break
+			}
+		}
+	}
+	m.l.RUnlock()
+
+	if found {
+		index := len(sub.tms)
+		sub.tms = append(sub.tms, tm)
+
+		return &mqueSubIndex{
+			index:  index,
+			queue:  &sub,
+			ending: rmx,
+		}
+	}
+
+	var mq mqueSub
+	mq.am = tu
+	mq.tms = []reflect.Value{tm}
 
 	m.l.Lock()
-	m.muxers = append(m.muxers, &mq)
+	m.muxers = append(m.muxers, mq)
 	m.l.Unlock()
 
-	return &mq
+	return &mqueSubIndex{
+		index:  0,
+		queue:  &mq,
+		ending: rmx,
+	}
 }
 
 //==============================================================================
 
-// mqueSub defines a queue subscriber attached to a specific queue.
-type mqueSub struct {
-	id    int
-	mx    interface{}
-	tm    reflect.Value
-	am    reflect.Type
-	qu    *MQue
-	has   int
-	alive int64
+type mqueSubIndex struct {
+	index  int
+	queue  *mqueSub
+	ending []func()
 }
 
-// End removes this subscriber for the queue.
-func (m *mqueSub) End(f ...func()) {
-	atomic.StoreInt64(&m.alive, 0)
-	for _, fx := range f {
-		fx()
-	}
-}
-
-// Run recevies the argument and
-func (m *mqueSub) Run(d interface{}) {
-	if m.has == 0 {
-		m.tm.Call(nil)
+// End calls removes the listener type from the subscription queue.
+func (m *mqueSubIndex) End() {
+	if m.queue == nil {
 		return
 	}
 
-	var configVal reflect.Value
-	ctype := reflect.TypeOf(d)
-
-	if !ctype.AssignableTo(m.am) {
-		if !ctype.ConvertibleTo(m.am) {
-			return
-		}
-
-		vum := reflect.ValueOf(d)
-		configVal = vum.Convert(m.am)
-	} else {
-		configVal = reflect.ValueOf(d)
+	m.queue.tms = append(m.queue.tms[:m.index], m.queue.tms[m.index+1:]...)
+	for _, fx := range m.ending {
+		fx()
 	}
 
-	m.tm.Call([]reflect.Value{configVal})
+	m.ending = nil
+	m.queue = nil
+}
+
+// mqueSub defines a queue subscriber attached to a specific queue.
+type mqueSub struct {
+	am  reflect.Type
+	tms []reflect.Value
+}
+
+func (m *mqueSub) Flush() {
+	m.tms = nil
+}
+
+// CanRun returns whether the argument can be used with this subscriber.
+func (m *mqueSub) CanRun(d reflect.Type) bool {
+	if !d.AssignableTo(m.am) {
+		if d.ConvertibleTo(m.am) {
+			return true
+		}
+
+		return false
+	}
+
+	return true
+}
+
+// Run recevies the argument and
+func (m *mqueSub) Run(d interface{}, ctype reflect.Type) {
+	configVal := reflect.ValueOf(d)
+
+	if m.am != nil {
+		if !ctype.AssignableTo(m.am) {
+			if !ctype.ConvertibleTo(m.am) {
+				return
+			}
+
+			vum := reflect.ValueOf(d)
+			configVal = vum.Convert(m.am)
+		}
+	}
+
+	for _, tm := range m.tms {
+		tm.Call([]reflect.Value{configVal})
+	}
 }
 
 //==============================================================================

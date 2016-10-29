@@ -34,6 +34,7 @@ func TestQueue(t *testing.T) {
 			q.Q(func(item int) {
 				go func() { failed <- 1 }()
 			})
+
 			q.Run("letter")
 
 			select {
@@ -53,12 +54,10 @@ func TestQueue(t *testing.T) {
 			q := mque.New()
 
 			q.Q(func(letter string) {
-				// fmt.Printf("letter: %s\n", letter)
 				go func() { failed <- 1 }()
 			})
 
 			q.Q(func(item int) {
-				// fmt.Printf("digit: %d\n", item)
 				go func() { passed <- 1 }()
 			})
 
@@ -70,7 +69,6 @@ func TestQueue(t *testing.T) {
 			case <-passed:
 				t.Errorf("\t%s\tShould have received a integer", tests.Failed)
 			}
-
 		}
 	}
 }
