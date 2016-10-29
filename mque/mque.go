@@ -20,7 +20,6 @@ type End interface {
 // New returns a new implementer of Qu.
 func New() *MQue {
 	var any mqueSub
-
 	return &MQue{any: &any}
 }
 
