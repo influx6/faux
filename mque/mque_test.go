@@ -113,6 +113,7 @@ func TestQueueEnd(t *testing.T) {
 		{
 
 			var count int
+			var ended bool
 
 			q := mque.New()
 
@@ -122,6 +123,8 @@ func TestQueueEnd(t *testing.T) {
 
 			sub := q.Q(func(item int) {
 				count++
+			}, func() {
+				ended = true
 			})
 
 			q.Run(20)
@@ -133,6 +136,11 @@ func TestQueueEnd(t *testing.T) {
 				t.Fatalf("\t%s\tShould have received only two events", tests.Failed)
 			}
 			t.Logf("\t%s\tShould have received only two events", tests.Success)
+
+			if !ended {
+				t.Fatalf("\t%s\tShould have ended subscriber", tests.Failed)
+			}
+			t.Logf("\t%s\tShould have ended subscriber", tests.Success)
 
 		}
 	}
