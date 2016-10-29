@@ -65,11 +65,39 @@ func TestQueue(t *testing.T) {
 
 			select {
 			case <-failed:
-				t.Logf("\t%s\tShould have received a integer", tests.Success)
+				t.Fatalf("\t%s\tShould have received a integer", tests.Failed)
 			case <-passed:
-				t.Errorf("\t%s\tShould have received a integer", tests.Failed)
+				t.Logf("\t%s\tShould have received a integer", tests.Success)
 			}
 		}
+	}
+}
+
+func BenchmarkQueue(b *testing.B) {
+	b.ResetTimer()
+	defer b.ReportAllocs()
+
+	q := mque.New()
+
+	q.Q(func(item int) {})
+	q.Q(func(item int) {})
+
+	for i := 0; i < b.N; i++ {
+		q.Run(i)
+	}
+}
+
+func BenchmarkQueueWithMultitypes(b *testing.B) {
+	b.ResetTimer()
+	defer b.ReportAllocs()
+
+	q := mque.New()
+
+	q.Q(func(item string) {})
+	q.Q(func(item int) {})
+
+	for i := 0; i < b.N; i++ {
+		q.Run(i)
 	}
 }
 
@@ -88,7 +116,7 @@ func TestQueueEnd(t *testing.T) {
 
 			q := mque.New()
 
-			q.Q(func(item *int) {
+			q.Q(func(item int) {
 				count++
 			})
 
@@ -99,14 +127,12 @@ func TestQueueEnd(t *testing.T) {
 			q.Run(20)
 			sub.End()
 
-			var numb = 40
+			q.Run(40)
 
-			q.Run(&numb)
-
-			if count < 2 {
-				t.Fatalf("\t%s\tShould have received more than two events", tests.Failed)
+			if count <= 2 || count >= 4 {
+				t.Fatalf("\t%s\tShould have received only two events", tests.Failed)
 			}
-			t.Logf("\t%s\tShould have received more than two events", tests.Success)
+			t.Logf("\t%s\tShould have received only two events", tests.Success)
 
 		}
 	}
