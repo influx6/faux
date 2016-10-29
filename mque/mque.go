@@ -15,6 +15,7 @@ import (
 // End defines an interface which exposes a End function.
 type End interface {
 	End()
+	AddEnd()
 }
 
 // New returns a new implementer of Qu.
@@ -131,6 +132,11 @@ type mqueSubIndex struct {
 	index  int
 	queue  *mqueSub
 	ending []func()
+}
+
+// AddEnd adds the giving function to the end target.
+func (m *mqueSubIndex) AddEnd(fx func()) {
+	m.ending = append(m.ending, fx)
 }
 
 // End calls removes the listener type from the subscription queue.
