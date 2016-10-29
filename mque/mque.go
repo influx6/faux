@@ -15,7 +15,7 @@ import (
 // End defines an interface which exposes a End function.
 type End interface {
 	End()
-	AddEnd()
+	AddEnd(func())
 }
 
 // New returns a new implementer of Qu.
