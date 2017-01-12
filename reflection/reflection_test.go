@@ -16,7 +16,8 @@ const failedMark = "\u2717"
 
 // mosnter provides a basic struct test case type.
 type monster struct {
-	Name string
+	Name  string
+	Items []string
 }
 
 // TestGetArgumentsType validates reflection API GetArgumentsType functions
@@ -30,6 +31,15 @@ func TestGetArgumentsType(t *testing.T) {
 	if err != nil {
 		t.Fatalf("\t%s\tShould be able to retrieve function arguments lists: %s", failedMark, err)
 	} else {
+		t.Logf("\t%s\tShould be able to retrieve function arguments lists", succeedMark)
+	}
+
+	name, embedded, err := reflection.StructAndEmbeddedTypeNames(monster{Name: "Bob"})
+	if err != nil {
+		t.Fatalf("\t%s\tShould be able to retrieve field names arguments lists: %s", failedMark, err)
+	} else {
+		t.Logf("\tName: %s\n", name)
+		t.Logf("\tFields: %+q\n", embedded)
 		t.Logf("\t%s\tShould be able to retrieve function arguments lists", succeedMark)
 	}
 

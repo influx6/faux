@@ -51,6 +51,82 @@ func FuncType(elem interface{}) (reflect.Type, error) {
 	return tl, nil
 }
 
+// StructAndEmbeddedTypes returns the type of the giving element and a slice of
+// all composed types.
+func StructAndEmbeddedTypes(elem interface{}) (reflect.Type, []reflect.Type, error) {
+	tl := reflect.TypeOf(elem)
+
+	if tl.Kind() == reflect.Ptr {
+		tl = tl.Elem()
+	}
+
+	if tl.Kind() != reflect.Struct {
+		return nil, nil, ErrNotStruct
+	}
+
+	var embeded []reflect.Type
+
+	for ind := 0; ind < tl.NumField(); ind++ {
+		item := tl.Field(ind).Type
+		embeded = append(embeded, item)
+	}
+
+	return tl, embeded, nil
+}
+
+var internalTypes = []string{
+	"string", "int", "int64", "int32", "float32",
+	"float64", "bool", "char",
+	"rune", "byte",
+}
+
+// StructAndEmbeddedTypeNames returns the name and field names of the provided
+// elem which must be a struct.
+func StructAndEmbeddedTypeNames(elem interface{}) (string, []string, error) {
+	tl := reflect.TypeOf(elem)
+
+	if tl.Kind() == reflect.Ptr {
+		tl = tl.Elem()
+	}
+
+	if tl.Kind() != reflect.Struct {
+		return "", nil, ErrNotStruct
+	}
+
+	var embeded []string
+
+	{
+	fieldLoop:
+		for ind := 0; ind < tl.NumField(); ind++ {
+			item := tl.Field(ind).Type
+
+			for _, except := range internalTypes {
+				if except == item.Name() {
+					continue fieldLoop
+				}
+			}
+
+			if item.Name() == "" {
+				if item.Kind() == reflect.Slice || item.Kind() == reflect.Array {
+					for _, except := range internalTypes {
+						if except == item.Elem().Name() {
+							continue fieldLoop
+						}
+					}
+
+					embeded = append(embeded, item.Elem().Name())
+				}
+
+				continue
+			}
+
+			embeded = append(embeded, item.Name())
+		}
+	}
+
+	return tl.Name(), embeded, nil
+}
+
 // HasArgumentSize return true/false to indicate if the function type has the
 // size of arguments. It will return false if the interface is not a function
 // type.
