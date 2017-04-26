@@ -275,27 +275,28 @@ func (t *Trace) End() Entry {
 	return entry.With(TraceKey, *t)
 }
 
-// Trace returns a Trace object which is used to track the execution and
+// TraceWithCallDepth returns a Trace object which is used to track the execution and
 // stack details of a given trace call.
-func (e Entry) Trace(name string) *Trace {
+func (e Entry) TraceWithCallDepth(name string, depth int) *Trace {
 	trace := make([]byte, StackSize)
 	trace = trace[:runtime.Stack(trace, false)]
 
-	_, file, line, ok := runtime.Caller(2)
+	_, file, line, ok := runtime.Caller(depth)
 	if !ok {
 		file = "???"
 	}
 
-	var pkg string
-	pkgBaseFile := file
+	var pkg, pkgFile string
+	pkgFileBase := file
 
 	if file != "???" {
-		goroot := runtime.GOROOT()
-		gorootSrc := filepath.Join(goroot, "src")
-		pkgFile, _ := filepath.Rel(gorootSrc, file)
+		pkgPieces := strings.SplitAfter(pkgFileBase, "/src/")
+		if len(pkgPieces) > 1 {
+			pkgFileBase = pkgPieces[1]
+		}
 
-		pkg = filepath.Dir(pkgFile)
-		pkgBaseFile = filepath.Base(pkgFile)
+		pkg = filepath.Dir(pkgFileBase)
+		pkgFile = filepath.Base(pkgFileBase)
 	}
 
 	return &Trace{
@@ -304,7 +305,41 @@ func (e Entry) Trace(name string) *Trace {
 		LineNumber: line,
 		BeginStack: trace,
 		StartTime:  time.Now(),
-		File:       pkgBaseFile,
+		File:       pkgFile,
+	}
+}
+
+// Trace returns a Trace object which is used to track the execution and
+// stack details of a given trace call.
+func (e Entry) Trace(name string) *Trace {
+	trace := make([]byte, StackSize)
+	trace = trace[:runtime.Stack(trace, false)]
+
+	_, file, line, ok := runtime.Caller(1)
+	if !ok {
+		file = "???"
+	}
+
+	var pkg, pkgFile string
+	pkgFileBase := file
+
+	if file != "???" {
+		pkgPieces := strings.SplitAfter(pkgFileBase, "/src/")
+		if len(pkgPieces) > 1 {
+			pkgFileBase = pkgPieces[1]
+		}
+
+		pkg = filepath.Dir(pkgFileBase)
+		pkgFile = filepath.Base(pkgFileBase)
+	}
+
+	return &Trace{
+		entry:      &e,
+		Package:    pkg,
+		LineNumber: line,
+		BeginStack: trace,
+		StartTime:  time.Now(),
+		File:       pkgFile,
 	}
 }
 
