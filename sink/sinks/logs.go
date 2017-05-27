@@ -36,7 +36,7 @@ func Info(message string, m ...interface{}) sink.Entry {
 	return sink.Entry{
 		Message: fmt.Sprintf(message, m...),
 		ID:      INFO,
-		Pair:    (*sink.Pair)(nil),
+		Pair:    new(sink.Pair),
 	}
 }
 
@@ -56,7 +56,7 @@ func Error(mi interface{}, m ...interface{}) sink.Entry {
 	return sink.Entry{
 		Message: message,
 		ID:      ERROR,
-		Pair:    (*sink.Pair)(nil),
+		Pair:    new(sink.Pair),
 	}
 }
 
@@ -65,7 +65,7 @@ func Notice(message string, m ...interface{}) sink.Entry {
 	return sink.Entry{
 		Message: fmt.Sprintf(message, m...),
 		ID:      NOTICE,
-		Pair:    (*sink.Pair)(nil),
+		Pair:    new(sink.Pair),
 	}
 }
 
@@ -74,7 +74,7 @@ func Debug(message string, m ...interface{}) sink.Entry {
 	return sink.Entry{
 		Message: fmt.Sprintf(message, m...),
 		ID:      DEBUG,
-		Pair:    (*sink.Pair)(nil),
+		Pair:    new(sink.Pair),
 	}
 }
 
