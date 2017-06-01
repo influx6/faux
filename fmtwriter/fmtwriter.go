@@ -24,8 +24,7 @@ func New(wt io.WriterTo) *WriterTo {
 // provider writer.
 func (fm WriterTo) WriteTo(w io.Writer) (int64, error) {
 	cmd := process.Command{
-		Name: "gofmt",
-		// Args:  []string{"-r"},
+		Name:  "gofmt",
 		Level: process.RedAlert,
 	}
 
@@ -39,9 +38,6 @@ func (fm WriterTo) WriteTo(w io.Writer) (int64, error) {
 		errcount, _ := inerr.WriteTo(w)
 		linecount, _ := fmt.Fprintf(w, "\n-----------------------\n")
 		outcount, _ := backinput.WriteTo(w)
-
-		input.Reset()
-		fmt.Printf("%+q\n", input.String())
 
 		return (errcount + int64(linecount) + outcount), fmt.Errorf("GoFmt Error: %+q (See generated file for fmt Error)", err)
 	}
