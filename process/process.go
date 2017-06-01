@@ -42,7 +42,7 @@ func (c Command) Run(ctx context.Context, wout, werr io.Writer, pin io.Reader) e
 	proc.Stderr = werr
 
 	if err := proc.Start(); err != nil {
-		log.Emit(sinks.Error("Process : Error : Command : Begin Execution : %q : %q", c.Name, c.Args))
+		log.Emit(sinks.Error("Process : Error : Command : Begin Execution : %q : %q : %q", c.Name, c.Args, err))
 		return err
 	}
 
@@ -55,7 +55,7 @@ func (c Command) Run(ctx context.Context, wout, werr io.Writer, pin io.Reader) e
 
 	if !c.Async {
 		if err := proc.Wait(); err != nil {
-			log.Emit(sinks.Error("Process : Error : Command : Begin Execution : %q : %q", c.Name, c.Args))
+			log.Emit(sinks.Error("Process : Error : Command : Begin Execution : %q : %q : %+q", c.Name, c.Args, err))
 
 			if c.Level > Warning {
 				return err

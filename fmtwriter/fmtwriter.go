@@ -3,6 +3,7 @@ package fmtwriter
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/influx6/faux/process"
@@ -23,19 +24,27 @@ func New(wt io.WriterTo) *WriterTo {
 // provider writer.
 func (fm WriterTo) WriteTo(w io.Writer) (int64, error) {
 	cmd := process.Command{
-		Name:  "gofmt",
+		Name: "gofmt",
+		// Args:  []string{"-r"},
 		Level: process.RedAlert,
 	}
 
-	var input bytes.Buffer
+	var backinput, input, inout, inerr bytes.Buffer
 
-	if n, err := fm.WriterTo.WriteTo(&input); err != nil && err != io.EOF {
+	if n, err := fm.WriterTo.WriteTo(io.MultiWriter(&input, &backinput)); err != nil && err != io.EOF {
 		return n, err
 	}
 
-	if err := cmd.Run(context.Background(), w, w, &input); err != nil {
-		return 0, nil
+	if err := cmd.Run(context.Background(), &inout, &inerr, &input); err != nil {
+		errcount, _ := inerr.WriteTo(w)
+		linecount, _ := fmt.Fprintf(w, "\n-----------------------\n")
+		outcount, _ := backinput.WriteTo(w)
+
+		input.Reset()
+		fmt.Printf("%+q\n", input.String())
+
+		return (errcount + int64(linecount) + outcount), fmt.Errorf("GoFmt Error: %+q (See generated file for fmt Error)", err)
 	}
 
-	return int64(input.Len()), nil
+	return inout.WriteTo(w)
 }
