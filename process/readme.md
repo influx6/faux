@@ -18,7 +18,7 @@ src := process.SyncProcess{
 ctx := context.Background()
 
 var errBu, outBu bytes.Buffer
-err := src.SyncExec(ctx, &outBu, &errBu)
+err := src.Exec(ctx, &outBu, &errBu, nil)
 ```
 
 - Executing simple commands asynchronously
@@ -35,7 +35,7 @@ src := process.ASyncProcess{
 ctx := context.Background()
 
 var errBu, outBu bytes.Buffer
-err := src.AsyncExec(ctx, &outBu, &errBu)
+err := src.Exec(ctx, &outBu, &errBu, nil)
 ```
 
 - Executing a shell script source
@@ -50,5 +50,5 @@ src := process.ScriptProcess{
 ctx := context.Background()
 
 var errBu, outBu bytes.Buffer
-err := src.Exec(ctx, &outBu, &errBu)
+err := src.Exec(ctx, &outBu, &errBu, nil)
 ```
