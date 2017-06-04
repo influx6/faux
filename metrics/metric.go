@@ -1,7 +1,7 @@
-// Package sink defines a basic structure foundation for handling logs without
+// Package metrics defines a basic structure foundation for handling logs without
 // much hassle, allow more different entries to be created.
 // Inspired by https://medium.com/@tjholowaychuk/apex-log-e8d9627f4a9a.
-package sink
+package metrics
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ const (
 
 	// DefaultMessage defines a default message used by SentryJSON where
 	// fields contains no messages to be used.
-	DefaultMessage = "Unknown"
+	DefaultMessage = "No Message"
 
 	// StackSize defines the max size for an expected stack.
 	StackSize = 1 << 6
@@ -25,36 +25,10 @@ const (
 
 //==============================================================================
 
-// Sink defines an interface which exposes a method which receives given
+// Metrics defines an interface which exposes a method which receives given
 // Entry which will be sorted accordingly to it's registered entry.
-type Sink interface {
+type Metrics interface {
 	Emit(Entry) error
-}
-
-// Sentries returns a Sink which will pipe all recieved Entrys to provided
-// sentries.
-func Sentries(sx ...Sentry) Sink {
-	return SentryPipe{
-		sentries: sx,
-	}
-}
-
-// New returns a new SinkMaster for which will recieve all expected Entry values.
-func New(sinks ...Sink) Master {
-	return Master{
-		sinks: sinks,
-	}
-}
-
-//==============================================================================
-
-// SentryJSON defines a json style structure for delivery entry data to
-// other APIs.
-type SentryJSON struct {
-	Time     time.Time `json:"time"`
-	Message  string    `json:"message"`
-	FilterID Filter    `json:"filter_id"`
-	Fields   Fields    `json:"fields"`
 }
 
 // Sentry exposes an interface which allows Entries to be transformed into
@@ -63,17 +37,55 @@ type Sentry interface {
 	Emit(SentryJSON) error
 }
 
+//==============================================================================
+
+// New returns a new metricsMaster for which will recieve all expected Entry values.
+func New(metrics ...interface{}) Master {
+	var sentries []Sentry
+	var entries []Metrics
+
+	for _, item := range metrics {
+		switch rItem := item.(type) {
+		case Metrics:
+			entries = append(entries, rItem)
+		case Sentry:
+			sentries = append(sentries, rItem)
+		}
+	}
+
+	return Master{
+		metrics: append(entries, Sentries(sentries...)),
+	}
+}
+
+//==============================================================================
+
+// SentryJSON defines a json style structure for delivery entry data to
+// other APIs.
+type SentryJSON struct {
+	Time    time.Time `json:"time"`
+	Message string    `json:"message"`
+	Fields  Fields    `json:"fields"`
+}
+
 // SentryPipe defines a pipe which will expose a method to allow piping into a
-// sink to deliver entries as centries.
+// metrics to deliver entries as centries.
 type SentryPipe struct {
 	sentries []Sentry
 }
 
-// Emit delivers the giving entry to all available sinks.
+// Sentries returns a metrics which will pipe all recieved Entrys to provided
+// sentries.
+func Sentries(sx ...Sentry) Metrics {
+	return SentryPipe{
+		sentries: sx,
+	}
+}
+
+// Emit delivers the giving entry to all available metricss.
 func (pipe SentryPipe) Emit(e Entry) error {
 	var sentryJSON SentryJSON
 	sentryJSON.Fields = e.Fields()
-	sentryJSON.FilterID = e.ID
 	sentryJSON.Time = time.Now()
 
 	var message string
@@ -98,22 +110,22 @@ func (pipe SentryPipe) Emit(e Entry) error {
 
 //==============================================================================
 
-// Master defines a core sink structure to pipe Entry values to registed sinks.
+// Master defines a core metrics structure to pipe Entry values to registed metricss.
 type Master struct {
-	sinks []Sink
+	metrics []Metrics
 }
 
-// With returns a new Master with a new list of Sinks.
-func (sink Master) With(s Sink) Master {
+// With returns a new Master with a new list of metricss.
+func (metrics Master) With(m Metrics) Master {
 	return Master{
-		sinks: append([]Sink{s}, sink.sinks...),
+		metrics: append([]Metrics{m}, metrics.metrics...),
 	}
 }
 
-// Emit delivers the giving entry to all available sinks.
-func (sink Master) Emit(e Entry) error {
-	for _, sink := range sink.sinks {
-		if err := sink.Emit(e); err != nil {
+// Emit delivers the giving entry to all available metricss.
+func (metrics Master) Emit(e Entry) error {
+	for _, metrics := range metrics.metrics {
+		if err := metrics.Emit(e); err != nil {
 			return err
 		}
 	}
@@ -207,22 +219,16 @@ func (p *Pair) Get(key string) (value interface{}, found bool) {
 
 //==============================================================================
 
-// Filter defines a int64 type which can set the given class of a Entry
-// for sinks who wish to filter based on such value.
-type Filter int64
-
 // Entry defines a data type which encapuslates data related to a giving
 // Log event.
 type Entry struct {
 	*Pair
-	ID      Filter
 	Message string
 }
 
 // WithFields returns a new try with the provided key-value pair with the set ID.
-func WithFields(id int64, f Fields) Entry {
+func WithFields(f Fields) Entry {
 	entry := Entry{
-		ID:   Filter(id),
 		Pair: (*Pair)(nil),
 	}
 
@@ -234,9 +240,8 @@ func WithFields(id int64, f Fields) Entry {
 }
 
 // With returns a new try with the provided key-value pair with the set ID.
-func With(id int64, key string, value interface{}) Entry {
+func With(key string, value interface{}) Entry {
 	return Entry{
-		ID:   Filter(id),
 		Pair: NewPair(key, value),
 	}
 }
@@ -347,7 +352,6 @@ func (e Entry) Trace(name string) *Trace {
 // adds the giving key-value pair to the entry.
 func (e Entry) With(key string, value interface{}) Entry {
 	return Entry{
-		ID:      e.ID,
 		Pair:    e.Pair.Append(key, value),
 		Message: e.Message,
 	}
@@ -362,7 +366,6 @@ func (e Entry) WithMessage(message string, m ...interface{}) Entry {
 	}
 
 	return Entry{
-		ID:      e.ID,
 		Pair:    e.Pair,
 		Message: fmt.Sprintf(message, m...),
 	}
@@ -373,7 +376,6 @@ func (e Entry) WithMessage(message string, m ...interface{}) Entry {
 func (e Entry) WithFields(f Fields) Entry {
 	entry := Entry{
 		Pair:    e.Pair,
-		ID:      e.ID,
 		Message: e.Message,
 	}
 

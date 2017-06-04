@@ -1,4 +1,4 @@
-package sinks
+package stdout
 
 import (
 	"bytes"
@@ -7,17 +7,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/fatih/color"
-	"github.com/influx6/faux/sink"
-)
-
-// contains the set of filter values used by the Stdout sinks
-const (
-	INFO sink.Filter = iota + 1
-	DEBUG
-	ERROR
-	NOTICE
+	"github.com/influx6/faux/metrics"
 )
 
 // contains different color types for printing.
@@ -29,19 +22,28 @@ var (
 	black = color.New(color.FgBlack)
 )
 
+// sets of const used in package.
+const (
+	logTypeKey = "LogKEY"
+	INFO       = "INFO"
+	DEBUG      = "DEBUG"
+	ERROR      = "ERROR"
+	NOTICE     = "NOTICE"
+	UNKOWN     = "Unknown"
+)
+
 //==============================================================================
 
-// Info returns a sink.Entry based on the provided message.
-func Info(message string, m ...interface{}) sink.Entry {
-	return sink.Entry{
+// Info returns a metrics.Entry based on the provided message.
+func Info(message string, m ...interface{}) metrics.Entry {
+	return metrics.Entry{
 		Message: fmt.Sprintf(message, m...),
-		ID:      INFO,
-		Pair:    new(sink.Pair),
+		Pair:    (new(metrics.Pair)).Append(logTypeKey, INFO),
 	}
 }
 
-// Error returns a sink.Entry based on the provided message.
-func Error(mi interface{}, m ...interface{}) sink.Entry {
+// Error returns a metrics.Entry based on the provided message.
+func Error(mi interface{}, m ...interface{}) metrics.Entry {
 	var message string
 
 	switch mo := mi.(type) {
@@ -53,28 +55,25 @@ func Error(mi interface{}, m ...interface{}) sink.Entry {
 		break
 	}
 
-	return sink.Entry{
+	return metrics.Entry{
 		Message: message,
-		ID:      ERROR,
-		Pair:    new(sink.Pair),
+		Pair:    (new(metrics.Pair)).Append(logTypeKey, ERROR),
 	}
 }
 
-// Notice returns a sink.Entry based on the provided message.
-func Notice(message string, m ...interface{}) sink.Entry {
-	return sink.Entry{
+// Notice returns a metrics.Entry based on the provided message.
+func Notice(message string, m ...interface{}) metrics.Entry {
+	return metrics.Entry{
 		Message: fmt.Sprintf(message, m...),
-		ID:      NOTICE,
-		Pair:    new(sink.Pair),
+		Pair:    (new(metrics.Pair)).Append(logTypeKey, NOTICE),
 	}
 }
 
-// Debug returns a sink.Entry based on the provided message.
-func Debug(message string, m ...interface{}) sink.Entry {
-	return sink.Entry{
+// Debug returns a metrics.Entry based on the provided message.
+func Debug(message string, m ...interface{}) metrics.Entry {
+	return metrics.Entry{
 		Message: fmt.Sprintf(message, m...),
-		ID:      DEBUG,
-		Pair:    new(sink.Pair),
+		Pair:    (new(metrics.Pair)).Append(logTypeKey, DEBUG),
 	}
 }
 
@@ -83,23 +82,34 @@ func Debug(message string, m ...interface{}) sink.Entry {
 // Stdout emits all entries into the systems stdout.
 type Stdout struct{}
 
-// Emit implements the sink.Sink interface and does nothing with the
+// Emit implements the metrics.metrics interface and does nothing with the
 // provided entry.
-func (Stdout) Emit(e sink.Entry) error {
+func (Stdout) Emit(e metrics.Entry) error {
 	var bu bytes.Buffer
 
-	switch e.ID {
+	var id string
+
+	if cid, ok := e.Get(logTypeKey); ok {
+		if sid, ok := cid.(string); ok {
+			id = sid
+		}
+	}
+
+	switch id {
 	case INFO:
-		blue.Fprint(&bu, "INFO")
+		blue.Fprint(&bu, INFO)
 		break
 	case DEBUG:
-		cyan.Fprint(&bu, "DEBUG")
+		cyan.Fprint(&bu, DEBUG)
 		break
 	case ERROR:
-		red.Fprint(&bu, "ERROR")
+		red.Fprint(&bu, ERROR)
 		break
 	case NOTICE:
-		white.Fprint(&bu, "NOTICE")
+		white.Fprint(&bu, NOTICE)
+		break
+	default:
+		white.Fprint(&bu, UNKOWN)
 		break
 	}
 
@@ -124,12 +134,20 @@ func (Stdout) Emit(e sink.Entry) error {
 // Stderr emits all entries into the systems stderr.
 type Stderr struct{}
 
-// Emit implements the sink.Sink interface and does nothing with the
+// Emit implements the metrics.metrics interface and does nothing with the
 // provided entry.
-func (Stderr) Emit(e sink.Entry) error {
+func (Stderr) Emit(e metrics.Entry) error {
 	var bu bytes.Buffer
 
-	switch e.ID {
+	var id string
+
+	if cid, ok := e.Get(logTypeKey); ok {
+		if sid, ok := cid.(string); ok {
+			id = sid
+		}
+	}
+
+	switch id {
 	case ERROR:
 		red.Fprint(&bu, "ERROR")
 		break
@@ -152,13 +170,27 @@ func (Stderr) Emit(e sink.Entry) error {
 	return nil
 }
 
-func printEntryParams(bu io.Writer, e sink.Entry) {
+func printEntryParams(bu io.Writer, e metrics.Entry) {
 	bu.Write([]byte("\t\t"))
 
 	fields := e.Fields()
 
+	var id string
+
+	if cid, ok := e.Get(logTypeKey); ok {
+		if sid, ok := cid.(string); ok {
+			id = sid
+		}
+	}
+
 	for key, val := range fields {
-		switch e.ID {
+
+		// We don't want keyless or value-less items.
+		if key == "" || val == nil {
+			continue
+		}
+
+		switch id {
 		case INFO:
 			blue.Fprint(bu, key)
 			black.Fprint(bu, "=")
@@ -193,9 +225,25 @@ type stringer interface {
 }
 
 func printValue(val interface{}) string {
-	switch mo := val.(type) {
+	switch bo := val.(type) {
+	case string:
+		return bo
 	case stringer:
-		return mo.String()
+		return bo.String()
+	case int:
+		return strconv.Itoa(bo)
+	case int64:
+		return strconv.Itoa(int(bo))
+	case rune:
+		return strconv.QuoteRune(bo)
+	case bool:
+		return strconv.FormatBool(bo)
+	case byte:
+		return strconv.QuoteRune(rune(bo))
+	case float64:
+		return strconv.FormatFloat(bo, 'f', 4, 64)
+	case float32:
+		return strconv.FormatFloat(float64(bo), 'f', 4, 64)
 	default:
 		data, err := json.Marshal(val)
 		if err != nil {

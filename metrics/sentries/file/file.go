@@ -5,10 +5,10 @@ import (
 	"os"
 	"sync"
 
-	"github.com/influx6/faux/sink"
+	"github.com/influx6/faux/metrics"
 )
 
-// File defines a struct which implements a memory collector for sinks.
+// File defines a struct which implements a memory collector for metricss.
 type File struct {
 	wl   sync.Mutex
 	file *os.File
@@ -23,7 +23,7 @@ func New(path string) *File {
 }
 
 // Emit adds the giving SentryJSON into the internal slice.
-func (f *File) Emit(sjn sink.SentryJSON) error {
+func (f *File) Emit(sjn metrics.SentryJSON) error {
 	f.wl.Lock()
 	defer f.wl.Unlock()
 
