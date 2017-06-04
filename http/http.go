@@ -20,10 +20,6 @@ func Params(r *http.Request, multipartFormSize int64) (context.Context, error) {
 		multipartFormSize = maxsize
 	}
 
-	if err := r.ParseForm(); err != nil {
-		return nil, err
-	}
-
 	if err := r.ParseMultipartForm(multipartFormSize); err != nil {
 		return nil, err
 	}
