@@ -7,11 +7,11 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/influx6/faux/sink"
-	"github.com/influx6/faux/sink/sinks"
+	"github.com/influx6/faux/metrics"
+	"github.com/influx6/faux/metrics/sentries/stdout"
 )
 
-var log = sink.New(sinks.Stdout{})
+var log = metrics.New(stdout.Stdout{})
 
 // CriticalLevel defines a int type which is used to signal the critical nature of a
 // command/script to be executed.
@@ -42,7 +42,7 @@ func (c Command) Run(ctx context.Context, wout, werr io.Writer, pin io.Reader) e
 	proc.Stderr = werr
 
 	if err := proc.Start(); err != nil {
-		log.Emit(sinks.Error("Process : Error : Command : Begin Execution : %q : %q : %q", c.Name, c.Args, err))
+		log.Emit(stdout.Error("Process : Error : Command : Begin Execution : %q : %q : %q", c.Name, c.Args, err))
 		return err
 	}
 
@@ -55,7 +55,7 @@ func (c Command) Run(ctx context.Context, wout, werr io.Writer, pin io.Reader) e
 
 	if !c.Async {
 		if err := proc.Wait(); err != nil {
-			log.Emit(sinks.Error("Process : Error : Command : Begin Execution : %q : %q : %+q", c.Name, c.Args, err))
+			log.Emit(stdout.Error("Process : Error : Command : Begin Execution : %q : %q : %+q", c.Name, c.Args, err))
 
 			if c.Level > Warning {
 				return err
@@ -143,18 +143,18 @@ type ScriptProcess struct {
 func (c ScriptProcess) Exec(ctx context.Context, pipeOut, pipeErr io.Writer, pipeIn io.Reader) error {
 	tmpFile, err := ioutil.TempFile("/tmp", "proc-shell")
 	if err != nil {
-		log.Emit(sinks.Error("Process : Error : Command : Begin Execution : %q : %+q", c.Shell, err))
+		log.Emit(stdout.Error("Process : Error : Command : Begin Execution : %q : %+q", c.Shell, err))
 		return err
 	}
 
 	if _, err := tmpFile.Write([]byte(c.Source)); err != nil {
-		log.Emit(sinks.Error("Process : Error : Command : Begin Execution : %q : %+q", c.Shell, err))
+		log.Emit(stdout.Error("Process : Error : Command : Begin Execution : %q : %+q", c.Shell, err))
 		tmpFile.Close()
 		return err
 	}
 
 	if err := tmpFile.Sync(); err != nil {
-		log.Emit(sinks.Error("Process : Error : Command : Begin Execution : %q : %+q", c.Shell, err))
+		log.Emit(stdout.Error("Process : Error : Command : Begin Execution : %q : %+q", c.Shell, err))
 		tmpFile.Close()
 		return err
 	}
@@ -169,7 +169,7 @@ func (c ScriptProcess) Exec(ctx context.Context, pipeOut, pipeErr io.Writer, pip
 	proc.Stdin = pipeIn
 
 	if err := proc.Start(); err != nil {
-		log.Emit(sinks.Error("Process : Error : Command : Begin Execution : %q : %+q", c.Shell, err))
+		log.Emit(stdout.Error("Process : Error : Command : Begin Execution : %q : %+q", c.Shell, err))
 		return err
 	}
 
@@ -181,7 +181,7 @@ func (c ScriptProcess) Exec(ctx context.Context, pipeOut, pipeErr io.Writer, pip
 	}()
 
 	if err := proc.Wait(); err != nil {
-		log.Emit(sinks.Error("Process : Error : Command : Begin Execution : %q : %q", c.Shell, c.Source))
+		log.Emit(stdout.Error("Process : Error : Command : Begin Execution : %q : %q", c.Shell, c.Source))
 
 		if c.Level > Warning {
 			return err
