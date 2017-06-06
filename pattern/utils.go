@@ -63,7 +63,7 @@ func addSlash(ps string) string {
 
 //TrimEndSlashe removes the '/' at the end of string.
 func TrimEndSlashe(c string) string {
-	return strings.TrimSuffix(strings.TrimPrefix(cleanPath(c), "/"), "/")
+	return strings.TrimSuffix(cleanPath(c), "/")
 }
 
 //==============================================================================
