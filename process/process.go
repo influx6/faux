@@ -27,10 +27,10 @@ const (
 
 // Command defines the command to be executed and it's arguments
 type Command struct {
-	Name  string        `json:"name" toml:"name"`
-	Level CriticalLevel `json:"level" toml:"level"`
-	Args  []string      `json:"args" toml:"args"`
-	Async bool          `json:"async" toml:"async"`
+	Name  string
+	Level CriticalLevel
+	Args  []string
+	Async bool
 }
 
 // Run executes the giving command and returns the bytes.Buffer for both
