@@ -193,26 +193,26 @@ func printEntryParams(bu io.Writer, e metrics.Entry) {
 		switch id {
 		case INFO:
 			blue.Fprint(bu, key)
-			black.Fprint(bu, "=")
-			black.Fprint(bu, printValue(val))
+			blue.Fprint(bu, "=")
+			white.Fprint(bu, printValue(val))
 			bu.Write([]byte(" "))
 			break
 		case DEBUG:
 			cyan.Fprint(bu, key)
-			black.Fprint(bu, "=")
-			black.Fprint(bu, printValue(val))
+			blue.Fprint(bu, "=")
+			white.Fprint(bu, printValue(val))
 			bu.Write([]byte(" "))
 			break
 		case ERROR:
 			red.Fprint(bu, key)
-			black.Fprint(bu, "=")
-			black.Fprint(bu, printValue(val))
+			blue.Fprint(bu, "=")
+			white.Fprint(bu, printValue(val))
 			bu.Write([]byte(" "))
 			break
 		case NOTICE:
 			white.Fprint(bu, key)
-			black.Fprint(bu, "=")
-			black.Fprint(bu, printValue(val))
+			blue.Fprint(bu, "=")
+			white.Fprint(bu, printValue(val))
 			bu.Write([]byte(" "))
 			break
 		}
