@@ -8,6 +8,12 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
+// Mongod defines a interface which exposes a method for retrieving a
+// mongo.Database and mongo.Session.
+type Mongod interface {
+	New() (*mgo.Database, *mgo.Session, error)
+}
+
 // Config provides configuration for connecting to a db.
 type Config struct {
 	Host     string
@@ -17,30 +23,31 @@ type Config struct {
 	Password string
 }
 
-// MongoServer defines a mongo connection manager that builds 
-// allows usage of a giving configuration to generate new mongo 
-// sessions and database instances.
-type MongoServer struct {
-	Config
-	sl sync.Mutex
-	sessions map[string*mgo.Session
-}
-
 // New returns a new instance of a MongoServer.
-func New(config Config) *MongoServer {
-	var mn MongoServer
+func New(config Config) Mongod {
+	var mn mongoServer
 	mn.Config = config
 	mn.sessions = make(map[string]*mgo.Session)
 
 	return &mn
 }
+
+// mongoServer defines a mongo connection manager that builds
+// allows usage of a giving configuration to generate new mongo
+// sessions and database instances.
+type mongoServer struct {
+	Config
+	sl       sync.Mutex
+	sessions map[string]*mgo.Session
+}
+
 // New returns a new session and database from the giving configuration.
-func (m *Mongnod) NewSession() (*mgo.Database, *mgo.Session, error) {
+func (m *mongoServer) New() (*mgo.Database, *mgo.Session, error) {
 	key := m.Config.Host + ":" + m.Config.DB
 
-	m.sl.Lock()	
+	m.sl.Lock()
 	ms, ok := m.sessions[key]
-	m.sl.Unlock()	
+	m.sl.Unlock()
 
 	if ok {
 		ses := ms.Copy()
@@ -67,9 +74,9 @@ func (m *Mongnod) NewSession() (*mgo.Database, *mgo.Session, error) {
 	ses.SetMode(mgo.Monotonic, true)
 
 	// Add to master list.
-	m.sl.Lock()	
+	m.sl.Lock()
 	m.sessions[key] = ses.Copy()
-	m.sl.Unlock()	
+	m.sl.Unlock()
 
 	return ses.DB(m.Config.DB), ses, nil
 }
