@@ -121,6 +121,7 @@ func (Stdout) Emit(e metrics.Entry) error {
 		bu.Write([]byte(e.Message))
 	}
 
+	bu.Write([]byte("\n"))
 	printEntryParams(&bu, e)
 	bu.Write([]byte("\n"))
 
