@@ -113,7 +113,7 @@ func (Stdout) Emit(e metrics.Entry) error {
 		break
 	}
 
-	black.Fprint(&bu, "[opening]")
+	cyan.Fprint(&bu, "[opening]")
 	bu.Write([]byte(":"))
 
 	if e.Message != "" {
@@ -155,7 +155,7 @@ func (Stderr) Emit(e metrics.Entry) error {
 		return errors.New("Only Error ID allowed")
 	}
 
-	black.Fprint(&bu, "[opening]")
+	cyan.Fprint(&bu, "[opening]")
 	bu.Write([]byte(":"))
 
 	if e.Message != "" {
@@ -163,6 +163,7 @@ func (Stderr) Emit(e metrics.Entry) error {
 		bu.Write([]byte(e.Message))
 	}
 
+	bu.Write([]byte("\n"))
 	printEntryParams(&bu, e)
 	bu.Write([]byte("\n"))
 
@@ -192,28 +193,40 @@ func printEntryParams(bu io.Writer, e metrics.Entry) {
 
 		switch id {
 		case INFO:
+			bu.Write([]byte("\t\t\t\t"))
+			bu.Write([]byte("\n\t"))
 			blue.Fprint(bu, key)
 			blue.Fprint(bu, "=")
-			white.Fprint(bu, printValue(val))
+			cyan.Fprint(bu, printValue(val))
 			bu.Write([]byte(" "))
+			bu.Write([]byte("\t\n"))
 			break
 		case DEBUG:
+			bu.Write([]byte("\t\t\t\t"))
+			bu.Write([]byte("\n\t"))
 			cyan.Fprint(bu, key)
 			blue.Fprint(bu, "=")
-			white.Fprint(bu, printValue(val))
+			cyan.Fprint(bu, printValue(val))
 			bu.Write([]byte(" "))
+			bu.Write([]byte("\t\n"))
 			break
 		case ERROR:
+			bu.Write([]byte("\t\t\t\t"))
+			bu.Write([]byte("\n\t"))
 			red.Fprint(bu, key)
 			blue.Fprint(bu, "=")
-			white.Fprint(bu, printValue(val))
+			cyan.Fprint(bu, printValue(val))
 			bu.Write([]byte(" "))
+			bu.Write([]byte("\t\n"))
 			break
 		case NOTICE:
+			bu.Write([]byte("\t\t\t\t"))
+			bu.Write([]byte("\n\t"))
 			white.Fprint(bu, key)
 			blue.Fprint(bu, "=")
-			white.Fprint(bu, printValue(val))
+			cyan.Fprint(bu, printValue(val))
 			bu.Write([]byte(" "))
+			bu.Write([]byte("\t\n"))
 			break
 		}
 	}
