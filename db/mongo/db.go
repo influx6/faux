@@ -62,7 +62,7 @@ func GetSession(config Config) (*mgo.Session, error) {
 		return nil, err
 	}
 
-	if config.Mode == 0 {
+	if config.Mode < 0 {
 		config.Mode = mgo.Monotonic
 	}
 
