@@ -21,13 +21,62 @@ type Config struct {
 	DB       string
 	User     string
 	Password string
+	Mode     mgo.Mode
+}
+
+var mgoSessions = struct {
+	ml       sync.Mutex
+	sessions map[string]*mgo.Session
+}{
+	sessions: make(map[string]*mgo.Session),
+}
+
+// GetSession attempts to retrieve the giving session for the given config.
+func GetSession(config Config) (*mgo.Session, error) {
+	key := config.Host + ":" + config.DB
+
+	mgoSessions.ml.Lock()
+
+	ms, ok := mgoSessions.sessions[key]
+	if ok {
+		mgoSessions.ml.Unlock()
+		return ms.Copy(), nil
+	}
+
+	defer mgoSessions.ml.Unlock()
+
+	// If not found, then attemp to connect and add to session master list.
+	// We need this object to establish a session to our MongoDB.
+	info := mgo.DialInfo{
+		Addrs:    []string{config.Host},
+		Timeout:  60 * time.Second,
+		Database: config.AuthDB,
+		Username: config.User,
+		Password: config.Password,
+	}
+
+	// Create a session which maintains a pool of socket connections
+	// to our MongoDB.
+	ses, err := mgo.DialWithInfo(&info)
+	if err != nil {
+		return nil, err
+	}
+
+	if config.Mode == 0 {
+		config.Mode = mgo.Monotonic
+	}
+
+	ses.SetMode(config.Mode, true)
+
+	mgoSessions.sessions[key] = ses
+
+	return ses, nil
 }
 
 // New returns a new instance of a MongoServer.
 func New(config Config) Mongod {
 	var mn mongoServer
 	mn.Config = config
-	mn.sessions = make(map[string]*mgo.Session)
 
 	return &mn
 }
@@ -37,70 +86,38 @@ func New(config Config) Mongod {
 // sessions and database instances.
 type mongoServer struct {
 	Config
-	sl       sync.Mutex
-	sessions map[string]*mgo.Session
 }
 
 // New returns a new session and database from the giving configuration.
 func (m *mongoServer) New() (*mgo.Database, *mgo.Session, error) {
-	key := m.Config.Host + ":" + m.Config.DB
-
-	m.sl.Lock()
-	ms, ok := m.sessions[key]
-	m.sl.Unlock()
-
-	if ok {
-		ses := ms.Copy()
-		return ses.DB(m.Config.DB), ses, nil
-	}
-
-	// If not found, then attemp to connect and add to session master list.
-	// We need this object to establish a session to our MongoDB.
-	info := mgo.DialInfo{
-		Addrs:    []string{m.Config.Host},
-		Timeout:  60 * time.Second,
-		Database: m.Config.AuthDB,
-		Username: m.Config.User,
-		Password: m.Config.Password,
-	}
-
-	// Create a session which maintains a pool of socket connections
-	// to our MongoDB.
-	ses, err := mgo.DialWithInfo(&info)
+	ses, err := GetSession(m.Config)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	ses.SetMode(mgo.Monotonic, true)
-
-	// Add to master list.
-	m.sl.Lock()
-	m.sessions[key] = ses.Copy()
-	m.sl.Unlock()
 
 	return ses.DB(m.Config.DB), ses, nil
 }
 
 //==========================================================================================
 
-// QueryIndent returns the stringified version of the giving data and indents
+// JSONIndent returns the stringified version of the giving data and indents
 // its result. Uses json.Marshal underneath.
-func QueryIndent(ms interface{}) string {
-	data, err := json.MarshalIndent(ms, "", "\n")
+func JSONIndent(ms interface{}) (string, error) {
+	data, err := json.MarshalIndent(ms, "", "\t")
 	if err != nil {
-		return ""
+		return "", err
 	}
 
-	return string(data)
+	return string(data), nil
 }
 
-// Query returns a stringified version of the provided argument
+// JSON returns a stringified version of the provided argument
 // using json.Marshal.
-func Query(ms interface{}) string {
+func JSON(ms interface{}) (string, error) {
 	data, err := json.Marshal(ms)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
-	return string(data)
+	return string(data), nil
 }
