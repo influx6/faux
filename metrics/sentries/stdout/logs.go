@@ -244,6 +244,8 @@ func printValue(val interface{}) string {
 		return bo
 	case stringer:
 		return bo.String()
+	case error:
+		return bo.Error()
 	case int:
 		return strconv.Itoa(bo)
 	case int64:
