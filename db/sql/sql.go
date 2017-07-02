@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"database/sql"
+
 	"github.com/influx6/faux/db"
 	"github.com/influx6/faux/db/sql/tables"
 	"github.com/influx6/faux/metrics"
@@ -263,7 +265,7 @@ func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy strin
 		"order":           order,
 		"page":            page,
 		"responsePerPage": responsePerPage,
-	}).Trace("db.GetAll").End())
+	}).Trace("db.GetAllPerPage").End())
 
 	if err := sq.migrate(); err != nil {
 		return nil, -1, err
@@ -357,6 +359,112 @@ func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy strin
 	return fields, totalRecords, nil
 }
 
+// GetAllPerPageBy retrieves the giving data from the specific db with the specific index and value.
+func (sq *SQL) GetAllPerPageBy(table db.TableIdentity, order string, orderBy string, page int, responsePerPage int, mx func(*sql.Rows) error) (int, error) {
+	defer sq.l.Emit(stdout.Info("Retrieve all records from DB").With("table", table.Table()).WithFields(metrics.Fields{
+		"order":           order,
+		"page":            page,
+		"responsePerPage": responsePerPage,
+	}).Trace("db.GetAllPerPageBy").End())
+
+	if err := sq.migrate(); err != nil {
+		return -1, err
+	}
+
+	db, err := sq.d.New()
+	if err != nil {
+		return -1, err
+	}
+
+	defer db.Close()
+
+	if page <= 0 && responsePerPage <= 0 {
+		records, err := sq.GetAll(table, order, orderBy)
+		return records, len(records), err
+	}
+
+	// Get total number of records.
+	totalRecords, err := sq.Count(table)
+	if err != nil {
+		return -1, err
+	}
+
+	switch strings.ToLower(order) {
+	case "asc":
+		order = "ASC"
+	case "dsc", "desc":
+		order = "DESC"
+	default:
+		order = "ASC"
+	}
+
+	var totalWanted, indexToStart int
+
+	if page <= 1 && responsePerPage > 0 {
+		totalWanted = responsePerPage
+		indexToStart = 0
+	} else {
+		totalWanted = responsePerPage * page
+		indexToStart = totalWanted / 2
+
+		if page > 1 {
+			indexToStart++
+		}
+	}
+
+	sq.l.Emit(stdout.Info("DB:Query:GetAllPerPageBy").WithFields(metrics.Fields{
+		"starting_index":       indexToStart,
+		"total_records_wanted": totalWanted,
+		"order":                order,
+		"page":                 page,
+		"responsePerPage":      responsePerPage,
+	}))
+
+	// If we are passed the total, just return nil records and total without error.
+	if indexToStart > totalRecords {
+		return totalRecords, nil
+	}
+
+	query := fmt.Sprintf(selectLimitedTemplate, table.Table(), orderBy, order, totalWanted, indexToStart)
+
+	sq.l.Emit(stdout.Info("DB:Query:GetAllPerPageBy").With("query", query))
+
+	rows, err := db.Queryx(query)
+	if err != nil {
+		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+			"err":   err,
+			"query": query,
+			"table": table.Table(),
+		}))
+
+		return -1, err
+	}
+
+	// var fields []map[string]interface{}
+
+	// for rows.Next() {
+	// 	mo := make(map[string]interface{})
+
+	// 	if err := rows.MapScan(mo); err != nil {
+	// 		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+	// 			"err":   err,
+	// 			"query": query,
+	// 			"table": table.Table(),
+	// 		}))
+
+	// 		return nil, -1, err
+	// 	}
+
+	// 	fields = append(fields, naturalizeMap(mo))
+	// }
+
+	if err := mx(rows); err != nil {
+		return -1, err
+	}
+
+	return totalRecords, nil
+}
+
 // GetAll retrieves the giving data from the specific db with the specific index and value.
 func (sq *SQL) GetAll(table db.TableIdentity, order string, orderBy string) ([]map[string]interface{}, error) {
 	defer sq.l.Emit(stdout.Info("Retrieve all records from DB").With("table", table.Table()).Trace("db.GetAll").End())
@@ -411,6 +519,54 @@ func (sq *SQL) GetAll(table db.TableIdentity, order string, orderBy string) ([]m
 	}
 
 	return fields, nil
+}
+
+// GetAllBy retrieves the giving data from the specific db with the specific index and value.
+func (sq *SQL) GetAllBy(table db.TableIdentity, order string, orderBy string, mx func(*sql.Rows) error) error {
+	defer sq.l.Emit(stdout.Info("Retrieve all records from DB").With("table", table.Table()).Trace("db.GetAllBy").End())
+
+	if err := sq.migrate(); err != nil {
+		return nil
+	}
+
+	db, err := sq.d.New()
+	if err != nil {
+		return nil
+	}
+
+	defer db.Close()
+
+	switch strings.ToLower(order) {
+	case "asc":
+		order = "ASC"
+	case "dsc", "desc":
+		order = "DESC"
+	default:
+		order = "ASC"
+	}
+
+	// var fields []map[string]interface{}
+
+	query := fmt.Sprintf(selectAllTemplate, table.Table(), orderBy, order)
+
+	sq.l.Emit(stdout.Info("DB:Query:GetAll").With("query", query))
+
+	rows, err := db.Queryx(query)
+	if err != nil {
+		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+			"err":   err,
+			"query": query,
+			"table": table.Table(),
+		}))
+
+		return err
+	}
+
+	if err := mx(rows); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Get retrieves the giving data from the specific db with the specific index and value.
