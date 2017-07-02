@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"runtime"
+
 	"github.com/influx6/faux/hexwriter"
 )
 
@@ -72,6 +74,11 @@ func walkDir(extensions []string, items map[string]string, root string, path str
 
 	io.Copy(hexwriter.New(&contents), relFile)
 
-	items[rel] = contents.String()
+	if runtime.GOOS == "windows" {
+		items[filepath.ToSlash(rel)] = contents.String()
+	} else {
+		items[rel] = contents.String()
+	}
+
 	return nil
 }

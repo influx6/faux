@@ -190,7 +190,7 @@ func (sq *SQL) Save(identity db.TableIdentity, table db.TableFields) error {
 // data appropriately into the giving db.
 // index - defines the string which should identify the key to be retrieved from the fields to target the
 // data to be updated in the db.
-func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index string) error {
+func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index string, indexValue interface{}) error {
 	defer sq.l.Emit(stdout.Info("Update to DB").With("table", identity.Table()).Trace("db.Update").End())
 
 	if err := sq.migrate(); err != nil {
@@ -212,17 +212,6 @@ func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index str
 	tableFields := table.Fields()
 	tableFields["updated_at"] = time.Now().UTC()
 
-	// Given index was not found, return error.
-	indexValue, ok := tableFields[index]
-	if !ok {
-		err := fmt.Errorf("Index key %q not found in fields", index)
-		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
-			"err":   err,
-			"table": identity.Table(),
-		}))
-		return err
-	}
-
 	indexValueString, err := printLiteral(indexValue)
 	if err != nil {
 		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
@@ -231,9 +220,6 @@ func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index str
 		}))
 		return err
 	}
-
-	// Delete given index from fieldNames
-	delete(tableFields, index)
 
 	sets, err := setValues(tableFields)
 	if err != nil {
@@ -262,8 +248,9 @@ func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index str
 // GetAllPerPage retrieves the giving data from the specific db with the specific index and value.
 func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy string, page int, responsePerPage int) ([]map[string]interface{}, int, error) {
 	defer sq.l.Emit(stdout.Info("Retrieve all records from DB").With("table", table.Table()).WithFields(metrics.Fields{
-		"order":           order,
 		"page":            page,
+		"order":           order,
+		"orderBy":         orderBy,
 		"responsePerPage": responsePerPage,
 	}).Trace("db.GetAllPerPage").End())
 
@@ -287,15 +274,6 @@ func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy strin
 	totalRecords, err := sq.Count(table)
 	if err != nil {
 		return nil, -1, err
-	}
-
-	switch strings.ToLower(order) {
-	case "asc":
-		order = "ASC"
-	case "dsc", "desc":
-		order = "DESC"
-	default:
-		order = "ASC"
 	}
 
 	var totalWanted, indexToStart int

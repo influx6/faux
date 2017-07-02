@@ -165,7 +165,7 @@ func TestSQLAPI(t *testing.T) {
 
 		t.Log("\tWhen updating user record")
 		{
-			if err := db.Update(userTable, nw, "public_id"); err != nil {
+			if err := db.Update(userTable, nw, "public_id", nw.PublicID); err != nil {
 				tests.Failed("Should have successfully updated record to db table %q: %+q.", userTable.Table(), err)
 			}
 			tests.Passed("Should have successfully updated record to db table %q.", userTable.Table())
