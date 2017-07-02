@@ -640,6 +640,65 @@ func (sq *SQL) Get(table db.TableIdentity, consumer db.TableConsumer, index stri
 	return nil
 }
 
+// GetBy retrieves the giving data from the specific db with the specific index and value.
+func (sq *SQL) GetBy(table db.TableIdentity, consumer func(*sql.Row) error, index string, indexValue interface{}) error {
+	defer sq.l.Emit(stdout.Info("Get record from DB").WithFields(metrics.Fields{
+		"table":      table.Table(),
+		"index":      index,
+		"indexValue": indexValue,
+	}).Trace("db.GetBy").End())
+
+	if err := sq.migrate(); err != nil {
+		return err
+	}
+
+	db, err := sq.d.New()
+	if err != nil {
+		return err
+	}
+
+	defer db.Close()
+
+	indexValueString, err := printLiteral(indexValue)
+	if err != nil {
+		sq.l.Emit(stdout.Error("DB:Query: %+q", err).WithFields(metrics.Fields{
+			"err":   err,
+			"table": table.Table(),
+		}))
+		return err
+	}
+
+	query := fmt.Sprintf(selectItemTemplate, table.Table(), index, indexValueString)
+	sq.l.Emit(stdout.Info("DB:Query").With("query", query))
+
+	row := db.QueryRowx(query)
+	if err := row.Err(); err != nil {
+		sq.l.Emit(stdout.Error("DB:Query: %+q", err).WithFields(metrics.Fields{
+			"err":   err,
+			"query": query,
+			"table": table.Table(),
+		}))
+		return err
+	}
+
+	if err := consumer(row); err != nil {
+		sq.l.Emit(stdout.Error("DB:Query: %+q", err).WithFields(metrics.Fields{
+			"err":   err,
+			"query": query,
+			"table": table.Table(),
+		}))
+
+		return err
+	}
+
+	sq.l.Emit(stdout.Debug("Consumer:Get:Fields").WithFields(metrics.Fields{
+		"table":    table.Table(),
+		"response": mo,
+	}))
+
+	return nil
+}
+
 // Count retrieves the total number of records from the specific table from the db.
 func (sq *SQL) Count(table db.TableIdentity) (int, error) {
 	defer sq.l.Emit(stdout.Info("Count record from DB").WithFields(metrics.Fields{
