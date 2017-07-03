@@ -46,6 +46,11 @@ func (fm WriterTo) WriteTo(w io.Writer) (int64, error) {
 
 		// If we must attempt to fallback to gofmt, due to goimport error, attempt to
 		if fm.goimport && fm.attemptFallback {
+			fmt.Printf("------------------------- ATTEMPTING GOFMT FALLBACK (GOIMPORTS FAILED) --------------------------------------------\n")
+			fmt.Printf("Error:\n%s\n", err.Error())
+			fmt.Printf("---------------------------------------------------------------------\n")
+			fmt.Printf("StdError:\n%s\n", inerr.String())
+			fmt.Printf("---------------------------------------------------------------------\n")
 			return (WriterTo{WriterTo: &backinput}).WriteTo(w)
 		}
 
