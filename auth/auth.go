@@ -17,46 +17,6 @@ type Credential struct {
 	Scopes       []string `json:"scopes"`
 }
 
-//===================================================================================================
-
-// ParseAuthorization returns the scheme and token of the Authorization string
-// if it's valid.
-func ParseAuthorization(val string) (authType string, token string, err error) {
-	authSplit := strings.SplitN(val, " ", 2)
-	if len(authSplit) != 2 {
-		err = errors.New("Invalid Authorization: Expected content: `AuthType Token`")
-		return
-	}
-
-	authType = strings.TrimSpace(authSplit[0])
-	token = strings.TrimSpace(authSplit[1])
-
-	return
-}
-
-// ParseToken parses the base64 encoded token, which it returns the
-// associated userID and session token.
-func ParseToken(val string) (userID string, token string, err error) {
-	var decoded []byte
-
-	decoded, err = base64.StdEncoding.DecodeString(val)
-	if err != nil {
-		return
-	}
-
-	// Attempt to get the session token split which has the userid:session_token.
-	sessionToken := strings.Split(string(decoded), ":")
-	if len(sessionToken) != 2 {
-		err = errors.New("Invalid Token: Token must be UserID:Token  format")
-		return
-	}
-
-	userID = sessionToken[0]
-	token = sessionToken[1]
-
-	return
-}
-
 //====================================================================================================
 
 // Auth defines a structure which allows us properly retrieve oauth
@@ -114,3 +74,44 @@ func (a *Auth) AuthorizeFromUser(code string) (*http.Client, Token, error) {
 		Expires:     token.Expiry,
 	}, nil
 }
+
+//===================================================================================================
+
+// ParseAuthorization returns the scheme and token of the Authorization string
+// if it's valid.
+func ParseAuthorization(val string) (authType string, token string, err error) {
+	authSplit := strings.SplitN(val, " ", 2)
+	if len(authSplit) != 2 {
+		err = errors.New("Invalid Authorization: Expected content: `AuthType Token`")
+		return
+	}
+
+	authType = strings.TrimSpace(authSplit[0])
+	token = strings.TrimSpace(authSplit[1])
+
+	return
+}
+
+// ParseToken parses the base64 encoded token, which it returns the
+// associated userID and session token.
+func ParseToken(val string) (userID string, token string, err error) {
+	var decoded []byte
+
+	decoded, err = base64.StdEncoding.DecodeString(val)
+	if err != nil {
+		return
+	}
+
+	// Attempt to get the session token split which has the userid:session_token.
+	sessionToken := strings.Split(string(decoded), ":")
+	if len(sessionToken) != 2 {
+		err = errors.New("Invalid Token: Token must be UserID:Token  format")
+		return
+	}
+
+	userID = sessionToken[0]
+	token = sessionToken[1]
+
+	return
+}
+
