@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/influx6/faux/context"
+	"fmt"
+	"errors"
 )
 
 const (
@@ -44,3 +46,19 @@ func Params(ctx context.Context, r *http.Request, multipartFormSize int64) error
 
 	return nil
 }
+
+// ErrorMessage returns a string which contains a json value of a
+// given error message to be delivered.
+func ErrorMessage(status int, header string, err error) string {
+	return fmt.Sprintf(`{
+		"status": %d,
+		"title": %+q,
+		"message": %+q,
+	}`, status, header, err)
+}
+
+// WriteErrorMessage writes the giving error message to the provided writer.
+func WriteErrorMessage(w http.ResponseWriter, status int, header string, err error) {
+	http.Error(w, ErrorMessage(status, header, err), status)
+}
+

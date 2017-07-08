@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"database/sql"
-
 	"github.com/influx6/faux/db"
 	"github.com/influx6/faux/db/sql/tables"
 	"github.com/influx6/faux/metrics"
@@ -338,7 +336,7 @@ func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy strin
 }
 
 // GetAllPerPageBy retrieves the giving data from the specific db with the specific index and value.
-func (sq *SQL) GetAllPerPageBy(table db.TableIdentity, order string, orderBy string, page int, responsePerPage int, mx func(*sql.Rows) error) (int, error) {
+func (sq *SQL) GetAllPerPageBy(table db.TableIdentity, order string, orderBy string, page int, responsePerPage int, mx func(*sqlx.Rows) error) (int, error) {
 	defer sq.l.Emit(stdout.Info("Retrieve all records from DB").With("table", table.Table()).WithFields(metrics.Fields{
 		"order":           order,
 		"page":            page,
@@ -358,7 +356,7 @@ func (sq *SQL) GetAllPerPageBy(table db.TableIdentity, order string, orderBy str
 
 	if page <= 0 && responsePerPage <= 0 {
 		records, err := sq.GetAll(table, order, orderBy)
-		return records, len(records), err
+		return  len(records), err
 	}
 
 	// Get total number of records.
@@ -500,7 +498,7 @@ func (sq *SQL) GetAll(table db.TableIdentity, order string, orderBy string) ([]m
 }
 
 // GetAllBy retrieves the giving data from the specific db with the specific index and value.
-func (sq *SQL) GetAllBy(table db.TableIdentity, order string, orderBy string, mx func(*sql.Rows) error) error {
+func (sq *SQL) GetAllBy(table db.TableIdentity, order string, orderBy string, mx func(*sqlx.Rows) error) error {
 	defer sq.l.Emit(stdout.Info("Retrieve all records from DB").With("table", table.Table()).Trace("db.GetAllBy").End())
 
 	if err := sq.migrate(); err != nil {
@@ -619,7 +617,7 @@ func (sq *SQL) Get(table db.TableIdentity, consumer db.TableConsumer, index stri
 }
 
 // GetBy retrieves the giving data from the specific db with the specific index and value.
-func (sq *SQL) GetBy(table db.TableIdentity, consumer func(*sql.Row) error, index string, indexValue interface{}) error {
+func (sq *SQL) GetBy(table db.TableIdentity, consumer func(*sqlx.Row) error, index string, indexValue interface{}) error {
 	defer sq.l.Emit(stdout.Info("Get record from DB").WithFields(metrics.Fields{
 		"table":      table.Table(),
 		"index":      index,
@@ -671,7 +669,8 @@ func (sq *SQL) GetBy(table db.TableIdentity, consumer func(*sql.Row) error, inde
 
 	sq.l.Emit(stdout.Debug("Consumer:Get:Fields").WithFields(metrics.Fields{
 		"table":    table.Table(),
-		"response": mo,
+		"index":      index,
+		"indexValue": indexValue,
 	}))
 
 	return nil
