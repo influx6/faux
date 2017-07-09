@@ -255,6 +255,7 @@ type Trace struct {
 	LineNumber int       `json:"line_number"`
 	BeginStack []byte    `json:"begin_stack"`
 	EndStack   []byte    `json:"end_stack"`
+	Comments   []string  `json:"comments"`
 	StartTime  time.Time `json:"start_time"`
 	EndTime    time.Time `json:"end_time"`
 	entry      *Entry
@@ -282,7 +283,7 @@ func (t *Trace) End() Entry {
 
 // TraceWithCallDepth returns a Trace object which is used to track the execution and
 // stack details of a given trace call.
-func (e Entry) TraceWithCallDepth(name string, depth int) *Trace {
+func (e Entry) TraceWithCallDepth(depth int, comments ...string) *Trace {
 	trace := make([]byte, StackSize)
 	trace = trace[:runtime.Stack(trace, false)]
 
@@ -309,6 +310,7 @@ func (e Entry) TraceWithCallDepth(name string, depth int) *Trace {
 		Package:    pkg,
 		LineNumber: line,
 		BeginStack: trace,
+		Comments:   comments,
 		StartTime:  time.Now(),
 		File:       pkgFile,
 	}
@@ -316,7 +318,7 @@ func (e Entry) TraceWithCallDepth(name string, depth int) *Trace {
 
 // Trace returns a Trace object which is used to track the execution and
 // stack details of a given trace call.
-func (e Entry) Trace(name string) *Trace {
+func (e Entry) Trace(comments ...string) *Trace {
 	trace := make([]byte, StackSize)
 	trace = trace[:runtime.Stack(trace, false)]
 
@@ -343,6 +345,7 @@ func (e Entry) Trace(name string) *Trace {
 		Package:    pkg,
 		LineNumber: line,
 		BeginStack: trace,
+		Comments:   comments,
 		StartTime:  time.Now(),
 		File:       pkgFile,
 	}
