@@ -1,12 +1,14 @@
 package auth
 
 import (
+	"encoding/base64"
 	"net/http"
 	"time"
 
-	"golang.org/x/oauth2"
-	"strings"
 	"errors"
+	"strings"
+
+	"golang.org/x/oauth2"
 )
 
 // Credential defines a struct which holds clientID and clientSecret which
@@ -46,17 +48,19 @@ func (a *Auth) LoginURL(state string, xs ...oauth2.AuthCodeOption) string {
 
 // Token defines the data returned from a OAuth op.
 type Token struct {
-	Type        string    `json:"type"`
-	AccessToken string    `json:"access_token"`
-	Expires     time.Time `json:"expires"`
+	Type          string    `json:"type"`
+	AccessToken   string    `json:"access_token"`
+	RefireshToken string    `json:"refresh_token"`
+	Expires       time.Time `json:"expires"`
 }
 
 // Fields returns the given fields as a map.
 func (t Token) Fields() map[string]interface{} {
 	return map[string]interface{}{
-		"type":         t.Type,
-		"access_token": t.AccessToken,
-		"expires":      t.Expires,
+		"type":          t.Type,
+		"access_token":  t.AccessToken,
+		"refresh_token": t.RefireshToken,
+		"expires":       t.Expires,
 	}
 }
 
@@ -69,9 +73,10 @@ func (a *Auth) AuthorizeFromUser(code string) (*http.Client, Token, error) {
 	}
 
 	return a.config.Client(oauth2.NoContext, token), Token{
-		Type:        token.Type(),
-		AccessToken: token.AccessToken,
-		Expires:     token.Expiry,
+		Type:          token.Type(),
+		AccessToken:   token.AccessToken,
+		RefireshToken: token.RefreshToken,
+		Expires:       token.Expiry,
 	}, nil
 }
 
@@ -114,4 +119,3 @@ func ParseToken(val string) (userID string, token string, err error) {
 
 	return
 }
-
