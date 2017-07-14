@@ -1,12 +1,14 @@
 package httputil
 
 import (
-	"net/tls"
+	"crypto/tls"
 
-  "golang.org/x/crypto/acme/autocert"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 // LetsEncryptTLS returns a tls.Config instance which retrieves its
+// its tls certificate from LetsEncrypt service.
+func LetsEncryptTLS(address string, http2 bool) (*autocert.Manager, *tls.Config) {
 	manager := &autocert.Manager{
 		Prompt: autocert.AcceptTOS,
 	}
@@ -18,8 +20,6 @@ import (
 	if http2 {
 		s.TLSConfig.NextProtos = append(s.TLSConfig.NextProtos, "h2")
 	}
-	}
-	return manager, tlsConfig
-	return manager, tlsConfig
-    return manager, tlsConfig
+
+	return manager, &tlsConfig
 }
