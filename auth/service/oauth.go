@@ -108,7 +108,13 @@ func New(metrics metrics.Metrics) *OAuthRelay {
 	}
 
 	rl.GET("/oauth/identity/response", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		var stateSecret, stateCode string
+		var stateError, stateSecret, stateCode string
+
+		if delError := r.FormValue("error"); delError != "" {
+			stateError = delError
+		} else {
+			stateError = params["error"]
+		}
 
 		if state := r.FormValue("state"); state != "" {
 			stateSecret = state
@@ -123,7 +129,8 @@ func New(metrics metrics.Metrics) *OAuthRelay {
 		}
 
 		if stateSecret == "" {
-			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve request secret", errors.New("State secret not found else was empty"))
+			// httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve request secret", errors.New("State secret not found else was empty"))
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -131,13 +138,15 @@ func New(metrics metrics.Metrics) *OAuthRelay {
 		// If the secret does not match this format then it didnt come from us.
 		decodedSecret, err := base64.StdEncoding.DecodeString(stateSecret)
 		if err != nil {
-			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to decode request secret", err)
+			// httputil.WriteErrorMessage(w, http.StatusUnauthorized, "Failed to decode request secret", err)
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
 
 		sections := strings.Split(decodedSecret, ":")
 		if len(sections) != 3 {
-			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to validate secret matching API format", errors.New("Secret expected to match API format"))
+			http.Redirect(w, r, requestURI, http.StatusTemporaryRedirect)
+			// httputil.WriteErrorMessage(w, http.StatusUnauthorized, "Failed to decode request secret", err)
 			return
 		}
 
@@ -147,7 +156,8 @@ func New(metrics metrics.Metrics) *OAuthRelay {
 
 		provider, ok := rl.providers[serviceName]
 		if !ok {
-			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to find provider for service", fmt.Errorf("ServiceName %q provider not allowed", serviceName))
+			http.Redirect(w, r, requestURI, http.StatusTemporaryRedirect)
+			// httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to find provider for service", fmt.Errorf("ServiceName %q provider not allowed", serviceName))
 			return
 		}
 
