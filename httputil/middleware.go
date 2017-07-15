@@ -40,6 +40,23 @@ func MixHandler(mo, mi Handler) Handler {
 	}
 }
 
+type handlerHost struct {
+	fn http.HandlerFunc
+}
+
+// ServeHTTP services the giving request using the underline http.handlerFunc.
+func (h handlerHost) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.fn(w, r)
+}
+
+// HandlerFuncToHandler defines a function which returns a http.Handler from the
+// provided http.HandlerFunc.
+func HandlerFuncToHandler(hl http.HandlerFunc) http.Handler {
+	return &handlerHost{
+		fn: hl,
+	}
+}
+
 // Pool defines a function which will return a http.HandlerFunc which will
 // receive new Context objects with the provided options applied and it generated
 // from a sync.Pool which will be used to retrieve and create new Context objects.
