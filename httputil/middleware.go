@@ -1,9 +1,16 @@
 package httputil
 
-import "net/http"
+import (
+	"net/http"
+	"sync"
+)
 
 // Handler defines a function type to process a giving request.
 type Handler func(*Context) error
+
+// HandlerMW defines a function which wraps a provided http.handlerFunc
+// which encapsulates the original for a underline operation.
+type HandlerMW func(Handler, ...Middleware) http.HandlerFunc
 
 // Middlware defines a function type which is used to create a chain
 // of handlers for processing giving request.
@@ -22,8 +29,8 @@ func WrapHandler(fx http.HandlerFunc) Handler {
 	}
 }
 
-// HandlerMW wraps two provided Handler and returns a new Middleware.
-func HandlerMW(mo, mi Handler) Handler {
+// MixHandler wraps two provided Handler and returns a new Middleware.
+func MixHandler(mo, mi Handler) Handler {
 	return func(c *Context) error {
 		if err := mo(c); err != nil {
 			return err
@@ -33,8 +40,50 @@ func HandlerMW(mo, mi Handler) Handler {
 	}
 }
 
-// MW combines multiple Middleware to return a single Handler.
-func MW(mos ...Middleware) Handler {
+// Pool defines a function which will return a http.HandlerFunc which will
+// receive new Context objects with the provided options applied and it generated
+// from a sync.Pool which will be used to retrieve and create new Context objects.
+// WARNING: When the http.handlerFunc returned by the returned HandlerX function,
+// the Context created will be reset and put back into the pull. So ensure calls
+// do not escape the http.HandlerFunc returned.
+func Pool(errHandler ErrorHandler, ops ...Options) HandlerMW {
+	contextPool := sync.Pool{
+		New: func() interface{} {
+			return NewContext(ops...)
+		},
+	}
+
+	return func(handle Handler, mw ...Middleware) http.HandlerFunc {
+		middleware := MW(mw...)
+
+		return func(w http.ResponseWriter, r *http.Request) {
+			ctx, ok := contextPool.Get().(*Context)
+			if !ok {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			// Reset Request and Response for context.
+			ctx.Reset(r, &Response{Writer: w})
+
+			defer ctx.Reset(nil, nil)
+			defer contextPool.Put(ctx)
+
+			if err := middleware(ctx); err != nil && errHandler != nil {
+				errHandler(err, ctx)
+				return
+			}
+
+			if err := handle(ctx); err != nil && errHandler != nil {
+				errHandler(err, ctx)
+				return
+			}
+		}
+	}
+}
+
+// MWi combines multiple Middleware to return a new Middleware.
+func MWi(mos ...Middleware) Middleware {
 	var initial Middleware
 
 	for _, mw := range mos {
@@ -46,7 +95,12 @@ func MW(mos ...Middleware) Handler {
 		initial = DMW(initial, mw)
 	}
 
-	return initial(IdentityHandler)
+	return initial
+}
+
+// MW combines multiple Middleware to return a single Handler.
+func MW(mos ...Middleware) Handler {
+	return MWi(mos...)(IdentityHandler)
 }
 
 // DMW combines two middleware and returns a single Handler.

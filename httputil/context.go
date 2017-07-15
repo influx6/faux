@@ -30,8 +30,11 @@ type Render interface {
 	Render(io.Writer, string, interface{}) error
 }
 
-// ResponseHandler defines a function type which sets giving respnse to a Response object.
-type ResponseHandler func(*Response, *Context) error
+// ErrorHandler defines a function type which sets giving respnse to a Response object.
+type ErrorHandler func(error, *Context)
+
+// NotFoundHandler defines a function to be used to run a not found op.
+type NotFoundHandler func(*Context) error
 
 // Options defines a function type which receives a Context pointer and
 // sets/modifiers it's internal state values.
@@ -60,6 +63,16 @@ func SetRenderer(r Render) Options {
 	}
 }
 
+// SetResponseWriter returns a option function to set the response of a Context.
+func SetResponseWriter(w http.ResponseWriter, befores ...func()) Options {
+	return func(c *Context) {
+		c.response = &Response{
+			beforeFuncs: befores,
+			Writer:      w,
+		}
+	}
+}
+
 // SetResponse returns a option function to set the response of a Context.
 func SetResponse(r *Response) Options {
 	return func(c *Context) {
@@ -75,9 +88,17 @@ func SetRequest(r *http.Request) Options {
 }
 
 // SetNotFound will return a function to set the NotFound handler for a giving context.
-func SetNotFound(r ResponseHandler) Options {
+func SetNotFound(r NotFoundHandler) Options {
 	return func(c *Context) {
-		c.handler = r
+		c.nothandler = r
+	}
+}
+
+// SetContext returns the Option to set the internal cancelable context of a giving
+// Context.
+func SetContext(c context.CancelableContext) Options {
+	return func(c *Context) {
+		c.CancelableContext = c
 	}
 }
 
@@ -95,14 +116,13 @@ func SetMetrics(r metrics.Metrics) Options {
 // which is to be served.
 type Context struct {
 	context.CancelableContext
-
-	path     string
-	request  *http.Request
-	response *Response
-	query    url.Values
-	render   Render
-	handler  ResponseHandler
-	metrics  metrics.Metrics
+	path       string
+	render     Render
+	response   *Response
+	query      url.Values
+	request    *http.Request
+	metrics    metrics.Metrics
+	nothandler NotFoundHandler
 }
 
 // NewContext returns a new Context with the Options slice applied.
@@ -440,8 +460,8 @@ func (c *Context) Inline(file, name string) (err error) {
 // NotFound writes calls the giving response against the NotFound handler
 // if present, else uses a http.StatusMovedPermanently status code.
 func (c *Context) NotFound() error {
-	if c.handler != nil {
-		return c.handler(c.Response(), c)
+	if c.nothandler != nil {
+		return c.nothandler(c)
 	}
 
 	c.response.WriteHeader(http.StatusMovedPermanently)
@@ -470,10 +490,11 @@ func (c *Context) Redirect(code int, url string) error {
 // Reset resets context internal fields
 func (c *Context) Reset(r *http.Request, w http.ResponseWriter) {
 	c.request = r
-	c.path = r.URL.String()
 	c.query = nil
-	c.handler = nil
+	c.nothandler = nil
 	c.response.reset(w)
+	c.path = r.URL.String()
+	c.CancelableContext = context.New()
 }
 
 func (c *Context) contentDisposition(file, name, dispositionType string) (err error) {
