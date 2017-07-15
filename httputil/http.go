@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/influx6/faux/context"
 	"fmt"
-	"errors"
+
+	"github.com/influx6/faux/context"
 )
 
 const (
@@ -61,4 +61,3 @@ func ErrorMessage(status int, header string, err error) string {
 func WriteErrorMessage(w http.ResponseWriter, status int, header string, err error) {
 	http.Error(w, ErrorMessage(status, header, err), status)
 }
-

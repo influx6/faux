@@ -1,0 +1,54 @@
+package httputil
+
+import (
+	"context"
+	"crypto/tls"
+	"net/http"
+
+	"github.com/influx6/faux/netutils"
+	"golang.org/x/crypto/acme/autocert"
+)
+
+// Server defines a type which closes a underline server and
+// returns any error associated with the call.
+type Server interface {
+	Close(context.Context) error
+	TLSManager() *autocert.Manager
+}
+
+type serverItem struct {
+	server *http.Server
+	man    *autocert.Manager
+}
+
+// TLSManager returns the autocert.Manager associated with the giving server
+// for its tls certificates.
+func (s *serverItem) TLSManager() *autocert.Manager {
+	return s.man
+}
+
+// Listen will start a server and returns a ServerCloser which will allow
+// closing of the server.
+func Listen(tlsOK bool, addr string, handler http.Handler) (Server, error) {
+	var tlsconfig *tls.Config
+	var man *autocert.Manager
+
+	if tlsOK {
+		man, tlsconfig = LetsEncryptTLS(true)
+	}
+
+	listener, err := netutils.MakeListener("tcp", addr, tlsconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	server, _, err := netutils.NewHTTPServer(listener, handler, tlsconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return &serverItem{
+		server: server,
+		man:    man,
+	}, nil
+}

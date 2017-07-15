@@ -1,15 +1,20 @@
 package httputil
 
+import (
+	"bufio"
+	"net"
+	"net/http"
+)
+
 // Response wraps an http.ResponseWriter and implements its interface to be used
 // by an HTTP handler to construct an HTTP response.
 // See: https://golang.org/pkg/net/http/#ResponseWriter
 type Response struct {
-		echo        *Echo
-		beforeFuncs []func()
-		Writer      http.ResponseWriter
-		Status      int
-		Size        int64
-		Committed   bool
+	beforeFuncs []func()
+	Writer      http.ResponseWriter
+	Status      int
+	Size        int64
+	Committed   bool
 }
 
 // Header returns the header map for the writer that will be sent by
@@ -33,7 +38,6 @@ func (r *Response) Before(fn func()) {
 // used to send error codes.
 func (r *Response) WriteHeader(code int) {
 	if r.Committed {
-		r.echo.Logger.Warn("response already committed")
 		return
 	}
 
@@ -41,7 +45,7 @@ func (r *Response) WriteHeader(code int) {
 		fn()
 	}
 
-  r.Status = code
+	r.Status = code
 	r.Writer.WriteHeader(code)
 	r.Committed = true
 }

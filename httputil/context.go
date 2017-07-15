@@ -108,7 +108,7 @@ type Context struct {
 // NewContext returns a new Context with the Options slice applied.
 func NewContext(ops ...Options) *Context {
 	c := &Context{
-		Context: context.New(),
+		CancelableContext: context.New(),
 	}
 
 	for _, op := range ops {
@@ -267,7 +267,7 @@ var ErrNoRenderInitiated = errors.New("Renderer was not set or is uninitiated")
 // of the context.
 func (c *Context) Render(code int, name string, data interface{}) (err error) {
 	if c.render == nil {
-		return ErrNoRenderInititated
+		return ErrNoRenderInitiated
 	}
 
 	buf := new(bytes.Buffer)
@@ -290,9 +290,10 @@ func (c *Context) HTMLBlob(code int, b []byte) (err error) {
 }
 
 // Error renders giving error response into response.
-func (c *Context) Error(code int, err error, message string) (err error) {
+func (c *Context) Error(code int, err error, message string) error {
 	c.response.Header().Set(HeaderContentType, MIMEApplicationJSONCharsetUTF8)
 	WriteErrorMessage(c.Response(), code, message, err)
+	return nil
 }
 
 // String renders giving string into response.
@@ -303,7 +304,7 @@ func (c *Context) String(code int, s string) (err error) {
 // JSON renders giving json data into response.
 func (c *Context) JSON(code int, i interface{}) (err error) {
 	_, pretty := c.QueryParams()["pretty"]
-	if c.echo.Debug || pretty {
+	if pretty {
 		return c.JSONPretty(code, i, "  ")
 	}
 	b, err := json.Marshal(i)
@@ -353,7 +354,7 @@ func (c *Context) JSONPBlob(code int, callback string, b []byte) (err error) {
 // XML renders giving xml as response with proper mime type.
 func (c *Context) XML(code int, i interface{}) (err error) {
 	_, pretty := c.QueryParams()["pretty"]
-	if c.echo.Debug || pretty {
+	if pretty {
 		return c.XMLPretty(code, i, "  ")
 	}
 	b, err := xml.Marshal(i)
@@ -403,17 +404,19 @@ func (c *Context) Stream(code int, contentType string, r io.Reader) (err error) 
 func (c *Context) File(file string) (err error) {
 	f, err := os.Open(file)
 	if err != nil {
-		return ErrNotFound
+		return err
 	}
+
 	defer f.Close()
 
 	fi, _ := f.Stat()
 	if fi.IsDir() {
-		file = filepath.Join(file, indexPage)
+		file = filepath.Join(file, "index.html")
 		f, err = os.Open(file)
 		if err != nil {
-			return ErrNotFound
+			return
 		}
+
 		defer f.Close()
 		if fi, err = f.Stat(); err != nil {
 			return
@@ -451,11 +454,14 @@ func (c *Context) NoContent(code int) error {
 	return nil
 }
 
+var ErrInvalidRedirectCode = errors.New("Invalid redirect code")
+
 // Redirect redirects context response.
 func (c *Context) Redirect(code int, url string) error {
 	if code < 300 || code > 308 {
 		return ErrInvalidRedirectCode
 	}
+
 	c.response.Header().Set(HeaderLocation, url)
 	c.response.WriteHeader(code)
 	return nil
@@ -464,7 +470,7 @@ func (c *Context) Redirect(code int, url string) error {
 // Reset resets context internal fields
 func (c *Context) Reset(r *http.Request, w http.ResponseWriter) {
 	c.request = r
-	c.path = ""
+	c.path = r.URL.String()
 	c.query = nil
 	c.handler = nil
 	c.response.reset(w)
