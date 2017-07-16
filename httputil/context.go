@@ -487,6 +487,25 @@ func (c *Context) Redirect(code int, url string) error {
 	return nil
 }
 
+// InitForms will call the appropriate function to parse the necessary form values
+// within the giving request context.
+func (c *Context) InitForms() error {
+	if c.request == nil {
+		return nil
+	}
+
+	values, err := c.FormParams()
+	if err != nil {
+		return err
+	}
+
+	for key, val := range values {
+		c.Set(key, val)
+	}
+
+	return nil
+}
+
 // Reset resets context internal fields
 func (c *Context) Reset(r *http.Request, w http.ResponseWriter) {
 	c.request = r

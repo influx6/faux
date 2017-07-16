@@ -86,6 +86,8 @@ func Pool(errHandler ErrorHandler, ops ...Options) HandlerMW {
 			defer ctx.Reset(nil, nil)
 			defer contextPool.Put(ctx)
 
+			ctx.InitForms()
+
 			if err := middleware(ctx); err != nil && errHandler != nil {
 				errHandler(err, ctx)
 				return

@@ -78,6 +78,105 @@ func (p *Pair) Root() *Pair {
 	return p.prev.Root()
 }
 
+// GetBool collects the string value of a key if it exists.
+func (p *Pair) GetBool(key interface{}) (bool, bool) {
+	val, found := p.Get(key)
+	if !found {
+		return false, false
+	}
+
+	value, ok := val.(bool)
+	return value, ok
+}
+
+// GetFloat64 collects the string value of a key if it exists.
+func (p *Pair) GetFloat64(key interface{}) (float64, bool) {
+	val, found := p.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(float64)
+	return value, ok
+}
+
+// GetFloat32 collects the string value of a key if it exists.
+func (p *Pair) GetFloat32(key interface{}) (float32, bool) {
+	val, found := p.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(float32)
+	return value, ok
+}
+
+// GetInt8 collects the string value of a key if it exists.
+func (p *Pair) GetInt8(key interface{}) (int8, bool) {
+	val, found := p.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int8)
+	return value, ok
+}
+
+// GetInt16 collects the string value of a key if it exists.
+func (p *Pair) GetInt16(key interface{}) (int16, bool) {
+	val, found := p.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int16)
+	return value, ok
+}
+
+// GetInt64 collects the string value of a key if it exists.
+func (p *Pair) GetInt64(key interface{}) (int64, bool) {
+	val, found := p.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int64)
+	return value, ok
+}
+
+// GetInt32 collects the string value of a key if it exists.
+func (p *Pair) GetInt32(key interface{}) (int32, bool) {
+	val, found := p.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int32)
+	return value, ok
+}
+
+// GetInt collects the string value of a key if it exists.
+func (p *Pair) GetInt(key interface{}) (int, bool) {
+	val, found := p.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int)
+	return value, ok
+}
+
+// GetString collects the string value of a key if it exists.
+func (p *Pair) GetString(key interface{}) (string, bool) {
+	val, found := p.Get(key)
+	if !found {
+		return "", false
+	}
+
+	value, ok := val.(string)
+	return value, ok
+}
+
 // Get collects the value of a key if it exists.
 func (p *Pair) Get(key interface{}) (value interface{}, found bool) {
 	if p == nil {
@@ -114,8 +213,17 @@ type Context interface {
 	// IsExpired returns true/false if the context is considered expired.
 	IsExpired() bool
 
-	// Get returns the giving value for the provided key if it exists else nil.
+	// Series of Gets returning value for the provided key if it exists else the type default value.
 	Get(key interface{}) (interface{}, bool)
+	GetInt(key interface{}) (int, bool)
+	GetBool(key interface{}) (bool, bool)
+	GetInt8(key interface{}) (int8, bool)
+	GetInt16(key interface{}) (int16, bool)
+	GetInt32(key interface{}) (int32, bool)
+	GetInt64(key interface{}) (int64, bool)
+	GetString(key interface{}) (string, bool)
+	GetFloat32(key interface{}) (float32, bool)
+	GetFloat64(key interface{}) (float64, bool)
 
 	// Done returns a channel which gets closed when the given channel
 	// expires else closes immediately if its not an expiring context.
@@ -206,6 +314,105 @@ func (g *googleContext) Get(key interface{}) (interface{}, bool) {
 	}
 
 	return val, true
+}
+
+// GetBool collects the string value of a key if it exists.
+func (g *googleContext) GetBool(key interface{}) (bool, bool) {
+	val, found := g.Get(key)
+	if !found {
+		return false, false
+	}
+
+	value, ok := val.(bool)
+	return value, ok
+}
+
+// GetFloat64 collects the string value of a key if it exists.
+func (g *googleContext) GetFloat64(key interface{}) (float64, bool) {
+	val, found := g.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(float64)
+	return value, ok
+}
+
+// GetFloat32 collects the string value of a key if it exists.
+func (g *googleContext) GetFloat32(key interface{}) (float32, bool) {
+	val, found := g.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(float32)
+	return value, ok
+}
+
+// GetInt8 collects the string value of a key if it exists.
+func (g *googleContext) GetInt8(key interface{}) (int8, bool) {
+	val, found := g.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int8)
+	return value, ok
+}
+
+// GetInt16 collects the string value of a key if it exists.
+func (g *googleContext) GetInt16(key interface{}) (int16, bool) {
+	val, found := g.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int16)
+	return value, ok
+}
+
+// GetInt64 collects the string value of a key if it exists.
+func (g *googleContext) GetInt64(key interface{}) (int64, bool) {
+	val, found := g.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int64)
+	return value, ok
+}
+
+// GetInt32 collects the string value of a key if it exists.
+func (g *googleContext) GetInt32(key interface{}) (int32, bool) {
+	val, found := g.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int32)
+	return value, ok
+}
+
+// GetInt collects the string value of a key if it exists.
+func (g *googleContext) GetInt(key interface{}) (int, bool) {
+	val, found := g.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int)
+	return value, ok
+}
+
+// GetString collects the string value of a key if it exists.
+func (g *googleContext) GetString(key interface{}) (string, bool) {
+	val, found := g.Get(key)
+	if !found {
+		return "", false
+	}
+
+	value, ok := val.(string)
+	return value, ok
 }
 
 // Done returns a channel which gets closed when the given channel
@@ -435,6 +642,51 @@ func (c *context) Set(key, val interface{}) {
 func (c *context) Get(key interface{}) (item interface{}, found bool) {
 	item, found = c.fields.Get(key)
 	return
+}
+
+// GetBool collects the string value of a key if it exists.
+func (c *context) GetBool(key interface{}) (bool, bool) {
+	return c.fields.GetBool(key)
+}
+
+// GetFloat64 collects the string value of a key if it exists.
+func (c *context) GetFloat64(key interface{}) (float64, bool) {
+	return c.fields.GetFloat64(key)
+}
+
+// GetFloat32 collects the string value of a key if it exists.
+func (c *context) GetFloat32(key interface{}) (float32, bool) {
+	return c.fields.GetFloat32(key)
+}
+
+// GetInt8 collects the string value of a key if it exists.
+func (c *context) GetInt8(key interface{}) (int8, bool) {
+	return c.fields.GetInt8(key)
+}
+
+// GetInt16 collects the string value of a key if it exists.
+func (c *context) GetInt16(key interface{}) (int16, bool) {
+	return c.fields.GetInt16(key)
+}
+
+// GetInt64 collects the string value of a key if it exists.
+func (c *context) GetInt64(key interface{}) (int64, bool) {
+	return c.fields.GetInt64(key)
+}
+
+// GetInt32 collects the string value of a key if it exists.
+func (c *context) GetInt32(key interface{}) (int32, bool) {
+	return c.fields.GetInt32(key)
+}
+
+// GetInt collects the string value of a key if it exists.
+func (c *context) GetInt(key interface{}) (int, bool) {
+	return c.fields.GetInt(key)
+}
+
+// GetString collects the string value of a key if it exists.
+func (c *context) GetString(key interface{}) (string, bool) {
+	return c.fields.GetString(key)
 }
 
 // newChild returns a new fresh context based on the fields of this context.

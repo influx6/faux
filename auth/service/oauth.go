@@ -1,6 +1,7 @@
 package service
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"net/http"
@@ -18,7 +19,7 @@ import (
 )
 
 // IdentityStatus defines the status int type which specifies the current state of a giving identity.
-var IdentityStatus int
+type IdentityStatus int
 
 // Defines series of IdentityStatus types.
 const (
@@ -57,10 +58,57 @@ type Identity struct {
 // retireve authorization from such service.
 type OAuthService interface {
 	Revoke(identity string) error
-	New(identity string) (string, error)
 	Get(identity string) (Identity, error)
+	New(identity string, secret string) (string, error)
 	Process(identity string, response IdentityResponse) error
 	Authenticate(identity string, bearerType string, token string) error
+}
+
+// AuthAPI defines a core which exposes
+type AuthAPI struct {
+	Service     OAuthService
+	ServiceName string
+}
+
+// Register defines a function to create a new oauth request for the underline
+// OAuthService.
+func (au AuthAPI) Register(c *httputil.Context) error {
+	url := c.Request().URL
+	identity := c.QueryParam("identity")
+
+	inibase := fmt.Sprintf("%s:%s:%s:%s", au.ServiceName, url.RequestURI(), randString(15), identity)
+	secret := base64.StdEncoding.EncodeToString([]byte(inibase))
+
+	redirectURL, err := au.Service.New(identity, secret)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, IdentityPath{
+		Identity: identity,
+		Login:    redirectURL,
+	})
+}
+
+// Revoke defines a function to revoke a existing oauth access for the underline
+// OAuthService.
+func (au AuthAPI) Revoke(c *httputil.Context) error {
+
+	return nil
+}
+
+// Retreive defines a function to return a existing oauth access record through the underline
+// OAuthService.
+func (au AuthAPI) Retrieve(c *httputil.Context) error {
+
+	return nil
+}
+
+// Authenticate defines a function to validate a received token against a
+// existing oauth access record through the underline OAuthService.
+func (au AuthAPI) Authenticate(c *httputil.Context) error {
+
+	return nil
 }
 
 // OAuthRelay defines a http service structure which registers giving OAuthService provides
@@ -143,9 +191,9 @@ func New(metrics metrics.Metrics) *OAuthRelay {
 			return
 		}
 
-		sections := strings.Split(decodedSecret, ":")
+		sections := strings.Split(string(decodedSecret), ":")
 		if len(sections) != 3 {
-			http.Redirect(w, r, requestURI, http.StatusTemporaryRedirect)
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			// httputil.WriteErrorMessage(w, http.StatusUnauthorized, "Failed to decode request secret", err)
 			return
 		}
@@ -169,6 +217,10 @@ func New(metrics metrics.Metrics) *OAuthRelay {
 			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to process response in authorization process", err)
 			return
 		}
+
+		_ = stateCode
+		_ = stateError
+		_ = stateSecret
 	})
 
 	return rl
@@ -176,23 +228,23 @@ func New(metrics metrics.Metrics) *OAuthRelay {
 
 // Register adds the giving *auth.Auth under the underline service namespace.
 func (rl *OAuthRelay) Register(service string, provider OAuthService) {
-	server = strings.ToLower(service)
+	service = strings.ToLower(service)
 
 	rl.providers[service] = provider
 
 	authGroup := rl.TreeMux.NewGroup(fmt.Sprintf("/oauth/%s", service))
 
 	authGroup.GET("/:identity", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		identity, ok := param["identity"]
+		identity, ok := params["identity"]
 		if !ok {
 			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve identity", errors.New("Expected identity params"))
 			return
 		}
 
-		iniSecret := fmt.Sprintf("%s:%s:%s", service, r.URL.RequestURI(), identity)
-		secret := base64.StdEncoding.EncodeToString([]byte(iniSecret))
+		inibase := fmt.Sprintf("%s:%s:%s:%s", service, r.URL.RequestURI(), randString(15), identity)
+		secret := base64.StdEncoding.EncodeToString([]byte(inibase))
 
-		redirectURL, err := provider.New(secret)
+		redirectURL, err := provider.New(identity, secret)
 		if err != nil {
 			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve redirect url", err)
 			return
@@ -210,7 +262,7 @@ func (rl *OAuthRelay) Register(service string, provider OAuthService) {
 	})
 
 	authGroup.DELETE("/:identity", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		identity, ok := param["identity"]
+		identity, ok := params["identity"]
 		if !ok {
 			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve identity", errors.New("Expected identity params"))
 			return
@@ -225,7 +277,7 @@ func (rl *OAuthRelay) Register(service string, provider OAuthService) {
 	})
 
 	authGroup.GET("/:identity/token", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		identity, ok := param["identity"]
+		identity, ok := params["identity"]
 		if !ok {
 			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve identity", errors.New("Expected identity params"))
 			return
@@ -246,17 +298,17 @@ func (rl *OAuthRelay) Register(service string, provider OAuthService) {
 	})
 
 	authGroup.GET("/:identity/auth", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		identity, ok := param["identity"]
+		identity, ok := params["identity"]
 		if !ok {
 			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve identity", errors.New("Expected identity params"))
 			return
 		}
 
-		authorization, ok := r.Header.Get("Authorization")
-		if !ok {
-			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve authorization header", errors.New("Expected Authorization headers"))
-			return
-		}
+		authorization := r.Header.Get("Authorization")
+		// if !ok {
+		// 	httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve authorization header", errors.New("Expected Authorization headers"))
+		// 	return
+		// }
 
 		bearer, token, err := auth.ParseAuthorization(authorization)
 		if err != nil {
@@ -265,8 +317,12 @@ func (rl *OAuthRelay) Register(service string, provider OAuthService) {
 		}
 
 		// if we are encoded, then it means token is base64 encode and we need to split it for the real token.
-		if encodedAuthorization, ok := r.Header.Get("Base64Authorization"); !ok {
-			userIdentity, userToken := auth.ParseToken(token)
+		if encodedAuthorization := r.Header.Get("Base64Authorization"); encodedAuthorization != "" {
+			userIdentity, userToken, err := auth.ParseToken(token)
+			if err != nil {
+				httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to parse authorization header", errors.New("Expected token value"))
+				return
+			}
 
 			// if userIdentity does not match given identity then fail this.
 			if userIdentity != identity {
@@ -290,4 +346,14 @@ func (rl *OAuthRelay) Register(service string, provider OAuthService) {
 
 		w.WriteHeader(http.StatusOK)
 	})
+}
+
+func randString(n int) string {
+	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	var bytes = make([]byte, n)
+	rand.Read(bytes)
+	for i, b := range bytes {
+		bytes[i] = alphanum[b%byte(len(alphanum))]
+	}
+	return string(bytes)
 }
