@@ -101,8 +101,7 @@ func (au AuthAPI) Revoke(c *httputil.Context) error {
 		return err
 	}
 
-	w.WriteHeader(http.StatusNoContent)
-	return nil
+	return c.NoContent(http.StatusNoContent)
 }
 
 // Retreive defines a function to return a existing oauth access record through the underline
@@ -197,21 +196,6 @@ func (au AuthAPI) Authenticate(c *httputil.Context) error {
 // 	return rl
 // }
 
-// authGroup.DELETE("/:identity", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-// 	identity, ok := params["identity"]
-// 	if !ok {
-// 		httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve identity", errors.New("Expected identity params"))
-// 		return
-// 	}
-//
-// 	if err := provider.Revoke(identity); err != nil {
-// 		httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to respond with data", err)
-// 		return
-// 	}
-//
-// 	w.WriteHeader(http.StatusNoContent)
-// })
-//
 // authGroup.GET("/:identity/token", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 // 	identity, ok := params["identity"]
 // 	if !ok {

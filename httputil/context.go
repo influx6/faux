@@ -148,6 +148,11 @@ func (c *Context) Ctx() context.Context {
 	return c.CancelableContext
 }
 
+// Header returns the header associated with the giving request.
+func (c *Context) Header() http.Header {
+	return c.request.Header
+}
+
 // Request returns the associated request.
 func (c *Context) Request() *http.Request {
 	return c.request
