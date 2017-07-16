@@ -468,6 +468,11 @@ func (c *Context) NotFound() error {
 	return nil
 }
 
+// Status writes status code without writing content to response.
+func (c *Context) Status(code int) {
+	c.response.WriteHeader(code)
+}
+
 // NoContent writes status code without writing content to response.
 func (c *Context) NoContent(code int) error {
 	c.response.WriteHeader(code)
