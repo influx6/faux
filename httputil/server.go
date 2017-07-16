@@ -12,6 +12,7 @@ import (
 // Server defines a type which closes a underline server and
 // returns any error associated with the call.
 type Server interface {
+	Wait(...func())
 	Close(context.Context) error
 	TLSManager() *autocert.Manager
 }
@@ -19,6 +20,12 @@ type Server interface {
 type serverItem struct {
 	server *http.Server
 	man    *autocert.Manager
+}
+
+// WaitAndShutdown attempts to wait till a interrupt is received.
+func (s *serverItem) Wait(after ...func()) {
+	defer s.Close(context.Background())
+	WaitOnInterrupt(after...)
 }
 
 // TLSManager returns the autocert.Manager associated with the giving server
