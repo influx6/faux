@@ -3,6 +3,8 @@ package httputil
 import (
 	"net/http"
 	"sync"
+
+	"github.com/dimfeld/httptreemux"
 )
 
 // Handler defines a function type to process a giving request.
@@ -10,11 +12,15 @@ type Handler func(*Context) error
 
 // HandlerMW defines a function which wraps a provided http.handlerFunc
 // which encapsulates the original for a underline operation.
-type HandlerMW func(Handler, ...Middleware) http.HandlerFunc
+type HandlerMW func(Handler, ...Middleware) Handler
+
+// HandlerFuncMW defines a function which wraps a provided http.handlerFunc
+// which encapsulates the original for a underline operation.
+type HandlerFuncMW func(Handler, ...Middleware) http.HandlerFunc
 
 // TreemuxHandlerMW defines a function which wraps a provided http.handlerFunc
 // which encapsulates the original for a underline operation.
-type TreemuxHandlerMW func(Handler, ...Middleware) TreeMuxHandler
+type TreemuxHandlerMW func(Handler, ...Middleware) httptreemux.HandlerFunc
 
 // TreeMuxHandler defines a function type for the httptreemux.Handler type.
 type TreeMuxHandler func(http.ResponseWriter, *http.Request, map[string]string)
@@ -64,6 +70,34 @@ func HandlerFuncToHandler(hl http.HandlerFunc) http.Handler {
 	}
 }
 
+// MuxHandler defines a function which will return a Handler which will
+// be used to handle a request.
+func MuxHandler(errHandler ErrorHandler, handle Handler, mw ...Middleware) Handler {
+	middleware := MW(mw...)
+
+	return func(ctx *Context) error {
+		if err := middleware(ctx); err != nil {
+			if errHandler != nil {
+				errHandler(err, ctx)
+				return nil
+			}
+
+			return err
+		}
+
+		if err := handle(ctx); err != nil {
+			if errHandler != nil {
+				errHandler(err, ctx)
+				return nil
+			}
+
+			return err
+		}
+
+		return nil
+	}
+}
+
 // PoolTreemuxHandler defines a function which will return a http.HandlerFunc which will
 // receive new Context objects with the provided options applied and it generated
 // from a sync.Pool which will be used to retrieve and create new Context objects.
@@ -77,7 +111,7 @@ func PoolTreemuxHandler(errHandler ErrorHandler, ops ...Options) (TreemuxHandler
 		},
 	}
 
-	return func(handle Handler, mw ...Middleware) TreeMuxHandler {
+	return func(handle Handler, mw ...Middleware) httptreemux.HandlerFunc {
 		middleware := MW(mw...)
 
 		return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
@@ -112,13 +146,13 @@ func PoolTreemuxHandler(errHandler ErrorHandler, ops ...Options) (TreemuxHandler
 	}, contextPool
 }
 
-// PoolHandler defines a function which will return a http.HandlerFunc which will
+// PoolHandlerFunc defines a function which will return a http.HandlerFunc which will
 // receive new Context objects with the provided options applied and it generated
 // from a sync.Pool which will be used to retrieve and create new Context objects.
 // WARNING: When the http.handlerFunc returned by the returned HandlerX function,
 // the Context created will be reset and put back into the pull. So ensure calls
 // do not escape the http.HandlerFunc returned.
-func PoolHandler(errHandler ErrorHandler, ops ...Options) (HandlerMW, *sync.Pool) {
+func PoolHandlerFunc(errHandler ErrorHandler, ops ...Options) (HandlerFuncMW, *sync.Pool) {
 	contextPool := &sync.Pool{
 		New: func() interface{} {
 			return NewContext(ops...)
