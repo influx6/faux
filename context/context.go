@@ -196,6 +196,20 @@ func (p *Pair) Get(key interface{}) (value interface{}, found bool) {
 
 //==============================================================================
 
+// Getter defines a series of Get methods for which values will be retrieved with.
+type Getter interface {
+	Get(key interface{}) (interface{}, bool)
+	GetInt(key interface{}) (int, bool)
+	GetBool(key interface{}) (bool, bool)
+	GetInt8(key interface{}) (int8, bool)
+	GetInt16(key interface{}) (int16, bool)
+	GetInt32(key interface{}) (int32, bool)
+	GetInt64(key interface{}) (int64, bool)
+	GetString(key interface{}) (string, bool)
+	GetFloat32(key interface{}) (float32, bool)
+	GetFloat64(key interface{}) (float64, bool)
+}
+
 // Canceler defines an interface for canceling an operation with a giving error.
 type Canceler interface {
 
@@ -209,21 +223,10 @@ type Canceler interface {
 // Context defines an interface for a context providers which allows us to
 // build passable context around.
 type Context interface {
+	Getter
 
 	// IsExpired returns true/false if the context is considered expired.
 	IsExpired() bool
-
-	// Series of Gets returning value for the provided key if it exists else the type default value.
-	Get(key interface{}) (interface{}, bool)
-	GetInt(key interface{}) (int, bool)
-	GetBool(key interface{}) (bool, bool)
-	GetInt8(key interface{}) (int8, bool)
-	GetInt16(key interface{}) (int16, bool)
-	GetInt32(key interface{}) (int32, bool)
-	GetInt64(key interface{}) (int64, bool)
-	GetString(key interface{}) (string, bool)
-	GetFloat32(key interface{}) (float32, bool)
-	GetFloat64(key interface{}) (float64, bool)
 
 	// Done returns a channel which gets closed when the given channel
 	// expires else closes immediately if its not an expiring context.
