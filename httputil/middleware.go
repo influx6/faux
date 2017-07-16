@@ -12,6 +12,13 @@ type Handler func(*Context) error
 // which encapsulates the original for a underline operation.
 type HandlerMW func(Handler, ...Middleware) http.HandlerFunc
 
+// TreemuxHandlerMW defines a function which wraps a provided http.handlerFunc
+// which encapsulates the original for a underline operation.
+type TreemuxHandlerMW func(Handler, ...Middleware) TreeMuxHandler
+
+// TreeMuxHandler defines a function type for the httptreemux.Handler type.
+type TreeMuxHandler func(http.ResponseWriter, *http.Request, map[string]string)
+
 // Middlware defines a function type which is used to create a chain
 // of handlers for processing giving request.
 type Middleware func(next Handler) Handler
@@ -57,14 +64,62 @@ func HandlerFuncToHandler(hl http.HandlerFunc) http.Handler {
 	}
 }
 
-// Pool defines a function which will return a http.HandlerFunc which will
+// PoolTreemuxHandler defines a function which will return a http.HandlerFunc which will
 // receive new Context objects with the provided options applied and it generated
 // from a sync.Pool which will be used to retrieve and create new Context objects.
 // WARNING: When the http.handlerFunc returned by the returned HandlerX function,
 // the Context created will be reset and put back into the pull. So ensure calls
 // do not escape the http.HandlerFunc returned.
-func Pool(errHandler ErrorHandler, ops ...Options) HandlerMW {
-	contextPool := sync.Pool{
+func PoolTreemuxHandler(errHandler ErrorHandler, ops ...Options) (TreemuxHandlerMW, *sync.Pool) {
+	contextPool := &sync.Pool{
+		New: func() interface{} {
+			return NewContext(ops...)
+		},
+	}
+
+	return func(handle Handler, mw ...Middleware) TreeMuxHandler {
+		middleware := MW(mw...)
+
+		return func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+			ctx, ok := contextPool.Get().(*Context)
+			if !ok {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			// Reset Request and Response for context.
+			ctx.Reset(r, &Response{Writer: w})
+
+			defer ctx.Reset(nil, nil)
+			defer contextPool.Put(ctx)
+
+			ctx.InitForms()
+
+			for key, val := range params {
+				ctx.Set(key, val)
+			}
+
+			if err := middleware(ctx); err != nil && errHandler != nil {
+				errHandler(err, ctx)
+				return
+			}
+
+			if err := handle(ctx); err != nil && errHandler != nil {
+				errHandler(err, ctx)
+				return
+			}
+		}
+	}, contextPool
+}
+
+// PoolHandler defines a function which will return a http.HandlerFunc which will
+// receive new Context objects with the provided options applied and it generated
+// from a sync.Pool which will be used to retrieve and create new Context objects.
+// WARNING: When the http.handlerFunc returned by the returned HandlerX function,
+// the Context created will be reset and put back into the pull. So ensure calls
+// do not escape the http.HandlerFunc returned.
+func PoolHandler(errHandler ErrorHandler, ops ...Options) (HandlerMW, *sync.Pool) {
+	contextPool := &sync.Pool{
 		New: func() interface{} {
 			return NewContext(ops...)
 		},
@@ -98,7 +153,7 @@ func Pool(errHandler ErrorHandler, ops ...Options) HandlerMW {
 				return
 			}
 		}
-	}
+	}, contextPool
 }
 
 // MWi combines multiple Middleware to return a new Middleware.
