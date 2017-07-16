@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"encoding/base64"
 
@@ -64,6 +65,59 @@ type AuthAPI struct {
 	ServiceName string
 }
 
+// Approve defines a function for approving a access token received
+// from a request.
+func (au AuthAPI) Approve(c *httputil.Context) error {
+	// identity, ok := c.GetString("identity")
+	// if !ok {
+	// 	// c.NoContent(http.StatusBadRequest)
+	// 	return errors.New("identity param not found")
+	// }
+
+	if stateError, ok := c.GetString("error"); ok {
+		return fmt.Errorf("Error occured from OAUTH service: %q", stateError)
+	}
+
+	secret, ok := c.GetString("state")
+	if !ok {
+		return errors.New("State value not received")
+	}
+
+	code, ok := c.GetString("code")
+	if !ok {
+		return errors.New("Code value not received")
+	}
+
+	// We issue a state secret where its a combination in this format: SERVICENAME:REQUEST-URI:IDENTITY.
+	// If the secret does not match this format then it didnt come from us.
+	decodedSecret, err := base64.StdEncoding.DecodeString(secret)
+	if err != nil {
+		return err
+	}
+
+	sections := strings.Split(string(decodedSecret), ":")
+	if len(sections) != 3 {
+		return errors.New("Failed to decode request secret")
+	}
+
+	identity := sections[2]
+	requestURI := sections[1]
+	serviceName := sections[0]
+
+	var response IdentityResponse
+	response.Code = code
+	response.Identity = identity
+
+	if err := au.Service.Process(identity, response); err != nil {
+		return err
+	}
+
+	_ = requestURI
+	_ = serviceName
+
+	return nil
+}
+
 // Register defines a function to create a new oauth request for the underline
 // OAuthService.
 func (au AuthAPI) Register(c *httputil.Context) error {
@@ -107,165 +161,61 @@ func (au AuthAPI) Revoke(c *httputil.Context) error {
 // Retreive defines a function to return a existing oauth access record through the underline
 // OAuthService.
 func (au AuthAPI) Retrieve(c *httputil.Context) error {
+	identity, ok := c.GetString("identity")
+	if !ok {
+		// c.NoContent(http.StatusBadRequest)
+		return errors.New("identity param not found")
+	}
 
-	return nil
+	identityInfo, err := au.Service.Get(identity)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, identityInfo)
 }
 
 // Authenticate defines a function to validate a received token against a
 // existing oauth access record through the underline OAuthService.
 func (au AuthAPI) Authenticate(c *httputil.Context) error {
+	identity, ok := c.GetString("identity")
+	if !ok {
+		// c.NoContent(http.StatusBadRequest)
+		return errors.New("identity param not found")
+	}
+
+	authorization := c.Header().Get("Authorization")
+
+	bearer, token, err := auth.ParseAuthorization(authorization)
+	if err != nil {
+		return err
+	}
+
+	// if we are encoded, then it means token is base64 encode and we need to split it for the real token.
+	if encodedAuthorization := c.Header().Get("Base64Authorization"); encodedAuthorization != "" {
+		userIdentity, userToken, err := auth.ParseToken(token)
+		if err != nil {
+			return err
+		}
+
+		// if userIdentity does not match given identity then fail this.
+		if userIdentity != identity {
+			return errors.New("Identity does not match token identity")
+		}
+
+		if err := au.Service.Authenticate(identity, bearer, userToken); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if err := au.Service.Authenticate(identity, bearer, token); err != nil {
+		return err
+	}
 
 	return nil
 }
-
-// func New(metrics metrics.Metrics) *OAuthRelay {
-// 	rl := &OAuthRelay{
-// 		metrics:   metrics,
-// 		TreeMux:   httptreemux.New(),
-// 		providers: make(map[string]OAuthService),
-// 	}
-//
-// 	rl.GET("/oauth/identity/response", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-// 		var stateError, stateSecret, stateCode string
-//
-// 		if delError := r.FormValue("error"); delError != "" {
-// 			stateError = delError
-// 		} else {
-// 			stateError = params["error"]
-// 		}
-//
-// 		if state := r.FormValue("state"); state != "" {
-// 			stateSecret = state
-// 		} else {
-// 			stateSecret = params["state"]
-// 		}
-//
-// 		if code := r.FormValue("code"); code != "" {
-// 			stateCode = code
-// 		} else {
-// 			stateCode = params["code"]
-// 		}
-//
-// 		if stateSecret == "" {
-// 			// httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve request secret", errors.New("State secret not found else was empty"))
-// 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-// 			return
-// 		}
-//
-// 		// We issue a state secret where its a combination in this format: SERVICENAME:REQUEST-URI:IDENTITY.
-// 		// If the secret does not match this format then it didnt come from us.
-// 		decodedSecret, err := base64.StdEncoding.DecodeString(stateSecret)
-// 		if err != nil {
-// 			// httputil.WriteErrorMessage(w, http.StatusUnauthorized, "Failed to decode request secret", err)
-// 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-// 			return
-// 		}
-//
-// 		sections := strings.Split(string(decodedSecret), ":")
-// 		if len(sections) != 3 {
-// 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-// 			// httputil.WriteErrorMessage(w, http.StatusUnauthorized, "Failed to decode request secret", err)
-// 			return
-// 		}
-//
-// 		identity := sections[2]
-// 		requestURI := sections[1]
-// 		serviceName := sections[0]
-//
-// 		provider, ok := rl.providers[serviceName]
-// 		if !ok {
-// 			http.Redirect(w, r, requestURI, http.StatusTemporaryRedirect)
-// 			// httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to find provider for service", fmt.Errorf("ServiceName %q provider not allowed", serviceName))
-// 			return
-// 		}
-//
-// 		var response IdentityResponse
-// 		response.Code = stateCode
-// 		response.Identity = identity
-//
-// 		if err := provider.Process(identity, response); err != nil {
-// 			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to process response in authorization process", err)
-// 			return
-// 		}
-//
-// 		_ = stateCode
-// 		_ = stateError
-// 		_ = stateSecret
-// 	})
-//
-// 	return rl
-// }
-
-// authGroup.GET("/:identity/token", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-// 	identity, ok := params["identity"]
-// 	if !ok {
-// 		httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve identity", errors.New("Expected identity params"))
-// 		return
-// 	}
-//
-// 	identityInfo, err := provider.Get(identity)
-// 	if err != nil {
-// 		httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve redirect url", err)
-// 		return
-// 	}
-//
-// 	if err := json.NewEncoder(w).Encode(identityInfo); err != nil {
-// 		httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to respond with data", err)
-// 		return
-// 	}
-//
-// 	w.WriteHeader(http.StatusOK)
-// })
-//
-// authGroup.GET("/:identity/auth", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-// 	identity, ok := params["identity"]
-// 	if !ok {
-// 		httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve identity", errors.New("Expected identity params"))
-// 		return
-// 	}
-//
-// 	authorization := r.Header.Get("Authorization")
-// 	// if !ok {
-// 	// 	httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to retrieve authorization header", errors.New("Expected Authorization headers"))
-// 	// 	return
-// 	// }
-//
-// 	bearer, token, err := auth.ParseAuthorization(authorization)
-// 	if err != nil {
-// 		httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to parse authorization header", errors.New("Expected Authorization value to match format: 'AUTH_TYPE AUTH_TOKEN'"))
-// 		return
-// 	}
-//
-// 	// if we are encoded, then it means token is base64 encode and we need to split it for the real token.
-// 	if encodedAuthorization := r.Header.Get("Base64Authorization"); encodedAuthorization != "" {
-// 		userIdentity, userToken, err := auth.ParseToken(token)
-// 		if err != nil {
-// 			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to parse authorization header", errors.New("Expected token value"))
-// 			return
-// 		}
-//
-// 		// if userIdentity does not match given identity then fail this.
-// 		if userIdentity != identity {
-// 			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Decoded token user identity does not match request identity", errors.New("Identity does not match token identity"))
-// 			return
-// 		}
-//
-// 		if err := provider.Authenticate(identity, bearer, userToken); err != nil {
-// 			httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to authorizate Authorization header", errors.New("Token does not validate with in-house access token"))
-// 			return
-// 		}
-//
-// 		w.WriteHeader(http.StatusOK)
-// 		return
-// 	}
-//
-// 	if err := provider.Authenticate(identity, bearer, token); err != nil {
-// 		httputil.WriteErrorMessage(w, http.StatusBadRequest, "Failed to authorizate Authorization header", errors.New("Token does not validate with in-house access token"))
-// 		return
-// 	}
-//
-// 	w.WriteHeader(http.StatusOK)
-// })
 
 func randString(n int) string {
 	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
