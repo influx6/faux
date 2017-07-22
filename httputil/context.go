@@ -84,6 +84,7 @@ func SetResponse(r *Response) Options {
 func SetRequest(r *http.Request) Options {
 	return func(c *Context) {
 		c.request = r
+		c.InitForms()
 	}
 }
 
@@ -132,6 +133,10 @@ func NewContext(ops ...Options) *Context {
 	}
 
 	for _, op := range ops {
+		if op == nil {
+			continue
+		}
+
 		op(c)
 	}
 
@@ -484,6 +489,7 @@ func (c *Context) NoContent(code int) error {
 	return nil
 }
 
+// ErrInvalidRedirectCode is error returned when redirect code is wrong.
 var ErrInvalidRedirectCode = errors.New("Invalid redirect code")
 
 // Redirect redirects context response.
@@ -510,6 +516,11 @@ func (c *Context) InitForms() error {
 	}
 
 	for key, val := range values {
+		if len(val) == 1 {
+			c.Set(key, val[0])
+			continue
+		}
+
 		c.Set(key, val)
 	}
 
@@ -524,6 +535,8 @@ func (c *Context) Reset(r *http.Request, w http.ResponseWriter) {
 	c.response.reset(w)
 	c.path = r.URL.String()
 	c.CancelableContext = context.New()
+
+	c.InitForms()
 }
 
 func (c *Context) contentDisposition(file, name, dispositionType string) (err error) {

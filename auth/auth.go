@@ -48,10 +48,10 @@ func (a *Auth) LoginURL(state string, xs ...oauth2.AuthCodeOption) string {
 
 // Token defines the data returned from a OAuth op.
 type Token struct {
-	Type          string    `json:"type"`
-	AccessToken   string    `json:"access_token"`
-	RefireshToken string    `json:"refresh_token"`
-	Expires       time.Time `json:"expires"`
+	Type         string    `json:"type"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	Expires      time.Time `json:"expires"`
 }
 
 // Fields returns the given fields as a map.
@@ -59,7 +59,7 @@ func (t Token) Fields() map[string]interface{} {
 	return map[string]interface{}{
 		"type":          t.Type,
 		"access_token":  t.AccessToken,
-		"refresh_token": t.RefireshToken,
+		"refresh_token": t.RefreshToken,
 		"expires":       t.Expires,
 	}
 }
@@ -73,10 +73,10 @@ func (a *Auth) AuthorizeFromUser(code string) (*http.Client, Token, error) {
 	}
 
 	return a.config.Client(oauth2.NoContext, token), Token{
-		Type:          token.Type(),
-		AccessToken:   token.AccessToken,
-		RefireshToken: token.RefreshToken,
-		Expires:       token.Expiry,
+		Type:         token.Type(),
+		AccessToken:  token.AccessToken,
+		RefreshToken: token.RefreshToken,
+		Expires:      token.Expiry,
 	}, nil
 }
 

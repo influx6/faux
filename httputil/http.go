@@ -41,6 +41,11 @@ func Params(ctx context.Context, r *http.Request, multipartFormSize int64) error
 	}
 
 	for name, val := range r.Form {
+		if len(val) == 1 {
+			ctx.Set(name, val[0])
+			continue
+		}
+
 		ctx.Set(name, val)
 	}
 

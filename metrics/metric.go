@@ -252,6 +252,7 @@ func With(key string, value interface{}) Entry {
 type Trace struct {
 	File       string    `json:"file"`
 	Package    string    `json:"Package"`
+	Function   string    `json:"function"`
 	LineNumber int       `json:"line_number"`
 	BeginStack []byte    `json:"begin_stack"`
 	EndStack   []byte    `json:"end_stack"`
@@ -281,6 +282,8 @@ func (t *Trace) End() Entry {
 	return entry.With(TraceKey, *t)
 }
 
+var question = "???"
+
 // TraceWithCallDepth returns a Trace object which is used to track the execution and
 // stack details of a given trace call.
 func (e Entry) TraceWithCallDepth(depth int, comments ...string) *Trace {
@@ -289,13 +292,13 @@ func (e Entry) TraceWithCallDepth(depth int, comments ...string) *Trace {
 
 	_, file, line, ok := runtime.Caller(depth)
 	if !ok {
-		file = "???"
+		file = question
 	}
 
 	var pkg, pkgFile string
 	pkgFileBase := file
 
-	if file != "???" {
+	if file != question {
 		pkgPieces := strings.SplitAfter(pkgFileBase, "/src/")
 		if len(pkgPieces) > 1 {
 			pkgFileBase = pkgPieces[1]
@@ -310,9 +313,10 @@ func (e Entry) TraceWithCallDepth(depth int, comments ...string) *Trace {
 		Package:    pkg,
 		LineNumber: line,
 		BeginStack: trace,
+		File:       pkgFile,
 		Comments:   comments,
 		StartTime:  time.Now(),
-		File:       pkgFile,
+		Function:   GetFunctionName(),
 	}
 }
 
@@ -348,6 +352,7 @@ func (e Entry) Trace(comments ...string) *Trace {
 		Comments:   comments,
 		StartTime:  time.Now(),
 		File:       pkgFile,
+		Function:   GetFunctionName(),
 	}
 }
 
@@ -405,3 +410,25 @@ func Hide(message string) string {
 }
 
 //==============================================================================
+
+// GetFunctionName returns the caller of the function that called it :)
+func GetFunctionName() string {
+
+	// we get the callers as uintptrs - but we just need 1
+	fpcs := make([]uintptr, 1)
+
+	// skip 3 levels to get to the caller of whoever called Caller()
+	n := runtime.Callers(3, fpcs)
+	if n == 0 {
+		return "Unknown()" // proper error her would be better
+	}
+
+	// get the info of the actual function that's in the pointer
+	fun := runtime.FuncForPC(fpcs[0] - 1)
+	if fun == nil {
+		return "Unknown()" // proper error her would be better
+	}
+
+	// return its name
+	return fun.Name()
+}

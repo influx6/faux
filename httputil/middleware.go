@@ -25,7 +25,7 @@ type TreemuxHandlerMW func(Handler, ...Middleware) httptreemux.HandlerFunc
 // TreeMuxHandler defines a function type for the httptreemux.Handler type.
 type TreeMuxHandler func(http.ResponseWriter, *http.Request, map[string]string)
 
-// Middlware defines a function type which is used to create a chain
+// Middleware defines a function type which is used to create a chain
 // of handlers for processing giving request.
 type Middleware func(next Handler) Handler
 

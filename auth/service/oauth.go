@@ -6,12 +6,26 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"encoding/base64"
+	"encoding/json"
 
 	"github.com/influx6/faux/auth"
+	"github.com/influx6/faux/context"
 	"github.com/influx6/faux/httputil"
 )
+
+//====================================================================================================
+
+// contains series of errors used for Authentication.
+var (
+	ErrIdentityNotFound   = errors.New("Identity not found")
+	ErrIdentityStillValid = errors.New("Identity Credentials Still Valid")
+	ErrIdentityHasExpired = errors.New("Identity Credentials Has Expired")
+)
+
+//====================================================================================================
 
 // IdentityStatus defines the status int type which specifies the current state of a giving identity.
 type IdentityStatus int
@@ -21,42 +35,44 @@ const (
 	Pending IdentityStatus = iota + 1
 	Resolved
 	Expired
-	Revoked
 )
 
 // IdentityPath represent the response delivered when a giving oauth relay is called for
 // a new user login.
 type IdentityPath struct {
-	Identity string `json:"identity"`
-	Login    string `json:"login"`
+	Identity string `json:"identity" bson:"identity"`
+	Login    string `json:"login" bson:"login"`
 }
 
 // IdentityResponse defines a type that contains the initial response received to process a
 // authentication/authorization login.
 type IdentityResponse struct {
-	Code     string                 `json:"code"`
-	Identity string                 `json:"identity"`
-	Data     map[string]interface{} `json:"data"`
+	Code     string                 `json:"code" bson:"code"`
+	Identity string                 `json:"identity" bson:"identity"`
+	Data     map[string]interface{} `json:"data" bson:"data"`
 }
 
 // Identity defines the response delivered to all request for the retrieval of a giving identity token
 // details.
 type Identity struct {
-	Identity string                 `json:"identity"`
-	Token    auth.Token             `json:"token"`
-	Status   IdentityStatus         `json:"status"`
-	Data     map[string]interface{} `json:"data"`
+	Identity  string                 `json:"identity" bson:"identity"`
+	TokenID   string                 `json:"token_id" bson:"token_id"`
+	PrivateID string                 `json:"private_id" bson:"private_id"`
+	Token     auth.Token             `json:"token" bson:"token"`
+	Status    IdentityStatus         `json:"status" bson:"status"`
+	Data      map[string]interface{} `json:"data" bson:"data"`
 }
 
 // OAuthService defines a API which exposes the consistent operations needed to both
 // manage and deploy a oauth service, which will manage both OAuth authentication and
 // retireve authorization from such service.
 type OAuthService interface {
-	Revoke(identity string) error
-	Get(identity string) (Identity, error)
-	New(identity string, secret string) (string, error)
-	Process(identity string, response IdentityResponse) error
-	Authenticate(identity string, bearerType string, token string) error
+	Revoke(ctx context.Context, identity string) error
+	Identities(ctx context.Context) ([]Identity, error)
+	Get(ctx context.Context, identity string) (Identity, error)
+	Approve(ctx context.Context, response IdentityResponse) error
+	New(ctx context.Context, identity string, secret string) (string, error)
+	Authenticate(ctx context.Context, identity string, bearerType string, token string) error
 }
 
 // AuthAPI defines a core which exposes
@@ -65,17 +81,27 @@ type AuthAPI struct {
 	ServiceName string
 }
 
+// New returns a new instance of the AuthAPI.
+func New(service OAuthService, serviceName string) AuthAPI {
+	return AuthAPI{
+		Service:     service,
+		ServiceName: serviceName,
+	}
+}
+
 // Approve defines a function for approving a access token received
 // from a request.
 func (au AuthAPI) Approve(c *httputil.Context) error {
-	// identity, ok := c.GetString("identity")
-	// if !ok {
-	// 	// c.NoContent(http.StatusBadRequest)
-	// 	return errors.New("identity param not found")
-	// }
-
 	if stateError, ok := c.GetString("error"); ok {
 		return fmt.Errorf("Error occured from OAUTH service: %q", stateError)
+	}
+
+	defer c.Request().Body.Close()
+
+	var data map[string]interface{}
+
+	if err := json.NewDecoder(c.Request().Body).Decode(&data); err != nil {
+		return err
 	}
 
 	secret, ok := c.GetString("state")
@@ -101,37 +127,67 @@ func (au AuthAPI) Approve(c *httputil.Context) error {
 	}
 
 	identity := sections[2]
-	requestURI := sections[1]
 	serviceName := sections[0]
+	encodedRequestURI := sections[1]
 
-	var response IdentityResponse
-	response.Code = code
-	response.Identity = identity
-
-	if err := au.Service.Process(identity, response); err != nil {
+	requestURI, err := base64.StdEncoding.DecodeString(encodedRequestURI)
+	if err != nil {
 		return err
 	}
 
-	_ = requestURI
-	_ = serviceName
+	if serviceName != au.ServiceName {
+		return fmt.Errorf("ServiceName mismatch with %q for %q", serviceName, au.ServiceName)
+	}
 
-	return nil
+	var response IdentityResponse
+	response.Data = data
+	response.Code = code
+	response.Identity = identity
+
+	if err2 := au.Service.Approve(c, response); err2 != nil {
+		return err2
+	}
+
+	// if we received approval then retrieve identity and add as cookie.
+	identityData, err := au.Service.Get(c, identity)
+	if err != nil {
+		return err
+	}
+
+	// If expired then reovke.
+	if identityData.Status > Resolved {
+		if err := au.Service.Revoke(c, identity); err != nil {
+			return err
+		}
+	}
+
+	var authCookie http.Cookie
+	// authCookie.HttpOnly = true
+	authCookie.Name = "oauth-data"
+	authCookie.Value = identityData.TokenID
+	authCookie.Expires = time.Now().Add(httputil.TwentyFourHoursDuration * 3) // 3 days
+
+	c.SetCookie(&authCookie)
+
+	return c.Redirect(http.StatusOK, string(requestURI))
 }
 
 // Register defines a function to create a new oauth request for the underline
 // OAuthService.
 func (au AuthAPI) Register(c *httputil.Context) error {
 	url := c.Request().URL
+
 	identity, ok := c.GetString("identity")
 	if !ok {
 		// c.NoContent(http.StatusBadRequest)
 		return errors.New("identity param not found")
 	}
 
-	inibase := fmt.Sprintf("%s:%s:%s:%s", au.ServiceName, url.RequestURI(), randString(15), identity)
+	fromURL := base64.StdEncoding.EncodeToString([]byte(url.String()))
+	inibase := fmt.Sprintf("%s:%s:%s:%s", au.ServiceName, fromURL, randString(15), identity)
 	secret := base64.StdEncoding.EncodeToString([]byte(inibase))
 
-	redirectURL, err := au.Service.New(identity, secret)
+	redirectURL, err := au.Service.New(c, identity, secret)
 	if err != nil {
 		return err
 	}
@@ -151,14 +207,25 @@ func (au AuthAPI) Revoke(c *httputil.Context) error {
 		return errors.New("identity param not found")
 	}
 
-	if err := au.Service.Revoke(identity); err != nil {
+	if err := au.Service.Revoke(c, identity); err != nil {
 		return err
 	}
 
 	return c.NoContent(http.StatusNoContent)
 }
 
-// Retreive defines a function to return a existing oauth access record through the underline
+// RetrieveAll defines a function to return a existing oauth access record through the underline
+// OAuthService.
+func (au AuthAPI) RetrieveAll(c *httputil.Context) error {
+	identities, err := au.Service.Identities(c)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, identities)
+}
+
+// Retrieve defines a function to return a existing oauth access record through the underline
 // OAuthService.
 func (au AuthAPI) Retrieve(c *httputil.Context) error {
 	identity, ok := c.GetString("identity")
@@ -167,7 +234,7 @@ func (au AuthAPI) Retrieve(c *httputil.Context) error {
 		return errors.New("identity param not found")
 	}
 
-	identityInfo, err := au.Service.Get(identity)
+	identityInfo, err := au.Service.Get(c, identity)
 	if err != nil {
 		return err
 	}
@@ -203,22 +270,23 @@ func (au AuthAPI) Authenticate(c *httputil.Context) error {
 			return errors.New("Identity does not match token identity")
 		}
 
-		if err := au.Service.Authenticate(identity, bearer, userToken); err != nil {
+		if err := au.Service.Authenticate(c, identity, bearer, userToken); err != nil {
 			return err
 		}
 
 		return nil
 	}
 
-	if err := au.Service.Authenticate(identity, bearer, token); err != nil {
+	if err := au.Service.Authenticate(c, identity, bearer, token); err != nil {
 		return err
 	}
 
 	return nil
 }
 
+const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
 func randString(n int) string {
-	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	var bytes = make([]byte, n)
 	rand.Read(bytes)
 	for i, b := range bytes {

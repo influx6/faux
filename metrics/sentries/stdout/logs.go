@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strconv"
 
 	"github.com/fatih/color"
@@ -38,13 +39,18 @@ const (
 func Info(message string, m ...interface{}) metrics.Entry {
 	return metrics.Entry{
 		Message: fmt.Sprintf(message, m...),
-		Pair:    (new(metrics.Pair)).Append(logTypeKey, INFO),
+		Pair:    (new(metrics.Pair)).Append(logTypeKey, INFO).Append("Function", metrics.GetFunctionName()),
 	}
 }
 
 // Error returns a metrics.Entry based on the provided message.
 func Error(mi interface{}, m ...interface{}) metrics.Entry {
 	var message string
+
+	_, file, line, ok := runtime.Caller(1)
+	if !ok {
+		file = "???"
+	}
 
 	switch mo := mi.(type) {
 	case string:
@@ -53,11 +59,13 @@ func Error(mi interface{}, m ...interface{}) metrics.Entry {
 	case error:
 		message = mo.Error()
 		break
+	default:
+		message = metrics.GetFunctionName()
 	}
 
 	return metrics.Entry{
 		Message: message,
-		Pair:    (new(metrics.Pair)).Append(logTypeKey, ERROR),
+		Pair:    (new(metrics.Pair)).Append(logTypeKey, ERROR).Append("line", line).Append("file", file).Append("Function", metrics.GetFunctionName()),
 	}
 }
 
@@ -65,7 +73,7 @@ func Error(mi interface{}, m ...interface{}) metrics.Entry {
 func Notice(message string, m ...interface{}) metrics.Entry {
 	return metrics.Entry{
 		Message: fmt.Sprintf(message, m...),
-		Pair:    (new(metrics.Pair)).Append(logTypeKey, NOTICE),
+		Pair:    (new(metrics.Pair)).Append(logTypeKey, NOTICE).Append("Function", metrics.GetFunctionName()),
 	}
 }
 
@@ -73,7 +81,7 @@ func Notice(message string, m ...interface{}) metrics.Entry {
 func Debug(message string, m ...interface{}) metrics.Entry {
 	return metrics.Entry{
 		Message: fmt.Sprintf(message, m...),
-		Pair:    (new(metrics.Pair)).Append(logTypeKey, DEBUG),
+		Pair:    (new(metrics.Pair)).Append(logTypeKey, DEBUG).Append("Function", metrics.GetFunctionName()),
 	}
 }
 

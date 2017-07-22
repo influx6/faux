@@ -34,6 +34,24 @@ func (s *serverItem) TLSManager() *autocert.Manager {
 	return s.man
 }
 
+// ListenWith will start a server and returns a ServerCloser which will allow
+// closing of the server.
+func ListenWith(tlsconfig *tls.Config, addr string, handler http.Handler) (Server, error) {
+	listener, err := netutils.MakeListener("tcp", addr, tlsconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	server, _, err := netutils.NewHTTPServer(listener, handler, tlsconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return &serverItem{
+		server: server,
+	}, nil
+}
+
 // Listen will start a server and returns a ServerCloser which will allow
 // closing of the server.
 func Listen(tlsOK bool, addr string, handler http.Handler) (Server, error) {
