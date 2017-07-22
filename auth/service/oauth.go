@@ -183,7 +183,14 @@ func (au AuthAPI) Register(c *httputil.Context) error {
 		return errors.New("identity param not found")
 	}
 
-	fromURL := base64.StdEncoding.EncodeToString([]byte(url.String()))
+	// Retreive URL to redirect to when approval arrives, if none giving, use
+	// request url.
+	redirectTo, ok := c.GetString("redirect_to")
+	if !ok {
+		redirectTo = url.String()
+	}
+
+	fromURL := base64.StdEncoding.EncodeToString([]byte(redirectTo))
 	inibase := fmt.Sprintf("%s:%s:%s:%s", au.ServiceName, fromURL, randString(15), identity)
 	secret := base64.StdEncoding.EncodeToString([]byte(inibase))
 
