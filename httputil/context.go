@@ -163,6 +163,11 @@ func (c *Context) Request() *http.Request {
 	return c.request
 }
 
+// Body returns the associated io.ReadCloser which is the body of the Request.
+func (c *Context) Body() io.ReadCloser {
+	return c.request.Body
+}
+
 // Response returns the associated response object for this context.
 func (c *Context) Response() *Response {
 	return c.response
@@ -216,6 +221,10 @@ func (c *Context) RealIP() string {
 
 // Path returns the request path associated with the context.
 func (c *Context) Path() string {
+	if c.path == "" && c.request != nil {
+		c.path = c.request.URL.Path
+	}
+
 	return c.path
 }
 
@@ -532,8 +541,7 @@ func (c *Context) Reset(r *http.Request, w http.ResponseWriter) {
 	c.request = r
 	c.query = nil
 	c.nothandler = nil
-	c.response.reset(w)
-	c.path = r.URL.String()
+	c.response = &Response{Writer: w}
 	c.CancelableContext = context.New()
 
 	c.InitForms()

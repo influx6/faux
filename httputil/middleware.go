@@ -34,6 +34,11 @@ func IdentityHandler(c *Context) error {
 	return nil
 }
 
+// IdentityMW defines a Handler function that returns a the next Handler passed to it.
+func IdentityMW(next Handler) Handler {
+	return next
+}
+
 // WrapHandler attempts to wrap provided http.HandlerFunc to return a httputil.Context.
 func WrapHandler(fx http.HandlerFunc) Handler {
 	return func(ctx *Context) error {
@@ -193,6 +198,10 @@ func PoolHandlerFunc(errHandler ErrorHandler, ops ...Options) (HandlerFuncMW, *s
 // MWi combines multiple Middleware to return a new Middleware.
 func MWi(mos ...Middleware) Middleware {
 	var initial Middleware
+
+	if len(mos) == 0 {
+		initial = IdentityMW
+	}
 
 	for _, mw := range mos {
 		if initial == nil {
