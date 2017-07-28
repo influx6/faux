@@ -8,24 +8,43 @@ import (
 
 // DodFile defines a standin structure for a giving http.File object.
 type DodFile struct {
-	*bytes.Reader
-	Info os.FileInfo
-	Dirs []os.FileInfo
+	Buffer *bytes.Buffer
+	Info   os.FileInfo
+	Dirs   []os.FileInfo
+	seeker *bytes.Reader
 }
 
 // New returns a new DodFile instance.
-func New(name string, body []byte, dirs ...os.FileInfo) *DodFile {
+func New(name string, body *bytes.Buffer, dirs ...os.FileInfo) *DodFile {
 	return &DodFile{
-		Dirs: dirs,
+		Dirs:   dirs,
+		Buffer: body,
 		Info: &DodInfo{
 			FileName: name,
-			FileSize: int64(len(body)),
+			FileSize: int64(body.Len()),
 		},
-		Reader: bytes.NewReader(body),
 	}
 }
 
-// Close returns nil always
+// Read reads data into the byte slice.
+func (d *DodFile) Read(b []byte) (int, error) {
+	if d.seeker != nil {
+		return d.seeker.Read(b)
+	}
+
+	return d.Buffer.Read(b)
+}
+
+// Seek implements the io.Seeker interface.
+func (d *DodFile) Seek(offset int64, whence int) (int64, error) {
+	if d.seeker == nil {
+		d.seeker = bytes.NewReader(d.Buffer.Bytes())
+	}
+
+	return d.seeker.Seek(offset, whence)
+}
+
+// Close returns nil always.
 func (d DodFile) Close() error {
 	return nil
 }
