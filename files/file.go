@@ -14,13 +14,13 @@ type DodFile struct {
 }
 
 // New returns a new DodFile instance.
-func New(name string, body *bytes.Reader, dirs ...os.FileInfo) *DodFile {
+func New(name string, size int64, body *bytes.Reader, dirs ...os.FileInfo) *DodFile {
 	return &DodFile{
 		Dirs:   dirs,
 		Reader: body,
 		Info: &DodInfo{
 			FileName: name,
-			FileSize: int64(body.Len()),
+			FileSize: size,
 		},
 	}
 }
