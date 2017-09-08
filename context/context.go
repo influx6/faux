@@ -4,7 +4,6 @@ package context
 
 import (
 	gcontext "context"
-	"errors"
 	"sync"
 	"time"
 )
@@ -13,6 +12,79 @@ import (
 
 // Fields defines a map of key:value pairs.
 type Fields map[interface{}]interface{}
+
+//==============================================================================
+
+// CancelContext defines a type which provides Done signal for cancelling operations.
+type CancelContext interface {
+	Done() <-chan struct{}
+}
+
+// CancelableContext defines a type which provides Done signal for cancelling operations.
+type CancelableContext interface {
+	Done() <-chan struct{}
+	Cancel()
+}
+
+// CnclContext defines a struct to implement the CancelContext.
+type CnclContext struct {
+	close chan struct{}
+	once  sync.Once
+}
+
+// NewCnclContext returns a new instance of the CnclContext.
+func NewCnclContext() *CnclContext {
+	return &CnclContext{close: make(chan struct{})}
+}
+
+// Cancel closes the internal channel of the contxt
+func (cn *CnclContext) Cancel() {
+	cn.once.Do(func() {
+		close(cn.close)
+	})
+}
+
+// Done returns a channel to signal ending of op.
+// It implements the CancelContext.
+func (cn *CnclContext) Done() <-chan struct{} {
+	return cn.close
+}
+
+// ExpiringCnclContext defines a struct to implement the CancelContext.
+type ExpiringCnclContext struct {
+	close    chan struct{}
+	action   func()
+	once     sync.Once
+	duration time.Duration
+}
+
+// NewExpiringCnclContext returns a new instance of the CnclContext.
+func NewExpiringCnclContext(action func(), timeout time.Duration) *ExpiringCnclContext {
+	exp := &ExpiringCnclContext{close: make(chan struct{}), action: action}
+	go exp.monitor()
+	return exp
+}
+
+// Cancel closes the internal channel of the contxt
+func (cn *ExpiringCnclContext) Cancel() {
+	cn.once.Do(func() {
+		close(cn.close)
+		if cn.action != nil {
+			cn.action()
+		}
+	})
+}
+
+// Done returns a channel to signal ending of op.
+// It implements the CancelContext.
+func (cn *ExpiringCnclContext) Done() <-chan struct{} {
+	return cn.close
+}
+
+func (cn *ExpiringCnclContext) monitor() {
+	<-time.After(cn.duration)
+	cn.Cancel()
+}
 
 //==============================================================================
 
@@ -66,6 +138,17 @@ func (p *Pair) Append(key, val interface{}) *Pair {
 		prev:  p,
 		key:   key,
 		value: val,
+	}
+}
+
+// RemoveAll sets all key-value pairs to nil for all connected pair, till it reaches
+// the root.
+func (p *Pair) RemoveAll() {
+	p.key = nil
+	p.value = nil
+
+	if p.prev != nil {
+		p.prev.RemoveAll()
 	}
 }
 
@@ -210,108 +293,37 @@ type Getter interface {
 	GetFloat64(key interface{}) (float64, bool)
 }
 
-// Canceler defines an interface for canceling an operation with a giving error.
-type Canceler interface {
-
-	// Cancel is called to cancel with a giving error.
-	Cancel(error)
-
-	// Err returns the error partaining to error if any giving when Cancelled is called.
-	Err() error
-}
-
-// Context defines an interface for a context providers which allows us to
-// build passable context around.
-type Context interface {
+// ValueBagContext defines a context for holding values to be shared across processes..
+type ValueBagContext interface {
 	Getter
 
-	// IsExpired returns true/false if the context is considered expired.
-	IsExpired() bool
-
-	// Done returns a channel which gets closed when the given channel
-	// expires else closes immediately if its not an expiring context.
-	Done() <-chan struct{}
-
-	// WithDeadline returns a new Context from the previous with the given timeout
-	// if the timeout is still further than the previous in expiration date else uses
-	// the previous expiration date instead since that is still further in the future.
-	WithDeadline(timeout time.Duration, cancelWithParent bool) Context
-
-	// New returns a new context based on the fileds of the context which its
-	// called from, it does inherits the lifetime limits of the context its
-	// called from.
-	New(cancelWithParent bool) Context
+	// Ctx() CancelableContext
 
 	// Set adds a key and value pair into the context store.
 	Set(key interface{}, value interface{})
 
 	// WithValue returns a new context then adds the key and value pair into the
 	// context's store.
-	WithValue(key interface{}, value interface{}) Context
-
-	// Deadline returns the remaining time for expiring of the context if it
-	// indeed has an expiration date set and returns a bool value indicating if it
-	// has a timeout.
-	Deadline() (time.Duration, bool)
-}
-
-// CancelableContext defines the base outline for all context.
-type CancelableContext interface {
-	Context
-	Canceler
-
-	// Ctx returns a Context which exposes a basic context interface without  the
-	// cancellable method.
-	Ctx() Context
-}
-
-// New returns a new context object that meets the Context interface.
-func New() CancelableContext {
-	cl := context{
-		fields:    nilPair,
-		canceller: make(chan struct{}),
-	}
-
-	return &cl
-}
-
-// From returns a new context object that meets the Context interface.
-func From(ctx gcontext.Context) CancelableContext {
-	var gc googleContext
-
-	ctx, canceller := gcontext.WithCancel(ctx)
-	rem, _ := ctx.Deadline()
-
-	gc.ctx = ctx
-	gc.deadline = rem
-	gc.canceller = canceller
-
-	return &gc
+	WithValue(key interface{}, value interface{}) ValueBagContext
 }
 
 //==============================================================================
 
-// googleContext implements a decorator for googles context package.
-type googleContext struct {
-	ctx       gcontext.Context
-	deadline  time.Time
-	canceller func()
-	err       error
+// GoogleContext implements a decorator for googles context package.
+type GoogleContext struct {
+	gcontext.Context
 }
 
-// IsExpired returns true/false if the context is considered expired.
-func (g *googleContext) IsExpired() bool {
-	select {
-	case <-g.ctx.Done():
-		return true
-	case <-time.After(1 * time.Second):
-		return false
-	}
+// FromContext returns a new context object that meets the Context interface.
+func FromContext(ctx gcontext.Context) *GoogleContext {
+	var gc GoogleContext
+	gc.Context = ctx
+	return &gc
 }
 
 // Get returns the giving value for the provided key if it exists else nil.
-func (g *googleContext) Get(key interface{}) (interface{}, bool) {
-	val := g.ctx.Value(key)
+func (g *GoogleContext) Get(key interface{}) (interface{}, bool) {
+	val := g.Context.Value(key)
 	if val == nil {
 		return val, false
 	}
@@ -320,7 +332,7 @@ func (g *googleContext) Get(key interface{}) (interface{}, bool) {
 }
 
 // GetBool collects the string value of a key if it exists.
-func (g *googleContext) GetBool(key interface{}) (bool, bool) {
+func (g *GoogleContext) GetBool(key interface{}) (bool, bool) {
 	val, found := g.Get(key)
 	if !found {
 		return false, false
@@ -331,7 +343,7 @@ func (g *googleContext) GetBool(key interface{}) (bool, bool) {
 }
 
 // GetFloat64 collects the string value of a key if it exists.
-func (g *googleContext) GetFloat64(key interface{}) (float64, bool) {
+func (g *GoogleContext) GetFloat64(key interface{}) (float64, bool) {
 	val, found := g.Get(key)
 	if !found {
 		return 0, false
@@ -342,7 +354,7 @@ func (g *googleContext) GetFloat64(key interface{}) (float64, bool) {
 }
 
 // GetFloat32 collects the string value of a key if it exists.
-func (g *googleContext) GetFloat32(key interface{}) (float32, bool) {
+func (g *GoogleContext) GetFloat32(key interface{}) (float32, bool) {
 	val, found := g.Get(key)
 	if !found {
 		return 0, false
@@ -353,7 +365,7 @@ func (g *googleContext) GetFloat32(key interface{}) (float32, bool) {
 }
 
 // GetInt8 collects the string value of a key if it exists.
-func (g *googleContext) GetInt8(key interface{}) (int8, bool) {
+func (g *GoogleContext) GetInt8(key interface{}) (int8, bool) {
 	val, found := g.Get(key)
 	if !found {
 		return 0, false
@@ -364,7 +376,7 @@ func (g *googleContext) GetInt8(key interface{}) (int8, bool) {
 }
 
 // GetInt16 collects the string value of a key if it exists.
-func (g *googleContext) GetInt16(key interface{}) (int16, bool) {
+func (g *GoogleContext) GetInt16(key interface{}) (int16, bool) {
 	val, found := g.Get(key)
 	if !found {
 		return 0, false
@@ -375,7 +387,7 @@ func (g *googleContext) GetInt16(key interface{}) (int16, bool) {
 }
 
 // GetInt64 collects the string value of a key if it exists.
-func (g *googleContext) GetInt64(key interface{}) (int64, bool) {
+func (g *GoogleContext) GetInt64(key interface{}) (int64, bool) {
 	val, found := g.Get(key)
 	if !found {
 		return 0, false
@@ -386,7 +398,7 @@ func (g *googleContext) GetInt64(key interface{}) (int64, bool) {
 }
 
 // GetInt32 collects the string value of a key if it exists.
-func (g *googleContext) GetInt32(key interface{}) (int32, bool) {
+func (g *GoogleContext) GetInt32(key interface{}) (int32, bool) {
 	val, found := g.Get(key)
 	if !found {
 		return 0, false
@@ -397,7 +409,7 @@ func (g *googleContext) GetInt32(key interface{}) (int32, bool) {
 }
 
 // GetInt collects the string value of a key if it exists.
-func (g *googleContext) GetInt(key interface{}) (int, bool) {
+func (g *GoogleContext) GetInt(key interface{}) (int, bool) {
 	val, found := g.Get(key)
 	if !found {
 		return 0, false
@@ -408,7 +420,7 @@ func (g *googleContext) GetInt(key interface{}) (int, bool) {
 }
 
 // GetString collects the string value of a key if it exists.
-func (g *googleContext) GetString(key interface{}) (string, bool) {
+func (g *GoogleContext) GetString(key interface{}) (string, bool) {
 	val, found := g.Get(key)
 	if !found {
 		return "", false
@@ -418,305 +430,130 @@ func (g *googleContext) GetString(key interface{}) (string, bool) {
 	return value, ok
 }
 
-// Done returns a channel which gets closed when the given channel
-// expires else closes immediately if its not an expiring context.
-func (g *googleContext) Done() <-chan struct{} {
-	return g.ctx.Done()
-}
-
-// Err returns the error pertaining to the context Err() method.
-func (g *googleContext) Err() error {
-	return g.ctx.Err()
-}
-
-// Ctx returns a Context which exposes a basic context interface without  the
-// cancellable method.
-func (g *googleContext) Ctx() Context {
-	return g
-}
-
-// New returns a new context based on the fileds of the context which its
-// called from, it does inherits the lifetime limits of the context its
-// called from.
-func (g *googleContext) New(cancelWithParent bool) Context {
-	return From(g.ctx)
-}
-
-// WithDeadline returns a new Context from the previous with the given timeout
-// if the timeout is still further than the previous in expiration date else uses
-// the previous expiration date instead since that is still further in the future.
-func (g *googleContext) WithDeadline(timeout time.Duration, cancelWithParent bool) Context {
-	ctx, cancller := gcontext.WithTimeout(g.ctx, timeout)
-
-	var gc googleContext
-	gc.ctx = ctx
-	gc.canceller = cancller
-
-	return &gc
-}
-
-// Set adds a key and value pair into the context store.
-func (g *googleContext) Set(key interface{}, value interface{}) {
-	ctx := gcontext.WithValue(g.ctx, key, value)
-	g.ctx = ctx
-}
-
-// WithValue returns a new context then adds the key and value pair into the
-// context's store.
-func (g *googleContext) WithValue(key interface{}, value interface{}) Context {
-	ctx := gcontext.WithValue(g.ctx, key, value)
-
-	nctx, cancel := gcontext.WithCancel(ctx)
-
-	var gc googleContext
-	gc.ctx = nctx
-	gc.canceller = cancel
-
-	return &gc
-}
-
-// Deadline returns the remaining time for expiring of the context if it
-// indeed has an expiration date set and returns a bool value indicating if it
-// has a timeout.
-func (g *googleContext) Deadline() (remaining time.Duration, hasTimeout bool) {
-	deadline, ok := g.ctx.Deadline()
-
-	return time.Now().Sub(deadline), ok
-}
-
-// Cancel cancels the timer if there exists one set to clear context.
-func (g *googleContext) Cancel(err error) {
-	g.canceller()
-}
-
 //================================================================================
 
 // context defines a struct for bundling a context against specific
 // use cases with a explicitly set duration which clears all its internal
 // data after the giving period.
 type context struct {
-	fields    *Pair
-	lifetime  time.Time
-	timer     *time.Timer
-	duration  time.Duration
-	parent    Context
-	canceller chan struct{}
-	cl        sync.Mutex
-	err       error
-	canceled  bool
+	mx     sync.Mutex
+	fields *Pair
 }
 
-// New returns a new context from with the configuration limits of this one.
-func (c *context) New(cancelWithParent bool) Context {
-	if c.timer != nil {
-		return c.WithDeadline(c.duration, cancelWithParent)
+// ExpiringValueBag returns a ValueBagContext which contexts will be deleted once
+// the provided duration has finished it's
+func ExpiringValueBag(dur time.Duration) ValueBagContext {
+	bag := &context{
+		fields: nilPair,
 	}
 
-	return c.newChild(cancelWithParent)
+	NewExpiringCnclContext(func() {
+		bag.mx.Lock()
+		defer bag.mx.Unlock()
+		bag.fields = nilPair
+	}, dur)
+
+	return bag
 }
 
-// WithDeadline returns a new context whoes internal value expires
-// after the giving duration.
-func (c *context) WithDeadline(life time.Duration, cancelWithParent bool) Context {
-	child := c.newChild(cancelWithParent)
-
-	var useChild bool
-
-	lifetime := time.Now().Add(life)
-	if lifetime.After(child.lifetime) {
-		child.duration = life
-		child.lifetime = lifetime
-		useChild = true
+// ValueBag returns a new context object that meets the Context interface.
+func ValueBag() ValueBagContext {
+	cl := context{
+		fields: nilPair,
 	}
 
-	var to time.Duration
-
-	if useChild {
-		to = life
-	} else {
-		to = c.duration
-	}
-
-	child.timer = time.AfterFunc(to, func() {
-		child.fields = nilPair
-		child.Cancel(errors.New("Deadline passed"))
-	})
-
-	return child
+	return &cl
 }
 
 // WithValue returns a new context based on the previos one.
-func (c *context) WithValue(key, value interface{}) Context {
-	child := c.newChild(true)
+func (c *context) WithValue(key, value interface{}) ValueBagContext {
+	child := &context{
+		fields: c.fields,
+	}
+
 	child.fields = Append(child.fields, key, value)
 	return child
 }
 
-// Deadline returns the remaining time before expiration.
-func (c *context) Deadline() (rem time.Duration, hasTimeout bool) {
-	if c.lifetime.IsZero() {
-		return
-	}
-
-	hasTimeout = true
-
-	now := time.Now()
-	if now.Before(c.lifetime) {
-		rem = c.lifetime.Sub(now)
-		return
-	}
-
-	return
-}
-
-// Done returns a channel which gets closed when the context
-// has expired.
-func (c *context) Done() <-chan struct{} {
-	if c.IsExpired() {
-		cm := make(chan struct{})
-
-		close(cm)
-
-		return cm
-	}
-
-	return c.canceller
-}
-
-// IsExpired returns true/false if the context internal data has expired.
-func (c *context) IsExpired() bool {
-	left, has := c.Deadline()
-	if has {
-		if left <= 0 {
-			return true
-		}
-	}
-
-	c.cl.Lock()
-	{
-		if c.canceled {
-			c.cl.Unlock()
-			return true
-		}
-	}
-	c.cl.Unlock()
-
-	return false
-}
-
-// Ctx returns the Context interface  for a giving Context.
-func (c *context) Ctx() Context {
-	return c
-}
-
-// Err returns the error pertaining to the context Err() method.
-func (c *context) Err() error {
-	c.cl.Lock()
-	defer c.cl.Unlock()
-
-	return c.err
-}
-
-// Cancel cancels the timer if there exists one set to clear context.
-func (c *context) Cancel(err error) {
-	if c.IsExpired() {
-		return
-	}
-
-	c.cl.Lock()
-	c.err = err
-	c.canceled = true
-	c.cl.Unlock()
-
-	close(c.canceller)
-
-	if c.timer != nil {
-		c.timer.Stop()
-		return
-	}
-}
+// // Ctx returns an associated CancelableContext if available for the context.
+// func (c *context) Ctx() CancelableContext {
+// 	return c.ctx
+// }
 
 // Set adds the giving value using the given key into the map.
 func (c *context) Set(key, val interface{}) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	c.fields = Append(c.fields, key, val)
 }
 
 // Get returns the value for the necessary key within the context.
 func (c *context) Get(key interface{}) (item interface{}, found bool) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	item, found = c.fields.Get(key)
 	return
 }
 
 // GetBool collects the string value of a key if it exists.
 func (c *context) GetBool(key interface{}) (bool, bool) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	return c.fields.GetBool(key)
 }
 
 // GetFloat64 collects the string value of a key if it exists.
 func (c *context) GetFloat64(key interface{}) (float64, bool) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	return c.fields.GetFloat64(key)
 }
 
 // GetFloat32 collects the string value of a key if it exists.
 func (c *context) GetFloat32(key interface{}) (float32, bool) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	return c.fields.GetFloat32(key)
 }
 
 // GetInt8 collects the string value of a key if it exists.
 func (c *context) GetInt8(key interface{}) (int8, bool) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	return c.fields.GetInt8(key)
 }
 
 // GetInt16 collects the string value of a key if it exists.
 func (c *context) GetInt16(key interface{}) (int16, bool) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	return c.fields.GetInt16(key)
 }
 
 // GetInt64 collects the string value of a key if it exists.
 func (c *context) GetInt64(key interface{}) (int64, bool) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	return c.fields.GetInt64(key)
 }
 
 // GetInt32 collects the string value of a key if it exists.
 func (c *context) GetInt32(key interface{}) (int32, bool) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	return c.fields.GetInt32(key)
 }
 
 // GetInt collects the string value of a key if it exists.
 func (c *context) GetInt(key interface{}) (int, bool) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	return c.fields.GetInt(key)
 }
 
 // GetString collects the string value of a key if it exists.
 func (c *context) GetString(key interface{}) (string, bool) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	return c.fields.GetString(key)
-}
-
-// newChild returns a new fresh context based on the fields of this context.
-func (c *context) newChild(cancelWithParent bool) *context {
-	canceller := make(chan struct{})
-
-	if c.IsExpired() {
-		close(canceller)
-	}
-
-	cm := &context{
-		parent:    c,
-		fields:    c.fields,
-		lifetime:  c.lifetime,
-		duration:  c.duration,
-		canceled:  c.canceled,
-		canceller: canceller,
-	}
-
-	if cancelWithParent {
-		go func() {
-			cancel := c.Done()
-
-			<-cancel
-			cm.Cancel(errors.New("Already canceled"))
-		}()
-	}
-
-	return cm
 }

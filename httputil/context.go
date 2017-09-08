@@ -99,7 +99,7 @@ func SetNotFound(r NotFoundHandler) Options {
 // Context.
 func SetContext(c context.CancelableContext) Options {
 	return func(c *Context) {
-		c.CancelableContext = c
+		c.CancelContext = c
 	}
 }
 
@@ -116,7 +116,8 @@ func SetMetrics(r metrics.Metrics) Options {
 // Context defines a http related context object for a request session
 // which is to be served.
 type Context struct {
-	context.CancelableContext
+	context.CancelContext
+	context.ValueBagContext
 	path       string
 	render     Render
 	response   *Response
@@ -129,7 +130,8 @@ type Context struct {
 // NewContext returns a new Context with the Options slice applied.
 func NewContext(ops ...Options) *Context {
 	c := &Context{
-		CancelableContext: context.New(),
+		CancelContext:   context.NewCnclContext(),
+		ValueBagContext: context.ValueBag(),
 	}
 
 	for _, op := range ops {
@@ -149,8 +151,8 @@ func (c *Context) Metrics() metrics.Metrics {
 }
 
 // Ctx returns associated context for Context object.
-func (c *Context) Ctx() context.Context {
-	return c.CancelableContext
+func (c *Context) Ctx() context.CancelContext {
+	return c.CancelContext
 }
 
 // Header returns the header associated with the giving request.
@@ -542,7 +544,7 @@ func (c *Context) Reset(r *http.Request, w http.ResponseWriter) {
 	c.query = nil
 	c.nothandler = nil
 	c.response = &Response{Writer: w}
-	c.CancelableContext = context.New()
+	c.CancelContext = context.NewCnclContext()
 
 	c.InitForms()
 }
