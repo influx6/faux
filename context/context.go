@@ -468,20 +468,15 @@ func ValueBag() ValueBagContext {
 // WithValue returns a new context based on the previos one.
 func (c *context) WithValue(key, value interface{}) ValueBagContext {
 	c.mx.Lock()
-	defer c.mx.Unlock()
+	fields := Append(c.fields, key, value)
+	c.mx.Unlock()
 
 	child := &context{
-		fields: c.fields,
+		fields: fields,
 	}
 
-	child.fields = Append(child.fields, key, value)
 	return child
 }
-
-// // Ctx returns an associated CancelableContext if available for the context.
-// func (c *context) Ctx() CancelableContext {
-// 	return c.ctx
-// }
 
 // Set adds the giving value using the given key into the map.
 func (c *context) Set(key, val interface{}) {
