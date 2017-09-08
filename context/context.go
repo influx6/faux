@@ -467,6 +467,9 @@ func ValueBag() ValueBagContext {
 
 // WithValue returns a new context based on the previos one.
 func (c *context) WithValue(key, value interface{}) ValueBagContext {
+	c.mx.Lock()
+	defer c.mx.Unlock()
+
 	child := &context{
 		fields: c.fields,
 	}
