@@ -15,6 +15,19 @@ type Fields map[interface{}]interface{}
 
 //==============================================================================
 
+// MakeGoogleContextFrom returns a goole context package instance by using the CancelContext
+// to cancel the returned context.
+func MakeGoogleContextFrom(ctx CancelContext) gcontext.Context {
+	cmx, canceler := gcontext.WithCancel(gcontext.Background())
+	go func() {
+		<-ctx.Done()
+		canceler()
+	}()
+	return cmx
+}
+
+//==============================================================================
+
 // CancelContext defines a type which provides Done signal for cancelling operations.
 type CancelContext interface {
 	Done() <-chan struct{}
