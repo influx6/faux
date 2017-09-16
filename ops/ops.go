@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/BurntSushi/toml"
+	"github.com/influx6/faux/context"
 )
 
 // errors.
@@ -13,14 +14,9 @@ var (
 	ErrFunctionNotFound = errors.New("Function with given id not found")
 )
 
-// CancelContext defines a type which provides Done signal for cancelling operations.
-type CancelContext interface {
-	Done() <-chan struct{}
-}
-
 // Op defines an interface which expose an exec method.
 type Op interface {
-	Exec(CancelContext) error
+	Exec(context.CancelContext) error
 }
 
 // Function defines a interface for a function which returns a giving Op.
