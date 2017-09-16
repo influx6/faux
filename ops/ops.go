@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"sync"
 
 	"github.com/BurntSushi/toml"
 )
@@ -32,7 +31,6 @@ type Generator func([]byte) (Op, error)
 
 // GeneratorRegistry implements a structure that handles registration and ochestration of spells.
 type GeneratorRegistry struct {
-	fl        sync.Mutex
 	functions map[string]Generator
 }
 
@@ -45,9 +43,6 @@ func NewGeneratorRegistry() *GeneratorRegistry {
 
 // Register adds the giving function into the list of available functions for instanction.
 func (ng *GeneratorRegistry) Register(id string, fun Generator) bool {
-	ng.fl.Lock()
-	defer ng.fl.Unlock()
-
 	ng.functions[id] = fun
 	return true
 }
@@ -55,9 +50,6 @@ func (ng *GeneratorRegistry) Register(id string, fun Generator) bool {
 // RegisterTOML adds the giving function into the list of available functions for instanction,
 // where it's config would be loaded using toml as the config unmarshaller.
 func (ng *GeneratorRegistry) RegisterTOML(id string, fun Function) bool {
-	ng.fl.Lock()
-	defer ng.fl.Unlock()
-
 	ng.functions[id] = func(config []byte) (Op, error) {
 		instance := fun()
 		if _, err := toml.DecodeReader(bytes.NewBuffer(config), instance); err != nil {
@@ -73,9 +65,6 @@ func (ng *GeneratorRegistry) RegisterTOML(id string, fun Function) bool {
 // RegisterJSON adds the giving function into the list of available functions for instanction,
 // where it's config would be loaded using json as the config unmarshaller.
 func (ng *GeneratorRegistry) RegisterJSON(id string, fun Function) bool {
-	ng.fl.Lock()
-	defer ng.fl.Unlock()
-
 	ng.functions[id] = func(config []byte) (Op, error) {
 		instance := fun()
 		if err := json.Unmarshal(config, instance); err != nil {
@@ -100,9 +89,6 @@ func (ng *GeneratorRegistry) MustCreateFromBytes(id string, config []byte) Op {
 
 // CreateFromBytes returns a new spell from the provided configuration
 func (ng *GeneratorRegistry) CreateFromBytes(id string, config []byte) (Op, error) {
-	ng.fl.Lock()
-	defer ng.fl.Unlock()
-
 	fun, ok := ng.functions[id]
 	if !ok {
 		return nil, ErrFunctionNotFound
