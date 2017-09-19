@@ -68,13 +68,16 @@ func BlockDisplay(w io.Writer) metrics.Metrics {
 //
 func StackDisplay(w io.Writer) metrics.Metrics {
 	return NewCustomEmitter(w, func(en metrics.Entry) []byte {
-		message, ok := en.Get("message")
-		if !ok {
-			if en.Message == "" {
+		var ok bool
+		var message string
+
+		if en.Message == "" {
+			message, ok = en.GetString("message")
+			if !ok {
 				message = metrics.DefaultMessage
-			} else {
-				message = en.Message
 			}
+		} else {
+			message = en.Message
 		}
 
 		var bu bytes.Buffer
