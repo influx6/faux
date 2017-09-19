@@ -200,6 +200,17 @@ func (p *Pair) Root() *Pair {
 	return p.prev.Root()
 }
 
+// GetString collects the value of a key if it exists.
+func (p *Pair) GetString(key string) (value string, found bool) {
+	val, ok := p.Get(key)
+	if !ok {
+		return "", false
+	}
+
+	vals, ok := val.(string)
+	return vals, ok
+}
+
 // Get collects the value of a key if it exists.
 func (p *Pair) Get(key string) (value interface{}, found bool) {
 	if p == nil {

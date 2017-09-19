@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/influx6/faux/metrics"
 )
@@ -25,9 +26,16 @@ import (
 //
 func BlockDisplay(w io.Writer) metrics.Metrics {
 	return NewCustomEmitter(w, func(en metrics.Entry) []byte {
-		message, ok := en.Get("message")
-		if !ok {
-			message = metrics.DefaultMessage
+		var ok bool
+		var message string
+
+		if en.Message == "" {
+			message, ok = en.GetString("message")
+			if !ok {
+				message = metrics.DefaultMessage
+			}
+		} else {
+			message = en.Message
 		}
 
 		var bu bytes.Buffer
@@ -39,7 +47,7 @@ func BlockDisplay(w io.Writer) metrics.Metrics {
 
 			keyLines := printBlockLine(keyLength)
 			valLines := printBlockLine(valLength)
-			spaceLines := printSpaceLine(2)
+			spaceLines := printSpaceLine(1)
 
 			fmt.Fprintf(&bu, "+%s+%s+\n", keyLines, valLines)
 			fmt.Fprintf(&bu, "|%s%s%s|%s%s%s|\n", spaceLines, key, spaceLines, spaceLines, value, spaceLines)
@@ -62,7 +70,11 @@ func StackDisplay(w io.Writer) metrics.Metrics {
 	return NewCustomEmitter(w, func(en metrics.Entry) []byte {
 		message, ok := en.Get("message")
 		if !ok {
-			message = metrics.DefaultMessage
+			if en.Message == "" {
+				message = metrics.DefaultMessage
+			} else {
+				message = en.Message
+			}
 		}
 
 		var bu bytes.Buffer
@@ -161,6 +173,10 @@ func printMap(items interface{}, do func(key string, val string)) {
 		for index, item := range bo {
 			do(index, printValue(item))
 		}
+	case map[string]time.Time:
+		for index, item := range bo {
+			do(index, printValue(item))
+		}
 	case map[string]int:
 		for index, item := range bo {
 			do(index, printValue(item))
@@ -173,10 +189,61 @@ func printMap(items interface{}, do func(key string, val string)) {
 		for index, item := range bo {
 			do(index, printValue(string(item)))
 		}
+	case metrics.Fields:
+		for index, item := range bo {
+			switch vItem := item.(type) {
+			case map[string][]byte:
+				printMap(vItem, func(key string, val string) {
+					do(fmt.Sprintf("%s.%s", index, key), val)
+				})
+			case map[string]time.Time:
+				printMap(vItem, func(key string, val string) {
+					do(fmt.Sprintf("%s.%s", index, key), val)
+				})
+			case map[string]float32:
+				printMap(vItem, func(key string, val string) {
+					do(fmt.Sprintf("%s.%s", index, key), val)
+				})
+			case map[string]float64:
+				printMap(vItem, func(key string, val string) {
+					do(fmt.Sprintf("%s.%s", index, key), val)
+				})
+			case map[string]int8:
+				printMap(vItem, func(key string, val string) {
+					do(fmt.Sprintf("%s.%s", index, key), val)
+				})
+			case map[string]int16:
+				printMap(vItem, func(key string, val string) {
+					do(fmt.Sprintf("%s.%s", index, key), val)
+				})
+			case map[string]int64:
+				printMap(vItem, func(key string, val string) {
+					do(fmt.Sprintf("%s.%s", index, key), val)
+				})
+			case map[string]int32:
+				printMap(vItem, func(key string, val string) {
+					do(fmt.Sprintf("%s.%s", index, key), val)
+				})
+			case map[string]int:
+				printMap(vItem, func(key string, val string) {
+					do(fmt.Sprintf("%s.%s", index, key), val)
+				})
+			case map[string]string:
+				printMap(vItem, func(key string, val string) {
+					do(fmt.Sprintf("%s.%s", index, key), val)
+				})
+			default:
+				do(index, printValue(item))
+			}
+		}
 	case map[string]interface{}:
 		for index, item := range bo {
 			switch vItem := item.(type) {
 			case map[string][]byte:
+				printMap(vItem, func(key string, val string) {
+					do(fmt.Sprintf("%s.%s", index, key), val)
+				})
+			case map[string]time.Time:
 				printMap(vItem, func(key string, val string) {
 					do(fmt.Sprintf("%s.%s", index, key), val)
 				})
@@ -245,6 +312,10 @@ func printArrays(items interface{}, do func(index string, val string)) {
 		for index, item := range bo {
 			do(printValue(index), printValue(item))
 		}
+	case []time.Time:
+		for index, item := range bo {
+			do(printValue(index), printValue(item))
+		}
 	case []string:
 		for index, item := range bo {
 			do(printValue(index), printValue(item))
@@ -294,6 +365,8 @@ func printValue(item interface{}) string {
 		return strconv.Itoa(int(bo))
 	case int64:
 		return strconv.Itoa(int(bo))
+	case time.Time:
+		return bo.UTC().String()
 	case rune:
 		return strconv.QuoteRune(bo)
 	case bool:
