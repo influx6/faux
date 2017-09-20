@@ -24,7 +24,7 @@ import (
 //  | displayrange.bolder.size |  20      |
 //  +--------------------------+----------+
 //
-func BlockDisplay(w io.Writer, header string) metrics.Metrics {
+func BlockDisplay(w io.Writer) metrics.Metrics {
 	return BlockDisplayWith(w, "Message", true, nil)
 }
 
