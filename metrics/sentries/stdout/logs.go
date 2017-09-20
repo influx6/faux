@@ -121,9 +121,6 @@ func (Stdout) Emit(e metrics.Entry) error {
 		break
 	}
 
-	cyan.Fprint(&bu, "[opening]")
-	bu.Write([]byte(":"))
-
 	if e.Message != "" {
 		bu.Write([]byte("\t\t"))
 		bu.Write([]byte(e.Message))
@@ -163,9 +160,6 @@ func (Stderr) Emit(e metrics.Entry) error {
 	default:
 		return errors.New("Only Error ID allowed")
 	}
-
-	cyan.Fprint(&bu, "[opening]")
-	bu.Write([]byte(":"))
 
 	if e.Message != "" {
 		bu.Write([]byte("\t\t"))
