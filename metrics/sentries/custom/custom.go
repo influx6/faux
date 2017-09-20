@@ -24,8 +24,27 @@ import (
 //  | displayrange.bolder.size |  20      |
 //  +--------------------------+----------+
 //
-func BlockDisplay(w io.Writer) metrics.Metrics {
+func BlockDisplay(w io.Writer, header string) metrics.Metrics {
+	return BlockDisplayWith(w, "Message", true, nil)
+}
+
+// BlockDislay writes giving Entries as seperated blocks of contents where the each content is
+// converted within a block like below:
+//
+//  Message: We must create new standard behaviour
+//  +-----------------------------+------------------------------+
+//  | displayrange.address.bolder | "No 20 tokura flag"          |
+//  +-----------------------------+------------------------------+
+//  +--------------------------+----------+
+//  | displayrange.bolder.size |  20      |
+//  +--------------------------+----------+
+//
+func BlockDisplayWith(w io.Writer, header string, stacked bool, filterFn func(metrics.Entry) bool) metrics.Metrics {
 	return NewCustomEmitter(w, func(en metrics.Entry) []byte {
+		if filterFn != nil && !filterFn(en) {
+			return nil
+		}
+
 		var ok bool
 		var message string
 
@@ -39,7 +58,11 @@ func BlockDisplay(w io.Writer) metrics.Metrics {
 		}
 
 		var bu bytes.Buffer
-		fmt.Fprintf(&bu, "Message: %+q\n", message)
+		if header != "" {
+			fmt.Fprintf(&bu, "%s: %+s\n", header, message)
+		} else {
+			fmt.Fprintf(&bu, "%+s\n", message)
+		}
 
 		print(en.Fields(), func(key string, value string) {
 			keyLength := len(key) + 2
@@ -51,7 +74,14 @@ func BlockDisplay(w io.Writer) metrics.Metrics {
 
 			fmt.Fprintf(&bu, "+%s+%s+\n", keyLines, valLines)
 			fmt.Fprintf(&bu, "|%s%s%s|%s%s%s|\n", spaceLines, key, spaceLines, spaceLines, value, spaceLines)
-			fmt.Fprintf(&bu, "+%s+%s+\n", keyLines, valLines)
+			fmt.Fprintf(&bu, "+%s+%s+", keyLines, valLines)
+
+			if stacked {
+				fmt.Fprintf(&bu, "\n")
+				return
+			}
+
+			fmt.Fprintf(&bu, " ")
 		})
 
 		bu.WriteString("\n")
@@ -63,11 +93,25 @@ func BlockDisplay(w io.Writer) metrics.Metrics {
 // converted within a block like below:
 //
 //  Message: We must create new standard behaviour
-//   displayrange.address.bolder: "No 20 tokura flag"
-//   displayrange.bolder.size:  20
+//  - displayrange.address.bolder: "No 20 tokura flag"
+//  - displayrange.bolder.size:  20
 //
 func StackDisplay(w io.Writer) metrics.Metrics {
+	return StackDisplayWith(w, "Message", "-", nil)
+}
+
+// StackDislayWith writes giving Entries as seperated blocks of contents where the each content is
+// converted within a block like below:
+//
+//  [Header]: We must create new standard behaviour
+//  [tag] displayrange.address.bolder: "No 20 tokura flag"
+//  [tag] displayrange.bolder.size:  20
+//
+func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metrics.Entry) bool) metrics.Metrics {
 	return NewCustomEmitter(w, func(en metrics.Entry) []byte {
+		if filterFn != nil && !filterFn(en) {
+			return nil
+		}
 		var ok bool
 		var message string
 
@@ -81,10 +125,18 @@ func StackDisplay(w io.Writer) metrics.Metrics {
 		}
 
 		var bu bytes.Buffer
-		fmt.Fprintf(&bu, "Message: %+q\n", message)
+		if header != "" {
+			fmt.Fprintf(&bu, "%s: %+s\n", header, message)
+		} else {
+			fmt.Fprintf(&bu, "%+s\n", message)
+		}
+
+		if tag == "" {
+			tag = "-"
+		}
 
 		print(en.Fields(), func(key string, value string) {
-			fmt.Fprintf(&bu, " %s: %+q\n", key, value)
+			fmt.Fprintf(&bu, "%s %s: %+q\n", tag, key, value)
 		})
 
 		bu.WriteString("\n")

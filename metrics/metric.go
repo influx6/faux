@@ -39,27 +39,6 @@ type Sentry interface {
 
 //==============================================================================
 
-// New returns a new metricsMaster for which will recieve all expected Entry values.
-func New(metrics ...interface{}) Master {
-	var sentries []Sentry
-	var entries []Metrics
-
-	for _, item := range metrics {
-		switch rItem := item.(type) {
-		case Metrics:
-			entries = append(entries, rItem)
-		case Sentry:
-			sentries = append(sentries, rItem)
-		}
-	}
-
-	return Master{
-		metrics: append(entries, Sentries(sentries...)),
-	}
-}
-
-//==============================================================================
-
 // SentryJSON defines a json style structure for delivery entry data to
 // other APIs.
 type SentryJSON struct {
@@ -110,9 +89,51 @@ func (pipe SentryPipe) Emit(e Entry) error {
 
 //==============================================================================
 
+// FilterecMaster defines that filters out Entry objects based on a provided function.
+type FilteredMaster struct {
+	Master
+	filterFn func(Entry) bool
+}
+
+// Filter returns a new instance of a FilteredMaster.
+func Filter(filterFn func(Entry) bool, metrics ...interface{}) FilteredMaster {
+	return FilteredMaster{
+		filterFn: filterFn,
+		Master:   New(metrics...),
+	}
+}
+
+// Emit delivers the giving entry to all available metricss.
+func (fm FilteredMaster) Emit(e Entry) error {
+	if !fm.filterFn(e) {
+		return nil
+	}
+
+	return fm.Master.Emit(e)
+}
+
 // Master defines a core metrics structure to pipe Entry values to registed metricss.
 type Master struct {
 	metrics []Metrics
+}
+
+// New returns a new metricsMaster for which will recieve all expected Entry values.
+func New(metrics ...interface{}) Master {
+	var sentries []Sentry
+	var entries []Metrics
+
+	for _, item := range metrics {
+		switch rItem := item.(type) {
+		case Metrics:
+			entries = append(entries, rItem)
+		case Sentry:
+			sentries = append(sentries, rItem)
+		}
+	}
+
+	return Master{
+		metrics: append(entries, Sentries(sentries...)),
+	}
 }
 
 // With returns a new Master with a new list of metricss.
