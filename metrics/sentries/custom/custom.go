@@ -187,13 +187,17 @@ func printBlockLine(length int) string {
 func print(item interface{}, do func(key string, val string)) {
 	itemType := reflect.TypeOf(item)
 
+	if itemType.Kind() == reflect.Ptr {
+		itemType = itemType.Elem()
+	}
+
 	switch itemType.Kind() {
-	case reflect.Array:
+	case reflect.Array, reflect.Slice:
 		printArrays(item, do)
 	case reflect.Map:
 		printMap(item, do)
 	default:
-		do("-", printValue(item))
+		do("", printValue(item))
 	}
 }
 
@@ -231,6 +235,17 @@ func printMap(items interface{}, do func(key string, val string)) {
 		for index, item := range bo {
 			do(index, printValue(item))
 		}
+	case map[string]interface{}:
+		for index, item := range bo {
+			print(item, func(ind string, value string) {
+				if ind == "" {
+					do(index, value)
+					return
+				}
+
+				do(index+"["+ind+"]", value)
+			})
+		}
 	case map[string]string:
 		for index, item := range bo {
 			do(index, printValue(item))
@@ -240,104 +255,18 @@ func printMap(items interface{}, do func(key string, val string)) {
 			do(index, printValue(string(item)))
 		}
 	case metrics.Fields:
-		for index, item := range bo {
-			switch vItem := item.(type) {
-			case map[string][]byte:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]time.Time:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]float32:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]float64:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]int8:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]int16:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]int64:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]int32:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]int:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]string:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			default:
-				do(index, printValue(item))
-			}
-		}
-	case map[string]interface{}:
-		for index, item := range bo {
-			switch vItem := item.(type) {
-			case map[string][]byte:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]time.Time:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]float32:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]float64:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]int8:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]int16:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]int64:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]int32:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]int:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			case map[string]string:
-				printMap(vItem, func(key string, val string) {
-					do(fmt.Sprintf("%s.%s", index, key), val)
-				})
-			default:
-				do(index, printValue(item))
-			}
-		}
+		printMap((map[string]interface{})(bo), do)
 	}
 }
 
 func printArrays(items interface{}, do func(index string, val string)) {
 	switch bo := items.(type) {
+	case []metrics.Fields:
+		for index, item := range bo {
+			printMap((map[string]interface{})(item), func(key string, val string) {
+				do(fmt.Sprintf("%d[%s]", index, key), val)
+			})
+		}
 	case []map[string][]byte:
 		for index, item := range bo {
 			printMap(item, func(key string, val string) {
@@ -360,7 +289,14 @@ func printArrays(items interface{}, do func(index string, val string)) {
 		}
 	case []interface{}:
 		for index, item := range bo {
-			do(printValue(index), printValue(item))
+			print(item, func(ind string, value string) {
+				if ind == "" {
+					do(printValue(index), value)
+					return
+				}
+
+				do(printValue(index)+"["+ind+"]", value)
+			})
 		}
 	case []time.Time:
 		for index, item := range bo {
