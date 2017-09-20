@@ -89,7 +89,28 @@ func (pipe SentryPipe) Emit(e Entry) error {
 
 //==============================================================================
 
-// FilterecMaster defines that filters out Entry objects based on a provided function.
+// ModMaster defines that mod out Entry objects based on a provided function.
+type ModMaster struct {
+	Master
+	modFn func(Entry) Entry
+}
+
+// Mod returns a new instance of a ModeMaster.
+func Mod(modFn func(Entry) Entry, metrics ...interface{}) ModMaster {
+	return ModMaster{
+		modFn:  modFn,
+		Master: New(metrics...),
+	}
+}
+
+// Emit delivers the giving entry to all available metricss.
+func (fm ModMaster) Emit(e Entry) error {
+	return fm.Master.Emit(fm.modFn(e))
+}
+
+//==============================================================================
+
+// FilteredMaster defines that filters out Entry objects based on a provided function.
 type FilteredMaster struct {
 	Master
 	filterFn func(Entry) bool
@@ -111,6 +132,8 @@ func (fm FilteredMaster) Emit(e Entry) error {
 
 	return fm.Master.Emit(e)
 }
+
+//==============================================================================
 
 // Master defines a core metrics structure to pipe Entry values to registed metricss.
 type Master struct {
