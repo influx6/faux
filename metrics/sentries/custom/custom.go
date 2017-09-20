@@ -131,7 +131,7 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 		}
 
 		print(en.Fields(), func(key string, value string) {
-			fmt.Fprintf(&bu, "%s %s: %+q\n", tag, key, value)
+			fmt.Fprintf(&bu, "%s %s: %+s\n", tag, key, value)
 		})
 
 		bu.WriteString("\n")
