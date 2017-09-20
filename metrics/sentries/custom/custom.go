@@ -25,7 +25,7 @@ import (
 //  +--------------------------+----------+
 //
 func BlockDisplay(w io.Writer) metrics.Metrics {
-	return BlockDisplayWith(w, "Message", true, nil)
+	return BlockDisplayWith(w, "Message", nil)
 }
 
 // BlockDislay writes giving Entries as seperated blocks of contents where the each content is
@@ -39,7 +39,7 @@ func BlockDisplay(w io.Writer) metrics.Metrics {
 //  | displayrange.bolder.size |  20      |
 //  +--------------------------+----------+
 //
-func BlockDisplayWith(w io.Writer, header string, stacked bool, filterFn func(metrics.Entry) bool) metrics.Metrics {
+func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bool) metrics.Metrics {
 	return NewCustomEmitter(w, func(en metrics.Entry) []byte {
 		if filterFn != nil && !filterFn(en) {
 			return nil
@@ -75,13 +75,8 @@ func BlockDisplayWith(w io.Writer, header string, stacked bool, filterFn func(me
 			fmt.Fprintf(&bu, "+%s+%s+\n", keyLines, valLines)
 			fmt.Fprintf(&bu, "|%s%s%s|%s%s%s|\n", spaceLines, key, spaceLines, spaceLines, value, spaceLines)
 			fmt.Fprintf(&bu, "+%s+%s+", keyLines, valLines)
+			fmt.Fprintf(&bu, "\n")
 
-			if stacked {
-				fmt.Fprintf(&bu, "\n")
-				return
-			}
-
-			fmt.Fprintf(&bu, " ")
 		})
 
 		bu.WriteString("\n")
