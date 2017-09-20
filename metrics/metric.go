@@ -119,7 +119,7 @@ func (fm SwitchMaster) Emit(e Entry) error {
 	fields := e.Fields()
 	delete(fields, fm.key)
 
-	return selector.Emit(WithFields(fields))
+	return selector.Emit(WithFields(fields).WithMessage(e.Message))
 }
 
 //==============================================================================
@@ -243,16 +243,17 @@ type Fields map[string]interface{}
 
 // Fields returns all internal pair data as a map.
 func (p *Pair) Fields() Fields {
-	var f Fields
+	if p == nil {
+		return make(Fields)
+	}
 
 	if p.prev == nil {
-		f = make(Fields)
+		f := make(Fields)
 		f[p.key] = p.value
 		return f
 	}
 
-	f = p.prev.Fields()
-
+	f := p.prev.Fields()
 	if p.key != "" {
 		f[p.key] = p.value
 	}
