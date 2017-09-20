@@ -4,6 +4,7 @@
 package metrics
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"runtime"
@@ -85,6 +86,40 @@ func (pipe SentryPipe) Emit(e Entry) error {
 	}
 
 	return nil
+}
+
+//==============================================================================
+
+// SwitchMaster defines that mod out Entry objects based on a provided function.
+type SwitchMaster struct {
+	key        string
+	selections map[string]Metrics
+}
+
+// Switch returns a new instance of a SwitchMaster.
+func Switch(keyName string, selections map[string]Metrics) SwitchMaster {
+	return SwitchMaster{
+		key:        keyName,
+		selections: selections,
+	}
+}
+
+// Emit delivers the giving entry to all available metricss.
+func (fm SwitchMaster) Emit(e Entry) error {
+	val, ok := e.GetString(fm.key)
+	if !ok {
+		return fmt.Errorf("Entry has no key '%q'", fm.key)
+	}
+
+	selector, ok := fm.selections[val]
+	if !ok {
+		return errors.New("Metric for key not found")
+	}
+
+	fields := e.Fields()
+	delete(fields, fm.key)
+
+	return selector.Emit(WithFields(fields))
 }
 
 //==============================================================================
