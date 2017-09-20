@@ -25,7 +25,7 @@ import (
 //  +--------------------------+----------+
 //
 func BlockDisplay(w io.Writer) metrics.Metrics {
-	return BlockDisplayWith(w, "Message", nil)
+	return BlockDisplayWith(w, "Message:", nil)
 }
 
 // BlockDislay writes giving Entries as seperated blocks of contents where the each content is
@@ -59,7 +59,7 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 
 		var bu bytes.Buffer
 		if header != "" {
-			fmt.Fprintf(&bu, "%s: %+s\n", header, message)
+			fmt.Fprintf(&bu, "%s %+s\n", header, message)
 		} else {
 			fmt.Fprintf(&bu, "%+s\n", message)
 		}
@@ -92,7 +92,7 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 //  - displayrange.bolder.size:  20
 //
 func StackDisplay(w io.Writer) metrics.Metrics {
-	return StackDisplayWith(w, "Message", "-", nil)
+	return StackDisplayWith(w, "Message:", "-", nil)
 }
 
 // StackDislayWith writes giving Entries as seperated blocks of contents where the each content is
@@ -121,7 +121,7 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 
 		var bu bytes.Buffer
 		if header != "" {
-			fmt.Fprintf(&bu, "%s: %+s\n", header, message)
+			fmt.Fprintf(&bu, "%s %+s\n", header, message)
 		} else {
 			fmt.Fprintf(&bu, "%+s\n", message)
 		}
