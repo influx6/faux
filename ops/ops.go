@@ -48,6 +48,10 @@ func (ng *GeneratorRegistry) Register(id string, fun Generator) bool {
 func (ng *GeneratorRegistry) RegisterTOML(id string, fun Function) bool {
 	ng.functions[id] = func(config []byte) (Op, error) {
 		instance := fun()
+		if len(config) == 0 {
+			return instance, nil
+		}
+
 		if _, err := toml.DecodeReader(bytes.NewBuffer(config), instance); err != nil {
 			return nil, err
 		}
@@ -63,6 +67,10 @@ func (ng *GeneratorRegistry) RegisterTOML(id string, fun Function) bool {
 func (ng *GeneratorRegistry) RegisterJSON(id string, fun Function) bool {
 	ng.functions[id] = func(config []byte) (Op, error) {
 		instance := fun()
+		if len(config) == 0 {
+			return instance, nil
+		}
+
 		if err := json.Unmarshal(config, instance); err != nil {
 			return nil, err
 		}
@@ -95,7 +103,7 @@ func (ng *GeneratorRegistry) CreateFromBytes(id string, config []byte) (Op, erro
 
 // CreateWithTOML returns a new spell from the provided configuration map which is first
 // converted into JSON then loaded using the CreateFromBytes function.
-func (ng *GeneratorRegistry) CreateWithTOML(id string, config map[string]interface{}) (Op, error) {
+func (ng *GeneratorRegistry) CreateWithTOML(id string, config interface{}) (Op, error) {
 	var bu bytes.Buffer
 
 	if err := toml.NewEncoder(&bu).Encode(config); err != nil {
@@ -107,7 +115,7 @@ func (ng *GeneratorRegistry) CreateWithTOML(id string, config map[string]interfa
 
 // CreateWithJSON returns a new spell from the provided configuration map which is first
 // converted into JSON then loaded using the CreateFromBytes function.
-func (ng *GeneratorRegistry) CreateWithJSON(id string, config map[string]interface{}) (Op, error) {
+func (ng *GeneratorRegistry) CreateWithJSON(id string, config interface{}) (Op, error) {
 	data, err := json.Marshal(config)
 	if err != nil {
 		return nil, err
