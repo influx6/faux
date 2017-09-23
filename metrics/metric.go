@@ -16,6 +16,13 @@ const (
 	// TraceKey defines the key which is used to store the trace object.
 	TraceKey = "FuncTrace"
 
+	// MetricKey defines a unique key that will exists on every metric field
+	// as a single identifier of that metric.
+	MetricKey = "_mpid"
+
+	// MetficKeyDefault defines the default value for the giving metric key.
+	metricKeyDefault = "unknown"
+
 	// DefaultMessage defines a default message used by SentryJSON where
 	// fields contains no messages to be used.
 	DefaultMessage = "No Message"
@@ -64,6 +71,10 @@ func Sentries(sx ...Sentry) Metrics {
 
 // Emit delivers the giving entry to all available metricss.
 func (pipe SentryPipe) Emit(e Entry) error {
+	if _, ok := e.GetString(MetricKey); !ok {
+		e = e.With(MetricKey, metricKeyDefault)
+	}
+
 	var sentryJSON SentryJSON
 	sentryJSON.Fields = e.Fields()
 	sentryJSON.Time = time.Now()
@@ -106,6 +117,10 @@ func Switch(keyName string, selections map[string]Metrics) SwitchMaster {
 
 // Emit delivers the giving entry to all available metricss.
 func (fm SwitchMaster) Emit(e Entry) error {
+	if _, ok := e.GetString(MetricKey); !ok {
+		e = e.With(MetricKey, metricKeyDefault)
+	}
+
 	val, ok := e.GetString(fm.key)
 	if !ok {
 		return fmt.Errorf("Entry has no key '%q'", fm.key)
@@ -203,6 +218,10 @@ func (metrics Master) With(m Metrics) Master {
 
 // Emit delivers the giving entry to all available metricss.
 func (metrics Master) Emit(e Entry) error {
+	if _, ok := e.GetString(MetricKey); !ok {
+		e = e.With(MetricKey, metricKeyDefault)
+	}
+
 	for _, metrics := range metrics.metrics {
 		if err := metrics.Emit(e); err != nil {
 			return err
@@ -210,6 +229,188 @@ func (metrics Master) Emit(e Entry) error {
 	}
 
 	return nil
+}
+
+//==============================================================================
+
+// Entry defines a data type which encapuslates data related to a giving
+// Log event.
+type Entry struct {
+	*Pair
+	Message string
+}
+
+// WithFields returns a new try with the provided key-value pair with the set ID.
+func WithFields(f Fields) Entry {
+	entry := Entry{
+		Pair: (*Pair)(nil),
+	}
+
+	for k, v := range f {
+		entry.Pair = entry.Pair.Append(k, v)
+	}
+
+	return entry
+}
+
+// WithKey returns a new Entry using the provided value as MetricKey.
+func WithKey(value interface{}) Entry {
+	return With(MetricKey, value)
+}
+
+// With returns a new Entry with the provided key-value pair with the set ID.
+func With(key string, value interface{}) Entry {
+	return Entry{
+		Pair: NewPair(key, value),
+	}
+}
+
+// Trace defines a structure which contains the stack, start and endtime
+// on a given from a trace call to trace a given call with stack details
+// and execution time.
+type Trace struct {
+	File       string    `json:"file"`
+	Package    string    `json:"Package"`
+	Function   string    `json:"function"`
+	LineNumber int       `json:"line_number"`
+	BeginStack []byte    `json:"begin_stack"`
+	EndStack   []byte    `json:"end_stack"`
+	Comments   []string  `json:"comments"`
+	StartTime  time.Time `json:"start_time"`
+	EndTime    time.Time `json:"end_time"`
+	entry      *Entry
+}
+
+// String returns the giving trace timestamp for the execution time.
+func (t *Trace) String() string {
+	return fmt.Sprintf("[Total=%+q, Start=%+q, End=%+q]", t.EndTime.Sub(t.StartTime), t.StartTime, t.EndTime)
+}
+
+// End stops the trace, captures the current stack trace and returns the
+// entry related to the trace.
+func (t *Trace) End() Entry {
+	trace := make([]byte, StackSize)
+	trace = trace[:runtime.Stack(trace, false)]
+
+	entry := t.entry
+	t.entry = nil
+
+	t.EndStack = trace
+	t.EndTime = time.Now()
+
+	return entry.With(TraceKey, *t)
+}
+
+var question = "???"
+
+// TraceWithCallDepth returns a Trace object which is used to track the execution and
+// stack details of a given trace call.
+func (e Entry) TraceWithCallDepth(depth int, comments ...string) *Trace {
+	trace := make([]byte, StackSize)
+	trace = trace[:runtime.Stack(trace, false)]
+
+	_, file, line, ok := runtime.Caller(depth)
+	if !ok {
+		file = question
+	}
+
+	var pkg, pkgFile string
+	pkgFileBase := file
+
+	if file != question {
+		pkgPieces := strings.SplitAfter(pkgFileBase, "/src/")
+		if len(pkgPieces) > 1 {
+			pkgFileBase = pkgPieces[1]
+		}
+
+		pkg = filepath.Dir(pkgFileBase)
+		pkgFile = filepath.Base(pkgFileBase)
+	}
+
+	return &Trace{
+		entry:      &e,
+		Package:    pkg,
+		LineNumber: line,
+		BeginStack: trace,
+		File:       pkgFile,
+		Comments:   comments,
+		StartTime:  time.Now(),
+		Function:   GetFunctionName(),
+	}
+}
+
+// Trace returns a Trace object which is used to track the execution and
+// stack details of a given trace call.
+func (e Entry) Trace(comments ...string) *Trace {
+	trace := make([]byte, StackSize)
+	trace = trace[:runtime.Stack(trace, false)]
+
+	_, file, line, ok := runtime.Caller(1)
+	if !ok {
+		file = "???"
+	}
+
+	var pkg, pkgFile string
+	pkgFileBase := file
+
+	if file != "???" {
+		pkgPieces := strings.SplitAfter(pkgFileBase, "/src/")
+		if len(pkgPieces) > 1 {
+			pkgFileBase = pkgPieces[1]
+		}
+
+		pkg = filepath.Dir(pkgFileBase)
+		pkgFile = filepath.Base(pkgFileBase)
+	}
+
+	return &Trace{
+		entry:      &e,
+		Package:    pkg,
+		LineNumber: line,
+		BeginStack: trace,
+		Comments:   comments,
+		StartTime:  time.Now(),
+		File:       pkgFile,
+		Function:   GetFunctionName(),
+	}
+}
+
+// With returns a new Entry set to the LogLevel of the previous and
+// adds the giving key-value pair to the entry.
+func (e Entry) With(key string, value interface{}) Entry {
+	return Entry{
+		Pair:    e.Pair.Append(key, value),
+		Message: e.Message,
+	}
+}
+
+// WithMessage sets the message for the giving Entry if it has no message
+// else returns a new Entry with the set message.
+func (e Entry) WithMessage(message string, m ...interface{}) Entry {
+	if len(m) != 0 {
+		e.Message = fmt.Sprintf(message, m...)
+		return e
+	}
+
+	return Entry{
+		Pair:    e.Pair,
+		Message: fmt.Sprintf(message, m...),
+	}
+}
+
+// WithFields returns a new Entry set to the LogLevel of the previous and
+// adds the all giving key-value pair from the Fields to the entry.
+func (e Entry) WithFields(f Fields) Entry {
+	entry := Entry{
+		Pair:    e.Pair,
+		Message: e.Message,
+	}
+
+	for k, v := range f {
+		entry.Pair = entry.Pair.Append(k, v)
+	}
+
+	return entry
 }
 
 //==============================================================================
@@ -394,183 +595,6 @@ func (p *Pair) Get(key string) (value interface{}, found bool) {
 	}
 
 	return p.prev.Get(key)
-}
-
-//==============================================================================
-
-// Entry defines a data type which encapuslates data related to a giving
-// Log event.
-type Entry struct {
-	*Pair
-	Message string
-}
-
-// WithFields returns a new try with the provided key-value pair with the set ID.
-func WithFields(f Fields) Entry {
-	entry := Entry{
-		Pair: (*Pair)(nil),
-	}
-
-	for k, v := range f {
-		entry.Pair = entry.Pair.Append(k, v)
-	}
-
-	return entry
-}
-
-// With returns a new try with the provided key-value pair with the set ID.
-func With(key string, value interface{}) Entry {
-	return Entry{
-		Pair: NewPair(key, value),
-	}
-}
-
-// Trace defines a structure which contains the stack, start and endtime
-// on a given from a trace call to trace a given call with stack details
-// and execution time.
-type Trace struct {
-	File       string    `json:"file"`
-	Package    string    `json:"Package"`
-	Function   string    `json:"function"`
-	LineNumber int       `json:"line_number"`
-	BeginStack []byte    `json:"begin_stack"`
-	EndStack   []byte    `json:"end_stack"`
-	Comments   []string  `json:"comments"`
-	StartTime  time.Time `json:"start_time"`
-	EndTime    time.Time `json:"end_time"`
-	entry      *Entry
-}
-
-// String returns the giving trace timestamp for the execution time.
-func (t *Trace) String() string {
-	return fmt.Sprintf("[Total=%+q, Start=%+q, End=%+q]", t.EndTime.Sub(t.StartTime), t.StartTime, t.EndTime)
-}
-
-// End stops the trace, captures the current stack trace and returns the
-// entry related to the trace.
-func (t *Trace) End() Entry {
-	trace := make([]byte, StackSize)
-	trace = trace[:runtime.Stack(trace, false)]
-
-	entry := t.entry
-	t.entry = nil
-
-	t.EndStack = trace
-	t.EndTime = time.Now()
-
-	return entry.With(TraceKey, *t)
-}
-
-var question = "???"
-
-// TraceWithCallDepth returns a Trace object which is used to track the execution and
-// stack details of a given trace call.
-func (e Entry) TraceWithCallDepth(depth int, comments ...string) *Trace {
-	trace := make([]byte, StackSize)
-	trace = trace[:runtime.Stack(trace, false)]
-
-	_, file, line, ok := runtime.Caller(depth)
-	if !ok {
-		file = question
-	}
-
-	var pkg, pkgFile string
-	pkgFileBase := file
-
-	if file != question {
-		pkgPieces := strings.SplitAfter(pkgFileBase, "/src/")
-		if len(pkgPieces) > 1 {
-			pkgFileBase = pkgPieces[1]
-		}
-
-		pkg = filepath.Dir(pkgFileBase)
-		pkgFile = filepath.Base(pkgFileBase)
-	}
-
-	return &Trace{
-		entry:      &e,
-		Package:    pkg,
-		LineNumber: line,
-		BeginStack: trace,
-		File:       pkgFile,
-		Comments:   comments,
-		StartTime:  time.Now(),
-		Function:   GetFunctionName(),
-	}
-}
-
-// Trace returns a Trace object which is used to track the execution and
-// stack details of a given trace call.
-func (e Entry) Trace(comments ...string) *Trace {
-	trace := make([]byte, StackSize)
-	trace = trace[:runtime.Stack(trace, false)]
-
-	_, file, line, ok := runtime.Caller(1)
-	if !ok {
-		file = "???"
-	}
-
-	var pkg, pkgFile string
-	pkgFileBase := file
-
-	if file != "???" {
-		pkgPieces := strings.SplitAfter(pkgFileBase, "/src/")
-		if len(pkgPieces) > 1 {
-			pkgFileBase = pkgPieces[1]
-		}
-
-		pkg = filepath.Dir(pkgFileBase)
-		pkgFile = filepath.Base(pkgFileBase)
-	}
-
-	return &Trace{
-		entry:      &e,
-		Package:    pkg,
-		LineNumber: line,
-		BeginStack: trace,
-		Comments:   comments,
-		StartTime:  time.Now(),
-		File:       pkgFile,
-		Function:   GetFunctionName(),
-	}
-}
-
-// With returns a new Entry set to the LogLevel of the previous and
-// adds the giving key-value pair to the entry.
-func (e Entry) With(key string, value interface{}) Entry {
-	return Entry{
-		Pair:    e.Pair.Append(key, value),
-		Message: e.Message,
-	}
-}
-
-// WithMessage sets the message for the giving Entry if it has no message
-// else returns a new Entry with the set message.
-func (e Entry) WithMessage(message string, m ...interface{}) Entry {
-	if len(m) != 0 {
-		e.Message = fmt.Sprintf(message, m...)
-		return e
-	}
-
-	return Entry{
-		Pair:    e.Pair,
-		Message: fmt.Sprintf(message, m...),
-	}
-}
-
-// WithFields returns a new Entry set to the LogLevel of the previous and
-// adds the all giving key-value pair from the Fields to the entry.
-func (e Entry) WithFields(f Fields) Entry {
-	entry := Entry{
-		Pair:    e.Pair,
-		Message: e.Message,
-	}
-
-	for k, v := range f {
-		entry.Pair = entry.Pair.Append(k, v)
-	}
-
-	return entry
 }
 
 //==============================================================================
