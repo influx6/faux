@@ -7,6 +7,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/influx6/faux/context"
+	"github.com/influx6/faux/metrics"
 )
 
 // errors.
@@ -16,7 +17,7 @@ var (
 
 // Op defines an interface which expose an exec method.
 type Op interface {
-	Exec(context.CancelContext) error
+	Exec(context.CancelContext, metrics.Metrics) error
 }
 
 // Function defines a interface for a function which returns a giving Op.
