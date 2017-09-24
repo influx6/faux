@@ -8,7 +8,7 @@ import (
 	"os/exec"
 
 	"github.com/influx6/faux/metrics"
-	"github.com/influx6/faux/metrics/sentries/stdout"
+	"github.com/influx6/faux/metrics/stdout"
 )
 
 var log = metrics.New(stdout.Stdout{})
