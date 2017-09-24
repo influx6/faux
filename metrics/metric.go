@@ -33,6 +33,10 @@ const (
 
 //==============================================================================
 
+// Transformer defines a function type that receives a giving Entry returning
+// a new entry.
+type Transformer func(Entry) Entry
+
 // Metrics defines an interface which exposes a method which receives given
 // Entry which will be sorted accordingly to it's registered entry.
 type Metrics interface {
@@ -139,27 +143,6 @@ func (fm SwitchMaster) Emit(e Entry) error {
 
 //==============================================================================
 
-// ModMaster defines that mod out Entry objects based on a provided function.
-type ModMaster struct {
-	Master
-	modFn func(Entry) Entry
-}
-
-// Mod returns a new instance of a ModeMaster.
-func Mod(modFn func(Entry) Entry, metrics ...interface{}) ModMaster {
-	return ModMaster{
-		modFn:  modFn,
-		Master: New(metrics...),
-	}
-}
-
-// Emit delivers the giving entry to all available metricss.
-func (fm ModMaster) Emit(e Entry) error {
-	return fm.Master.Emit(fm.modFn(e))
-}
-
-//==============================================================================
-
 // FilteredMaster defines that filters out Entry objects based on a provided function.
 type FilteredMaster struct {
 	Master
@@ -187,16 +170,20 @@ func (fm FilteredMaster) Emit(e Entry) error {
 
 // Master defines a core metrics structure to pipe Entry values to registed metricss.
 type Master struct {
-	metrics []Metrics
+	metrics    []Metrics
+	transforms []Transformer
 }
 
 // New returns a new metricsMaster for which will recieve all expected Entry values.
 func New(metrics ...interface{}) Master {
 	var sentries []Sentry
 	var entries []Metrics
+	var transforms []Transformer
 
 	for _, item := range metrics {
 		switch rItem := item.(type) {
+		case Transformer:
+			transforms = append(transforms, rItem)
 		case Metrics:
 			entries = append(entries, rItem)
 		case Sentry:
@@ -205,14 +192,16 @@ func New(metrics ...interface{}) Master {
 	}
 
 	return Master{
-		metrics: append(entries, Sentries(sentries...)),
+		metrics:    append(entries, Sentries(sentries...)),
+		transforms: transforms,
 	}
 }
 
 // With returns a new Master with a new list of metricss.
 func (metrics Master) With(m Metrics) Master {
 	return Master{
-		metrics: append([]Metrics{m}, metrics.metrics...),
+		metrics:    append([]Metrics{m}, metrics.metrics...),
+		transforms: append([]Transformer{}, metrics.transforms...),
 	}
 }
 
@@ -220,6 +209,10 @@ func (metrics Master) With(m Metrics) Master {
 func (metrics Master) Emit(e Entry) error {
 	if _, ok := e.GetString(MetricKey); !ok {
 		e = e.With(MetricKey, metricKeyDefault)
+	}
+
+	for _, tm := range metrics.transforms {
+		e = tm(e)
 	}
 
 	for _, metrics := range metrics.metrics {

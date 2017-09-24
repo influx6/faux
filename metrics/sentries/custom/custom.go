@@ -141,6 +141,20 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 
 //=====================================================================================
 
+// SwitchEmitter returns a emitter that converts the behaviour of the output based on giving key and value from
+// each Entry.
+func SwitchEmitter(keyName string, w io.Writer, transformers map[string]func(metrics.Entry) []byte) metrics.Metrics {
+	emitters := make(map[string]metrics.Metrics)
+
+	for id, tm := range transformers {
+		emitters[id] = NewCustomEmitter(w, tm)
+	}
+
+	return metrics.Switch(keyName, emitters)
+}
+
+//=====================================================================================
+
 // CustomEmitter emits all entries into the entries into a sink io.writer after
 // transformation from giving transformer function..
 type CustomEmitter struct {
