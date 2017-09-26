@@ -50,6 +50,17 @@ func WithTimelapse(message string, f Field) Timelapse {
 	}
 }
 
+// Error returns a entry where the message is the provided error.Error() value
+// and the error is added as a key-value within the Entry fields.
+func Error(err error) Entry {
+	return WithMessage(ErrorLvl, err.Error()).With("error", err)
+}
+
+// Info returns an Entry with the level set to Info.
+func Info(message string, m ...interface{}) Entry {
+	return WithMessage(InfoLvl, message, m...)
+}
+
 // WithMessage returns a new Entry with the provided Level and message used.
 func WithMessage(level Level, message string, m ...interface{}) Entry {
 	var e Entry
