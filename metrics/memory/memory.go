@@ -6,11 +6,11 @@ import (
 
 // Memory defines a struct which implements a memory collector for metricss.
 type Memory struct {
-	Data []metrics.SentryJSON
+	Data []metrics.Entry
 }
 
 // Emit adds the giving SentryJSON into the internal slice.
-func (m *Memory) Emit(sjn metrics.SentryJSON) error {
-	m.Data = append(m.Data, sjn)
+func (m *Memory) Emit(en metrics.Entry) error {
+	m.Data = append(m.Data, en)
 	return nil
 }

@@ -49,7 +49,7 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 		var message string
 
 		if en.Message == "" {
-			message, ok = en.GetString("message")
+			message, ok = en.Field.GetString("message")
 			if !ok {
 				message = metrics.DefaultMessage
 			}
@@ -64,7 +64,7 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 			fmt.Fprintf(&bu, "%+s\n", message)
 		}
 
-		print(en.Fields(), func(key string, value string) {
+		print(en.Field, func(key string, value string) {
 			keyLength := len(key) + 2
 			valLength := len(value) + 2
 
@@ -111,7 +111,7 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 		var message string
 
 		if en.Message == "" {
-			message, ok = en.GetString("message")
+			message, ok = en.Field.GetString("message")
 			if !ok {
 				message = metrics.DefaultMessage
 			}
@@ -130,7 +130,7 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 			tag = "-"
 		}
 
-		print(en.Fields(), func(key string, value string) {
+		print(en.Field, func(key string, value string) {
 			fmt.Fprintf(&bu, "%s %s: %+s\n", tag, key, value)
 		})
 
@@ -268,14 +268,14 @@ func printMap(items interface{}, do func(key string, val string)) {
 		for index, item := range bo {
 			do(index, printValue(string(item)))
 		}
-	case metrics.Fields:
+	case metrics.Field:
 		printMap((map[string]interface{})(bo), do)
 	}
 }
 
 func printArrays(items interface{}, do func(index string, val string)) {
 	switch bo := items.(type) {
-	case []metrics.Fields:
+	case []metrics.Field:
 		for index, item := range bo {
 			printMap((map[string]interface{})(item), func(key string, val string) {
 				do(fmt.Sprintf("%d[%s]", index, key), val)
