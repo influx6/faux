@@ -45,23 +45,11 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 			return nil
 		}
 
-		var ok bool
-		var message string
-
-		if en.Message == "" {
-			message, ok = en.Field.GetString("message")
-			if !ok {
-				message = metrics.DefaultMessage
-			}
-		} else {
-			message = en.Message
-		}
-
 		var bu bytes.Buffer
 		if header != "" {
-			fmt.Fprintf(&bu, "%s %+s\n", header, message)
+			fmt.Fprintf(&bu, "%s %+s\n", header, en.Message)
 		} else {
-			fmt.Fprintf(&bu, "%+s\n", message)
+			fmt.Fprintf(&bu, "%+s\n", en.Message)
 		}
 
 		print(en.Field, func(key string, value string) {
@@ -107,23 +95,12 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 		if filterFn != nil && !filterFn(en) {
 			return nil
 		}
-		var ok bool
-		var message string
-
-		if en.Message == "" {
-			message, ok = en.Field.GetString("message")
-			if !ok {
-				message = metrics.DefaultMessage
-			}
-		} else {
-			message = en.Message
-		}
 
 		var bu bytes.Buffer
 		if header != "" {
-			fmt.Fprintf(&bu, "%s %+s\n", header, message)
+			fmt.Fprintf(&bu, "%s %+s\n", header, en.Message)
 		} else {
-			fmt.Fprintf(&bu, "%+s\n", message)
+			fmt.Fprintf(&bu, "%+s\n", en.Message)
 		}
 
 		if tag == "" {
