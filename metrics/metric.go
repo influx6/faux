@@ -60,6 +60,14 @@ func RedAlert(err error, message string, m ...interface{}) Entry {
 	return WithMessage(RedAlertLvl, message, m...).With("error", err)
 }
 
+// Errorf returns a entry where the message is the provided error.Error() value
+// produced from the message and its provided values
+// and the error is added as a key-value within the Entry fields.
+func Errorf(message string, m ...interface{}) Entry {
+	err := fmt.Errorf(message, m...)
+	return WithMessage(ErrorLvl, err.Error()).With("error", err)
+}
+
 // Error returns a entry where the message is the provided error.Error() value
 // and the error is added as a key-value within the Entry fields.
 func Error(err error) Entry {
