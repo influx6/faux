@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/influx6/faux/process"
+	"github.com/influx6/faux/exec"
+	"github.com/influx6/faux/metrics"
 )
 
 // WriterTo defines a takes the contents of a provided io.WriterTo
@@ -15,11 +16,17 @@ type WriterTo struct {
 	io.WriterTo
 	goimport        bool
 	attemptFallback bool
+	Metrics         metrics.Metrics
 }
 
 // New returns a new instance of FmtWriterTo.
 func New(wt io.WriterTo, useGoImports bool, attemptFallbackToFmtInError bool) *WriterTo {
-	return &WriterTo{WriterTo: wt, goimport: useGoImports, attemptFallback: attemptFallbackToFmtInError}
+	return &WriterTo{WriterTo: wt, goimport: useGoImports, attemptFallback: attemptFallbackToFmtInError, Metrics: metrics.New()}
+}
+
+// NewWith returns a new instance of FmtWriterTo.
+func NewWith(m metrics.Metrics, wt io.WriterTo, useGoImports bool, attemptFallbackToFmtInError bool) *WriterTo {
+	return &WriterTo{WriterTo: wt, goimport: useGoImports, attemptFallback: attemptFallbackToFmtInError, Metrics: m}
 }
 
 // WriteTo writes the content of the source after running against gofmt to the
@@ -37,12 +44,9 @@ func (fm WriterTo) WriteTo(w io.Writer) (int64, error) {
 		cmdName = "goimports"
 	}
 
-	cmd := process.Command{
-		Name:  cmdName,
-		Level: process.RedAlert,
-	}
+	cmd := exec.New(exec.Command(cmdName), exec.Input(&input), exec.Output(&inout), exec.Err(&inerr))
 
-	if err := cmd.Run(context.Background(), &inout, &inerr, &input); err != nil {
+	if err := cmd.Exec(context.Background(), fm.Metrics); err != nil {
 
 		// If we must attempt to fallback to gofmt, due to goimport error, attempt to
 		if fm.goimport && fm.attemptFallback {
