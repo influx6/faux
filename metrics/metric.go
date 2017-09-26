@@ -50,6 +50,16 @@ func WithTimelapse(message string, f Field) Timelapse {
 	}
 }
 
+// YellowAlert returns an Entry with the level set to YellowAlertLvl.
+func YellowAlert(err error, message string, m ...interface{}) Entry {
+	return WithMessage(YellowAlertLvl, message, m...).With("error", err)
+}
+
+// RedAlert returns an Entry with the level set to RedAlertLvl.
+func RedAlert(err error, message string, m ...interface{}) Entry {
+	return WithMessage(RedAlertLvl, message, m...).With("error", err)
+}
+
 // Error returns a entry where the message is the provided error.Error() value
 // and the error is added as a key-value within the Entry fields.
 func Error(err error) Entry {
