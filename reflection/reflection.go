@@ -417,6 +417,10 @@ func ToMap(tag string, elem interface{}, allowNaturalNames bool) (map[string]int
 	for _, field := range fields {
 		fl := tl.Field(field.Index)
 
+		if !fl.CanInterface() {
+			continue
+		}
+
 		item := fl.Interface()
 		itemType := fl.Type()
 

@@ -188,7 +188,7 @@ func print(item interface{}, do func(key string, val string)) {
 		printArrays(item, do)
 	case reflect.Struct:
 		if mapd, err := reflection.ToMap("json", item, true); err == nil {
-			printMap(mapd, do)
+			print(mapd, do)
 		}
 	case reflect.Map:
 		printMap(item, do)
@@ -231,6 +231,17 @@ func printMap(items interface{}, do func(key string, val string)) {
 		for index, item := range bo {
 			do(index, printValue(item))
 		}
+	case map[string][]interface{}:
+		for index, item := range bo {
+			print(item, func(ind string, value string) {
+				if ind == "" {
+					do(index, value)
+					return
+				}
+
+				do(index+"["+ind+"]", value)
+			})
+		}
 	case map[string]interface{}:
 		for index, item := range bo {
 			print(item, func(ind string, value string) {
@@ -264,6 +275,12 @@ func printArrays(items interface{}, do func(index string, val string)) {
 			})
 		}
 	case []map[string][]byte:
+		for index, item := range bo {
+			printMap(item, func(key string, val string) {
+				do(fmt.Sprintf("%d[%s]", index, key), val)
+			})
+		}
+	case []map[string][]interface{}:
 		for index, item := range bo {
 			printMap(item, func(key string, val string) {
 				do(fmt.Sprintf("%d[%s]", index, key), val)
@@ -336,7 +353,7 @@ func printArrays(items interface{}, do func(index string, val string)) {
 func printValue(item interface{}) string {
 	switch bo := item.(type) {
 	case string:
-		return bo
+		return `"` + bo + `"`
 	case error:
 		return bo.Error()
 	case int:
