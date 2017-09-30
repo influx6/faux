@@ -416,7 +416,21 @@ func ToMap(tag string, elem interface{}, allowNaturalNames bool) (map[string]int
 	// Loop through  the fields and set the appropriate value as needed.
 	for _, field := range fields {
 		fl := tl.Field(field.Index)
-		data[field.Tag] = fl.Interface()
+
+		item := fl.Interface()
+		itemType := fl.Type()
+
+		switch itemType.Kind() {
+		case reflect.Struct:
+			if subItem, err := ToMap(tag, item, allowNaturalNames); err == nil {
+				data[field.Tag] = subItem
+			} else {
+				data[field.Tag] = item
+			}
+
+		default:
+			data[field.Tag] = item
+		}
 	}
 
 	return data, nil
