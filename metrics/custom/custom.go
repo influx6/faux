@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/influx6/faux/metrics"
+	"github.com/influx6/faux/reflection"
 )
 
 // BlockDislay writes giving Entries as seperated blocks of contents where the each content is
@@ -185,6 +186,10 @@ func print(item interface{}, do func(key string, val string)) {
 	switch itemType.Kind() {
 	case reflect.Array, reflect.Slice:
 		printArrays(item, do)
+	case reflect.Struct:
+		if mapd, err := reflection.ToMap("json", item, true); err == nil {
+			printMap(mapd, do)
+		}
 	case reflect.Map:
 		printMap(item, do)
 	default:
