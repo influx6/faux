@@ -177,6 +177,11 @@ func printBlockLine(length int) string {
 }
 
 func print(item interface{}, do func(key string, val string)) {
+	if item == nil {
+		do("", "nil")
+		return
+	}
+
 	itemType := reflect.TypeOf(item)
 
 	if itemType.Kind() == reflect.Ptr {

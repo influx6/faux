@@ -407,11 +407,15 @@ func ToMap(tag string, elem interface{}, allowNaturalNames bool) (map[string]int
 
 	tl := reflect.ValueOf(elem)
 
+	data := make(map[string]interface{})
+
+	if tl.IsNil() {
+		return data, errors.New("Provide object/value is nil")
+	}
+
 	if tl.Kind() == reflect.Ptr {
 		tl = tl.Elem()
 	}
-
-	data := make(map[string]interface{})
 
 	// Loop through  the fields and set the appropriate value as needed.
 	for _, field := range fields {
