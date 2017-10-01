@@ -255,7 +255,7 @@ func printMap(items interface{}, do func(key []string, val string), depth int) {
 					return
 				}
 
-				do(append(key, index), value)
+				do(append([]string{index}, key...), value)
 			}, depth+1)
 		}
 	case map[string]interface{}:
@@ -266,7 +266,7 @@ func printMap(items interface{}, do func(key []string, val string), depth int) {
 					return
 				}
 
-				do(append(key, index), value)
+				do(append([]string{index}, key...), value)
 			}, depth+1)
 		}
 	case map[string]string:
@@ -287,25 +287,25 @@ func printArrays(items interface{}, do func(index []string, val string), depth i
 	case []metrics.Field:
 		for index, item := range bo {
 			printMap((map[string]interface{})(item), func(key []string, val string) {
-				do(append(key, printValue(index)), val)
+				do(append([]string{printValue(index)}, key...), val)
 			}, depth+1)
 		}
 	case []map[string][]byte:
 		for index, item := range bo {
 			printMap(item, func(key []string, val string) {
-				do(append(key, printValue(index)), val)
+				do(append([]string{printValue(index)}, key...), val)
 			}, depth+1)
 		}
 	case []map[string][]interface{}:
 		for index, item := range bo {
 			printMap(item, func(key []string, val string) {
-				do(append(key, printValue(index)), val)
+				do(append([]string{printValue(index)}, key...), val)
 			}, depth+1)
 		}
 	case []map[string]interface{}:
 		for index, item := range bo {
 			printMap(item, func(key []string, val string) {
-				do(append(key, printValue(index)), val)
+				do(append([]string{printValue(index)}, key...), val)
 			}, depth+1)
 		}
 	case []byte:
@@ -319,7 +319,7 @@ func printArrays(items interface{}, do func(index []string, val string), depth i
 	case []interface{}:
 		for index, item := range bo {
 			printInDepth(item, func(key []string, value string) {
-				do(append(key, printValue(index)), value)
+				do(append([]string{printValue(index)}, key...), value)
 			}, depth+1)
 		}
 	case []time.Time:
