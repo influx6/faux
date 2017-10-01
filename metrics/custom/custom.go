@@ -54,7 +54,8 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 		}
 
 		print(en.Field, func(key []string, value string) {
-			keyLength := len(key) + 2
+			keyVal := strings.Join(key, ".")
+			keyLength := len(keyVal) + 2
 			valLength := len(value) + 2
 
 			keyLines := printBlockLine(keyLength)
@@ -62,7 +63,7 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 			spaceLines := printSpaceLine(1)
 
 			fmt.Fprintf(&bu, "+%s+%s+\n", keyLines, valLines)
-			fmt.Fprintf(&bu, "|%s%s%s|%s%s%s|\n", spaceLines, key, spaceLines, spaceLines, value, spaceLines)
+			fmt.Fprintf(&bu, "|%s%s%s|%s%s%s|\n", spaceLines, keyVal, spaceLines, spaceLines, value, spaceLines)
 			fmt.Fprintf(&bu, "+%s+%s+", keyLines, valLines)
 			fmt.Fprintf(&bu, "\n")
 
@@ -109,7 +110,7 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 		}
 
 		print(en.Field, func(key []string, value string) {
-			fmt.Fprintf(&bu, "%s %s: %+s\n", tag, key, value)
+			fmt.Fprintf(&bu, "%s %s: %+s\n", tag, strings.Join(key, "."), value)
 		})
 
 		bu.WriteString("\n")
