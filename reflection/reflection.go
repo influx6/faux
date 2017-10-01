@@ -405,10 +405,9 @@ func ToMap(tag string, elem interface{}, allowNaturalNames bool) (map[string]int
 		return nil, errors.New("No Tag Matches")
 	}
 
-	tl := reflect.ValueOf(elem)
-
 	data := make(map[string]interface{})
 
+	tl := reflect.ValueOf(elem)
 	if tl.IsNil() {
 		return data, errors.New("Provide object/value is nil")
 	}

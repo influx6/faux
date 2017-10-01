@@ -53,7 +53,7 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 			fmt.Fprintf(&bu, "%+s\n", en.Message)
 		}
 
-		print(en.Field, func(key string, value string) {
+		print(en.Field, func(key []string, value string) {
 			keyLength := len(key) + 2
 			valLength := len(value) + 2
 
@@ -108,7 +108,7 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 			tag = "-"
 		}
 
-		print(en.Field, func(key string, value string) {
+		print(en.Field, func(key []string, value string) {
 			fmt.Fprintf(&bu, "%s %s: %+s\n", tag, key, value)
 		})
 
@@ -176,9 +176,18 @@ func printBlockLine(length int) string {
 	return strings.Join(lines, "")
 }
 
-func print(item interface{}, do func(key string, val string)) {
+func print(item interface{}, do func(key []string, val string)) {
+	printInDepth(item, do, 0)
+}
+
+var maxDepth = 10
+
+func printInDepth(item interface{}, do func(key []string, val string), depth int) {
+	if depth >= maxDepth {
+		return
+	}
+
 	if item == nil {
-		do("", "nil")
 		return
 	}
 
@@ -190,167 +199,163 @@ func print(item interface{}, do func(key string, val string)) {
 
 	switch itemType.Kind() {
 	case reflect.Array, reflect.Slice:
-		printArrays(item, do)
+		printArrays(item, do, depth+1)
 	case reflect.Struct:
-		if mapd, err := reflection.ToMap("json", item, true); err == nil {
-			print(mapd, do)
+		if val, err := reflection.ToMap("json", item, true); err == nil {
+			printMap(val, do, depth+1)
 		}
+
 	case reflect.Map:
-		printMap(item, do)
+		printMap(item, do, depth+1)
 	default:
-		do("", printValue(item))
+		do([]string{}, printValue(item))
 	}
 }
 
-func printMap(items interface{}, do func(key string, val string)) {
+func printMap(items interface{}, do func(key []string, val string), depth int) {
 	switch bo := items.(type) {
 	case map[string]byte:
 		for index, item := range bo {
-			do(index, printValue(int(item)))
+			do([]string{index}, printValue(int(item)))
 		}
 	case map[string]float32:
 		for index, item := range bo {
-			do(index, printValue(item))
+			do([]string{index}, printValue(item))
 		}
 	case map[string]float64:
 		for index, item := range bo {
-			do(index, printValue(item))
+			do([]string{index}, printValue(item))
 		}
 	case map[string]int64:
 		for index, item := range bo {
-			do(index, printValue(item))
+			do([]string{index}, printValue(item))
 		}
 	case map[string]int32:
 		for index, item := range bo {
-			do(index, printValue(item))
+			do([]string{index}, printValue(item))
 		}
 	case map[string]int16:
 		for index, item := range bo {
-			do(index, printValue(item))
+			do([]string{index}, printValue(item))
 		}
 	case map[string]time.Time:
 		for index, item := range bo {
-			do(index, printValue(item))
+			do([]string{index}, printValue(item))
 		}
 	case map[string]int:
 		for index, item := range bo {
-			do(index, printValue(item))
+			do([]string{index}, printValue(item))
 		}
 	case map[string][]interface{}:
 		for index, item := range bo {
-			print(item, func(ind string, value string) {
-				if ind == "" {
-					do(index, value)
+			printInDepth(item, func(key []string, value string) {
+				if index == "" {
+					do(key, value)
 					return
 				}
 
-				do(index+"["+ind+"]", value)
-			})
+				do(append(key, index), value)
+			}, depth+1)
 		}
 	case map[string]interface{}:
 		for index, item := range bo {
-			print(item, func(ind string, value string) {
-				if ind == "" {
-					do(index, value)
+			printInDepth(item, func(key []string, value string) {
+				if index == "" {
+					do(key, value)
 					return
 				}
 
-				do(index+"["+ind+"]", value)
-			})
+				do(append(key, index), value)
+			}, depth+1)
 		}
 	case map[string]string:
 		for index, item := range bo {
-			do(index, printValue(item))
+			do([]string{index}, printValue(item))
 		}
 	case map[string][]byte:
 		for index, item := range bo {
-			do(index, printValue(string(item)))
+			do([]string{index}, printValue(string(item)))
 		}
 	case metrics.Field:
-		printMap((map[string]interface{})(bo), do)
+		printMap((map[string]interface{})(bo), do, depth+1)
 	}
 }
 
-func printArrays(items interface{}, do func(index string, val string)) {
+func printArrays(items interface{}, do func(index []string, val string), depth int) {
 	switch bo := items.(type) {
 	case []metrics.Field:
 		for index, item := range bo {
-			printMap((map[string]interface{})(item), func(key string, val string) {
-				do(fmt.Sprintf("%d[%s]", index, key), val)
-			})
+			printMap((map[string]interface{})(item), func(key []string, val string) {
+				do(append(key, printValue(index)), val)
+			}, depth+1)
 		}
 	case []map[string][]byte:
 		for index, item := range bo {
-			printMap(item, func(key string, val string) {
-				do(fmt.Sprintf("%d[%s]", index, key), val)
-			})
+			printMap(item, func(key []string, val string) {
+				do(append(key, printValue(index)), val)
+			}, depth+1)
 		}
 	case []map[string][]interface{}:
 		for index, item := range bo {
-			printMap(item, func(key string, val string) {
-				do(fmt.Sprintf("%d[%s]", index, key), val)
-			})
+			printMap(item, func(key []string, val string) {
+				do(append(key, printValue(index)), val)
+			}, depth+1)
 		}
 	case []map[string]interface{}:
 		for index, item := range bo {
-			printMap(item, func(key string, val string) {
-				do(fmt.Sprintf("%d[%s]", index, key), val)
-			})
+			printMap(item, func(key []string, val string) {
+				do(append(key, printValue(index)), val)
+			}, depth+1)
 		}
 	case []byte:
 		for index, item := range bo {
-			do(printValue(index), printValue(int(item)))
+			do([]string{printValue(index)}, printValue(int(item)))
 		}
 	case []bool:
 		for index, item := range bo {
-			do(printValue(index), printValue(item))
+			do([]string{printValue(index)}, printValue(item))
 		}
 	case []interface{}:
 		for index, item := range bo {
-			print(item, func(ind string, value string) {
-				if ind == "" {
-					do(printValue(index), value)
-					return
-				}
-
-				do(printValue(index)+"["+ind+"]", value)
-			})
+			printInDepth(item, func(key []string, value string) {
+				do(append(key, printValue(index)), value)
+			}, depth+1)
 		}
 	case []time.Time:
 		for index, item := range bo {
-			do(printValue(index), printValue(item))
+			do([]string{printValue(index)}, printValue(item))
 		}
 	case []string:
 		for index, item := range bo {
-			do(printValue(index), printValue(item))
+			do([]string{printValue(index)}, printValue(item))
 		}
 	case []int:
 		for index, item := range bo {
-			do(printValue(index), printValue(item))
+			do([]string{printValue(index)}, printValue(item))
 		}
 	case []int64:
 		for index, item := range bo {
-			do(printValue(index), printValue(item))
+			do([]string{printValue(index)}, printValue(item))
 		}
 	case []int32:
 		for index, item := range bo {
-			do(printValue(index), printValue(item))
+			do([]string{printValue(index)}, printValue(item))
 		}
 	case []int16:
 		for index, item := range bo {
-			do(printValue(index), printValue(item))
+			do([]string{printValue(index)}, printValue(item))
 		}
 	case []int8:
 		for index, item := range bo {
-			do(printValue(index), printValue(item))
+			do([]string{printValue(index)}, printValue(item))
 		}
 	case []float32:
 		for index, item := range bo {
-			do(printValue(index), printValue(item))
+			do([]string{printValue(index)}, printValue(item))
 		}
 	case []float64:
 		for index, item := range bo {
-			do(printValue(index), printValue(item))
+			do([]string{printValue(index)}, printValue(item))
 		}
 	}
 }
