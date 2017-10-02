@@ -11,11 +11,11 @@ import (
 	"github.com/influx6/faux/hexwriter"
 )
 
-// ParseDir returns a new instance of all CSS files located within the provided directory.
+// ParseDir returns a new instance of all files located within the provided directory.
 func ParseDir(dir string, allowedExtensions []string) (map[string]string, error) {
 	items := make(map[string]string)
 
-	// Walk directory pulling contents into css items.
+	// Walk directory pulling contents into  items.
 	if cerr := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if cerr := walkDir(allowedExtensions, items, dir, path, info, err); cerr != nil {
 			return cerr
