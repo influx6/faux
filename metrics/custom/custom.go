@@ -193,7 +193,7 @@ func print(item interface{}, do func(key []string, val string)) {
 	printInDepth(item, do, 0)
 }
 
-var maxDepth = 100
+var maxDepth = 1000
 
 func printInDepth(item interface{}, do func(key []string, val string), depth int) {
 	if depth >= maxDepth {
