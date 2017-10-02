@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"time"
 
 	"github.com/influx6/faux/metrics"
 )
 
 // JSONFile returns a metrics.Metric which writes a series of batch entries into a json file.
-func JSONFile(filename string, saveDir string, maxFileSizeEach int, maxBatchPerWrite int) *metrics.BatchEmitter {
-	return metrics.BatchEmit(maxBatchPerWrite, func(entries []metrics.Entry) error {
+func JSONFile(filename string, saveDir string, maxFileSizeEach int, maxBatchPerWrite int, maxwait time.Duration) *metrics.BatchEmitter {
+	return metrics.BatchEmit(maxBatchPerWrite, maxwait, func(entries []metrics.Entry) error {
 		var targetFile string
 		var index int
 
