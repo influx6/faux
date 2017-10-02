@@ -84,6 +84,8 @@ func WithMessage(level Level, message string, m ...interface{}) Entry {
 	var e Entry
 	e.Level = level
 	e.Field = make(Field)
+	e.Time = time.Now()
+	e.Function = getFunctionName(3)
 	e.Message = fmt.Sprintf(message, m...)
 
 	return e
@@ -94,6 +96,8 @@ func WithMessage(level Level, message string, m ...interface{}) Entry {
 func WithTrace(t *Trace) Entry {
 	var e Entry
 	e.Field = make(Field)
+	e.Time = time.Now()
+	e.Function = getFunctionName(3)
 	e.Trace = t
 	return e
 }
@@ -102,6 +106,8 @@ func WithTrace(t *Trace) Entry {
 func WithID(id string) Entry {
 	var e Entry
 	e.ID = id
+	e.Time = time.Now()
+	e.Function = getFunctionName(3)
 	e.Field = make(Field)
 	return e
 }
@@ -110,6 +116,8 @@ func WithID(id string) Entry {
 // adds the giving key-value pair to the entry.
 func With(key string, value interface{}) Entry {
 	var e Entry
+	e.Function = getFunctionName(3)
+	e.Time = time.Now()
 	e.Field = make(Field)
 	e.Field[key] = value
 	return e
@@ -120,6 +128,8 @@ func With(key string, value interface{}) Entry {
 func WithFields(f Field) Entry {
 	var e Entry
 	e.Field = make(Field)
+	e.Time = time.Now()
+	e.Function = getFunctionName(3)
 
 	for k, v := range f {
 		e.Field[k] = v
@@ -131,6 +141,7 @@ func WithFields(f Field) Entry {
 // Entry represent a giving record of data at a giving period of time.
 type Entry struct {
 	ID        string      `json:"id"`
+	Function  string      `json:"function"`
 	Level     Level       `json:"level"`
 	Field     Field       `json:"fields"`
 	Time      time.Time   `json:"time"`

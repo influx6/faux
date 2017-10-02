@@ -18,6 +18,7 @@ import (
 // converted within a block like below:
 //
 //  Message: We must create new standard behaviour
+//	Function: BuildPack
 //  +-----------------------------+------------------------------+
 //  | displayrange.address.bolder | "No 20 tokura flag"          |
 //  +-----------------------------+------------------------------+
@@ -33,6 +34,7 @@ func BlockDisplay(w io.Writer) metrics.Metrics {
 // converted within a block like below:
 //
 //  Message: We must create new standard behaviour
+//	Function: BuildPack
 //  +-----------------------------+------------------------------+
 //  | displayrange.address.bolder | "No 20 tokura flag"          |
 //  +-----------------------------+------------------------------+
@@ -51,6 +53,10 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 			fmt.Fprintf(&bu, "%s %+s\n", header, en.Message)
 		} else {
 			fmt.Fprintf(&bu, "%+s\n", en.Message)
+		}
+
+		if en.Function != "" {
+			fmt.Fprintf(&bu, "Function: %+s\n", en.Function)
 		}
 
 		print(en.Field, func(key []string, value string) {
@@ -78,6 +84,7 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 // converted within a block like below:
 //
 //  Message: We must create new standard behaviour
+//	Function: BuildPack
 //  - displayrange.address.bolder: "No 20 tokura flag"
 //  - displayrange.bolder.size:  20
 //
@@ -89,6 +96,7 @@ func StackDisplay(w io.Writer) metrics.Metrics {
 // converted within a block like below:
 //
 //  [Header]: We must create new standard behaviour
+//	Function: BuildPack
 //  [tag] displayrange.address.bolder: "No 20 tokura flag"
 //  [tag] displayrange.bolder.size:  20
 //
@@ -107,6 +115,10 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 
 		if tag == "" {
 			tag = "-"
+		}
+
+		if en.Function != "" {
+			fmt.Fprintf(&bu, "Function: %+s\n", en.Function)
 		}
 
 		print(en.Field, func(key []string, value string) {
