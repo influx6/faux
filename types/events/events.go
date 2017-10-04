@@ -4,8 +4,16 @@ import "github.com/influx6/faux/types/actions"
 
 // FileCreated defines a struct for containing details of file created operation.
 type FileCreated struct {
-	Action actions.CreateFile
-	Error  error `json:"error"`
+	Action  actions.CreateFile
+	Error   error `json:"error"`
+	Written int64 `json:"written"`
+}
+
+// DataWrittenToFile defines an event for describe a write to file operation.
+type DataWrittenToFile struct {
+	Action  actions.WriteToFile
+	Error   error `json:"error"`
+	Written int64 `json:"written"`
 }
 
 // DirCreated defines a struct for containing details of dir created operation.

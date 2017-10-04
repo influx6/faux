@@ -8,6 +8,12 @@ type CreateFile struct {
 	Mode     int    `json:"mode"`
 }
 
+// WriteToFile defines action for written data to a giving file.
+type WriteToFile struct {
+	File string `json:"file"`
+	Data []byte `json:"data"`
+}
+
 // MkDirectory defines a struct for containing details of dir created operation.
 type MkDirectory struct {
 	Dir     string `json:"dir"`
