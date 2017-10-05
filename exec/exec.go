@@ -21,9 +21,9 @@ var (
 type CommanderOption func(*Commander)
 
 // Command sets the command for the Commander.
-func Command(c string) CommanderOption {
+func Command(c string, m ...interface{}) CommanderOption {
 	return func(cm *Commander) {
-		cm.Command = c
+		cm.Command = fmt.Sprintf(c, m...)
 	}
 }
 
@@ -194,10 +194,10 @@ func (c *Commander) Exec(ctx context.CancelContext, metric metrics.Metrics) erro
 		err := cmder.Run()
 		if err != nil {
 			metric.Emit(metrics.Error(err).WithID("shell:exec:error").WithFields(metrics.Field{
-				"error":      err,
+				"error":      err.Error(),
 				"command":    strings.Join(execCommand, " "),
 				"envs":       cmder.Env,
-				"error_data": errCopy.Bytes(),
+				"error_data": string(errCopy.Bytes()),
 			}))
 		}
 		return err
@@ -205,10 +205,10 @@ func (c *Commander) Exec(ctx context.CancelContext, metric metrics.Metrics) erro
 
 	if err := cmder.Start(); err != nil {
 		metric.Emit(metrics.Error(err).WithID("shell:exec:error").WithFields(metrics.Field{
-			"error":      err,
-			"command":    strings.Join(execCommand, " "),
 			"envs":       cmder.Env,
-			"error_data": errCopy.Bytes(),
+			"error":      err.Error(),
+			"command":    strings.Join(execCommand, " "),
+			"error_data": string(errCopy.Bytes()),
 		}))
 		return err
 	}
@@ -224,10 +224,9 @@ func (c *Commander) Exec(ctx context.CancelContext, metric metrics.Metrics) erro
 
 	if err := cmder.Wait(); err != nil {
 		metric.Emit(metrics.Error(err).WithID("shell:exec:error").WithFields(metrics.Field{
-			"error":      err,
-			"command":    execCommand,
-			"envs":       cmder.Env,
-			"error_data": errCopy.Bytes(),
+			"error":      err.Error(),
+			"command":    strings.Join(execCommand, " "),
+			"error_data": string(errCopy.Bytes()),
 		}))
 		return err
 	}
@@ -238,10 +237,9 @@ func (c *Commander) Exec(ctx context.CancelContext, metric metrics.Metrics) erro
 
 	if !cmder.ProcessState.Success() {
 		metric.Emit(metrics.Error(ErrCommandFailed).WithID("shell:exec:error").WithFields(metrics.Field{
-			"error":      ErrCommandFailed,
-			"command":    execCommand,
-			"envs":       cmder.Env,
-			"error_data": errCopy.Bytes(),
+			"error":      ErrCommandFailed.Error(),
+			"command":    strings.Join(execCommand, " "),
+			"error_data": string(errCopy.Bytes()),
 		}))
 		return ErrCommandFailed
 	}

@@ -321,9 +321,7 @@ func printArrays(items interface{}, do func(index []string, val string), depth i
 			}, depth+1)
 		}
 	case []byte:
-		for index, item := range bo {
-			do([]string{printValue(index)}, printValue(int(item)))
-		}
+		do([]string{}, string(bo))
 	case []bool:
 		for index, item := range bo {
 			do([]string{printValue(index)}, printValue(item))
