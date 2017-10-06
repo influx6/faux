@@ -2,6 +2,7 @@ package vfiles
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -81,4 +82,55 @@ func walkDir(extensions []string, items map[string]string, root string, path str
 	}
 
 	return nil
+}
+
+//========================================================================================
+
+var errStopWalking = errors.New("stop walking directory")
+
+// DirWalker defines a function type which for processing a path and it's info
+// retrieved from the fs.
+type DirWalker func(rel string, abs string, info os.FileInfo) bool
+
+// WalkDir will run through the provided path which is expected to be a directory
+// and runs the provided callback with the current path and FileInfo.
+func WalkDir(dir string, callback DirWalker) error {
+	isWin := runtime.GOOS == "windows"
+
+	cerr := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		// If we got an error then stop and return it.
+		if err != nil {
+			return err
+		}
+
+		// If its a symlink, don't deal with it.
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+
+		// If on windows, correct path slash.
+		if isWin {
+			path = filepath.ToSlash(path)
+		}
+
+		// Retrive relative path for giving path.
+		relPath, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+
+		// If false is return then stop walking and return errStopWalking.
+		if !callback(relPath, path, info) {
+			return errStopWalking
+		}
+
+		return nil
+	})
+
+	// If we received error to stop walking then skip
+	if cerr == errStopWalking {
+		return nil
+	}
+
+	return cerr
 }
