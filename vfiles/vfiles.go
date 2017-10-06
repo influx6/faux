@@ -162,10 +162,6 @@ func WalkDirSurface(dirpath string, callback DirWalker) error {
 	}
 
 	for _, info := range fileInfos {
-		if !info.Mode().IsRegular() {
-			continue
-		}
-
 		infoPath := filepath.Join(dirpath, info.Name())
 
 		// If on windows, correct path slash.
