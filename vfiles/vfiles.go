@@ -90,7 +90,7 @@ var errStopWalking = errors.New("stop walking directory")
 
 // DirWalker defines a function type which for processing a path and it's info
 // retrieved from the fs.
-type DirWalker func(rel string, abs string, info os.FileInfo) bool
+type DirWalker func(rel string, abs string, info os.FileInfo) error
 
 // WalkDir will run through the provided path which is expected to be a directory
 // and runs the provided callback with the current path and FileInfo.
@@ -120,8 +120,8 @@ func WalkDir(dir string, callback DirWalker) error {
 		}
 
 		// If false is return then stop walking and return errStopWalking.
-		if !callback(relPath, path, info) {
-			return errStopWalking
+		if err := callback(relPath, path, info); err != nil {
+			return err
 		}
 
 		return nil
@@ -162,7 +162,6 @@ func WalkDirSurface(dirpath string, callback DirWalker) error {
 	}
 
 	for _, info := range fileInfos {
-		// If its a symlink, don't deal with it.
 		if !info.Mode().IsRegular() {
 			return nil
 		}
@@ -175,8 +174,8 @@ func WalkDirSurface(dirpath string, callback DirWalker) error {
 		}
 
 		// If false is return then stop walking and return errStopWalking.
-		if !callback(info.Name(), path, info) {
-			return nil
+		if err := callback(info.Name(), path, info); err != nil {
+			return err
 		}
 	}
 
