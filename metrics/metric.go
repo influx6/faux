@@ -86,8 +86,13 @@ func WithMessage(level Level, message string, m ...interface{}) Entry {
 	e.Field = make(Field)
 	e.Time = time.Now()
 	e.Function = getFunctionName(4)
-	e.Message = fmt.Sprintf(message, m...)
 
+	if len(m) == 0 {
+		e.Message = message
+		return e
+	}
+
+	e.Message = fmt.Sprintf(message, m...)
 	return e
 }
 

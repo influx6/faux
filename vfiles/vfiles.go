@@ -134,3 +134,51 @@ func WalkDir(dir string, callback DirWalker) error {
 
 	return cerr
 }
+
+//========================================================================================
+
+var isWin = (runtime.GOOS == "windows")
+
+// WalkDirSurface walks the directory and it's children but does not look beyond the first level.
+// It only runs the callback against the content but will not run deeper into subdirectories of root.
+func WalkDirSurface(dirpath string, callback DirWalker) error {
+	dir, err := os.Open(dirpath)
+	if err != nil {
+		return err
+	}
+
+	dirInfo, err := dir.Stat()
+	if err != nil {
+		return err
+	}
+
+	if !dirInfo.IsDir() {
+		return errors.New("Only directories allowed")
+	}
+
+	fileInfos, err := dir.Readdir(-1)
+	if err != nil {
+		return err
+	}
+
+	for _, info := range fileInfos {
+		// If its a symlink, don't deal with it.
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+
+		path := filepath.Join(dirpath, info.Name())
+
+		// If on windows, correct path slash.
+		if isWin {
+			path = filepath.ToSlash(path)
+		}
+
+		// If false is return then stop walking and return errStopWalking.
+		if !callback(info.Name(), path, info) {
+			return nil
+		}
+	}
+
+	return nil
+}
