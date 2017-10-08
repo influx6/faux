@@ -8,22 +8,33 @@ import (
 	"time"
 )
 
-//==============================================================================
-
 // Fields defines a map of key:value pairs.
 type Fields map[interface{}]interface{}
 
-//==============================================================================
+// Getter defines a series of Get methods for which values will be retrieved with.
+type Getter interface {
+	Get(key interface{}) (interface{}, bool)
+	GetInt(key interface{}) (int, bool)
+	GetBool(key interface{}) (bool, bool)
+	GetInt8(key interface{}) (int8, bool)
+	GetInt16(key interface{}) (int16, bool)
+	GetInt32(key interface{}) (int32, bool)
+	GetInt64(key interface{}) (int64, bool)
+	GetString(key interface{}) (string, bool)
+	GetFloat32(key interface{}) (float32, bool)
+	GetFloat64(key interface{}) (float64, bool)
+}
 
-// MakeGoogleContextFrom returns a goole context package instance by using the CancelContext
-// to cancel the returned context.
-func MakeGoogleContextFrom(ctx CancelContext) gcontext.Context {
-	cmx, canceler := gcontext.WithCancel(gcontext.Background())
-	go func() {
-		<-ctx.Done()
-		canceler()
-	}()
-	return cmx
+// ValueBagContext defines a context for holding values to be shared across processes..
+type ValueBagContext interface {
+	Getter
+
+	// Set adds a key and value pair into the context store.
+	Set(key interface{}, value interface{})
+
+	// WithValue returns a new context then adds the key and value pair into the
+	// context's store.
+	WithValue(key interface{}, value interface{}) ValueBagContext
 }
 
 //==============================================================================
@@ -43,6 +54,17 @@ type CancelableContext interface {
 type CnclContext struct {
 	close chan struct{}
 	once  sync.Once
+}
+
+// MakeGoogleContextFrom returns a goole context package instance by using the CancelContext
+// to cancel the returned context.
+func MakeGoogleContextFrom(ctx CancelContext) gcontext.Context {
+	cmx, canceler := gcontext.WithCancel(gcontext.Background())
+	go func() {
+		<-ctx.Done()
+		canceler()
+	}()
+	return cmx
 }
 
 // NewCnclContext returns a new instance of the CnclContext.
@@ -288,36 +310,6 @@ func (p *Pair) Get(key interface{}) (value interface{}, found bool) {
 	}
 
 	return p.prev.Get(key)
-}
-
-//==============================================================================
-
-// Getter defines a series of Get methods for which values will be retrieved with.
-type Getter interface {
-	Get(key interface{}) (interface{}, bool)
-	GetInt(key interface{}) (int, bool)
-	GetBool(key interface{}) (bool, bool)
-	GetInt8(key interface{}) (int8, bool)
-	GetInt16(key interface{}) (int16, bool)
-	GetInt32(key interface{}) (int32, bool)
-	GetInt64(key interface{}) (int64, bool)
-	GetString(key interface{}) (string, bool)
-	GetFloat32(key interface{}) (float32, bool)
-	GetFloat64(key interface{}) (float64, bool)
-}
-
-// ValueBagContext defines a context for holding values to be shared across processes..
-type ValueBagContext interface {
-	Getter
-
-	// Ctx() CancelableContext
-
-	// Set adds a key and value pair into the context store.
-	Set(key interface{}, value interface{})
-
-	// WithValue returns a new context then adds the key and value pair into the
-	// context's store.
-	WithValue(key interface{}, value interface{}) ValueBagContext
 }
 
 //==============================================================================
