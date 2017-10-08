@@ -193,6 +193,10 @@ func print(item interface{}, do func(key []string, val string)) {
 	printInDepth(item, do, 0)
 }
 
+type stringer interface {
+	String() string
+}
+
 var maxDepth = 1000
 
 func printInDepth(item interface{}, do func(key []string, val string), depth int) {
@@ -373,6 +377,8 @@ func printArrays(items interface{}, do func(index []string, val string), depth i
 
 func printValue(item interface{}) string {
 	switch bo := item.(type) {
+	case stringer:
+		return bo.String()
 	case string:
 		return `"` + bo + `"`
 	case error:
