@@ -2,7 +2,6 @@ package reflection
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 )
@@ -306,7 +305,6 @@ func MakeArgumentsValues(args []reflect.Type) []reflect.Value {
 	var inputs []reflect.Value
 
 	for _, tl := range args {
-		fmt.Printf("Item: %s-> %s\n", tl, reflect.New(tl))
 		inputs = append(inputs, MakeValueFor(tl))
 	}
 
@@ -408,11 +406,11 @@ func ToMap(tag string, elem interface{}, allowNaturalNames bool) (map[string]int
 	data := make(map[string]interface{})
 
 	tl := reflect.ValueOf(elem)
-	if tl.IsNil() {
-		return data, errors.New("Provide object/value is nil")
-	}
-
 	if tl.Kind() == reflect.Ptr {
+		if tl.IsNil() {
+			return data, errors.New("Provide object/value is nil")
+		}
+
 		tl = tl.Elem()
 	}
 
