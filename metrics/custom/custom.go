@@ -14,6 +14,61 @@ import (
 	"github.com/influx6/faux/reflection"
 )
 
+// FlatDisplay writes giving Entries as seperated blocks of contents where the each content is
+// converted within a block like below:
+//
+//  Message: We must create new standard behaviour 	Function: BuildPack  |  display: red,  words: 20,
+//
+//  Message: We must create new standard behaviour 	Function: BuildPack  |  display: red,  words: 20,
+//
+func FlatDisplay(w io.Writer) metrics.Metrics {
+	return FlatDisplayWith(w, "Message:", nil)
+}
+
+// FlatDisplayWith writes giving Entries as seperated blocks of contents where the each content is
+// converted within a block like below:
+//
+//  [Header]: We must create new standard behaviour 	Function: BuildPack  |  display: red,  words: 20,
+//
+//  [Header]: We must create new standard behaviour 	Function: BuildPack  |  display: red,  words: 20,
+//
+func FlatDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bool) metrics.Metrics {
+	return NewEmitter(w, func(en metrics.Entry) []byte {
+		if filterFn != nil && !filterFn(en) {
+			return nil
+		}
+
+		var bu bytes.Buffer
+		bu.WriteString("\n")
+
+		if header != "" {
+			fmt.Fprintf(&bu, "%s %+s", header, en.Message)
+		} else {
+			fmt.Fprintf(&bu, "%+s", en.Message)
+		}
+
+		fmt.Fprint(&bu, printSpaceLine(2))
+
+		if en.Function != "" {
+			fmt.Fprintf(&bu, "Function: %+s", en.Function)
+			fmt.Fprint(&bu, printSpaceLine(2))
+		}
+
+		fmt.Fprint(&bu, "|", en.Function)
+		fmt.Fprint(&bu, printSpaceLine(2))
+
+		for key, value := range en.Field {
+			fmt.Fprintf(&bu, "%+s: %+s", key, printValue(value))
+			fmt.Fprint(&bu, printSpaceLine(2))
+		}
+
+		bu.WriteString("\n")
+		return bu.Bytes()
+	})
+}
+
+//=====================================================================================
+
 // BlockDislay writes giving Entries as seperated blocks of contents where the each content is
 // converted within a block like below:
 //
@@ -43,7 +98,7 @@ func BlockDisplay(w io.Writer) metrics.Metrics {
 //  +--------------------------+----------+
 //
 func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bool) metrics.Metrics {
-	return NewCustomEmitter(w, func(en metrics.Entry) []byte {
+	return NewEmitter(w, func(en metrics.Entry) []byte {
 		if filterFn != nil && !filterFn(en) {
 			return nil
 		}
@@ -80,6 +135,8 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 	})
 }
 
+//=====================================================================================
+
 // StackDislay writes giving Entries as seperated blocks of contents where the each content is
 // converted within a block like below:
 //
@@ -101,7 +158,7 @@ func StackDisplay(w io.Writer) metrics.Metrics {
 //  [tag] displayrange.bolder.size:  20
 //
 func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metrics.Entry) bool) metrics.Metrics {
-	return NewCustomEmitter(w, func(en metrics.Entry) []byte {
+	return NewEmitter(w, func(en metrics.Entry) []byte {
 		if filterFn != nil && !filterFn(en) {
 			return nil
 		}
@@ -138,7 +195,7 @@ func SwitchEmitter(keyName string, w io.Writer, transformers map[string]func(met
 	emitters := make(map[string]metrics.Metrics)
 
 	for id, tm := range transformers {
-		emitters[id] = NewCustomEmitter(w, tm)
+		emitters[id] = NewEmitter(w, tm)
 	}
 
 	return metrics.Switch(keyName, emitters)
@@ -146,23 +203,23 @@ func SwitchEmitter(keyName string, w io.Writer, transformers map[string]func(met
 
 //=====================================================================================
 
-// CustomEmitter emits all entries into the entries into a sink io.writer after
+// Emitter emits all entries into the entries into a sink io.writer after
 // transformation from giving transformer function..
-type CustomEmitter struct {
+type Emitter struct {
 	Sink      io.Writer
 	Transform func(metrics.Entry) []byte
 }
 
-// NewCustomEmitter returns a new instance of CustomEmitter.
-func NewCustomEmitter(w io.Writer, transform func(metrics.Entry) []byte) *CustomEmitter {
-	return &CustomEmitter{
+// NewEmitter returns a new instance of Emitter.
+func NewEmitter(w io.Writer, transform func(metrics.Entry) []byte) *Emitter {
+	return &Emitter{
 		Sink:      w,
 		Transform: transform,
 	}
 }
 
 // Emit implements the metrics.metrics interface.
-func (ce *CustomEmitter) Emit(e metrics.Entry) error {
+func (ce *Emitter) Emit(e metrics.Entry) error {
 	_, err := ce.Sink.Write(ce.Transform(e))
 	return err
 }
@@ -219,6 +276,9 @@ func printInDepth(item interface{}, do func(key []string, val string), depth int
 		printArrays(item, do, depth+1)
 	case reflect.Struct:
 		if val, err := reflection.ToMap("json", item, true); err == nil {
+			if sm, ok := item.(stringer); ok {
+				val["object.String"] = sm.String()
+			}
 			printMap(val, do, depth+1)
 		}
 
@@ -403,13 +463,12 @@ func printValue(item interface{}) string {
 		return strconv.FormatFloat(bo, 'f', 4, 64)
 	case float32:
 		return strconv.FormatFloat(float64(bo), 'f', 4, 64)
-	default:
-		data, err := json.Marshal(bo)
-		if err != nil {
-			return "-"
-		}
-		return string(data)
 	}
 
-	return ""
+	data, err := json.Marshal(item)
+	if err != nil {
+		return fmt.Sprintf("%#v", item)
+	}
+
+	return string(data)
 }
