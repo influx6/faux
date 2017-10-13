@@ -56,7 +56,7 @@ func Sync() CommanderOption {
 	return SetAsync(false)
 }
 
-// ASync sets the commander to run in asynchronouse mode.
+// Async sets the commander to run in asynchronouse mode.
 func Async() CommanderOption {
 	return SetAsync(true)
 }
@@ -140,6 +140,15 @@ func New(ops ...CommanderOption) *Commander {
 	}
 
 	return cm
+}
+
+// ExecWithExitCode executes giving command associated within the command with os/exec.
+func (c *Commander) ExecWithExitCode(ctx context.CancelContext, metric metrics.Metrics) (int, error) {
+	if err := c.Exec(ctx, metric); err != nil {
+		return getExitStatus(err), err
+	}
+
+	return 0, nil
 }
 
 // Exec executes giving command associated within the command with os/exec.
@@ -245,4 +254,23 @@ func (c *Commander) Exec(ctx context.CancelContext, metric metrics.Metrics) erro
 	}
 
 	return nil
+}
+
+type exitStatus interface {
+	ExitStatus() int
+}
+
+func getExitStatus(err error) int {
+	if err == nil {
+		return 0
+	}
+	if e, ok := err.(exitStatus); ok {
+		return e.ExitStatus()
+	}
+	if e, ok := err.(*exec.ExitError); ok {
+		if ex, ok := e.Sys().(exitStatus); ok {
+			return ex.ExitStatus()
+		}
+	}
+	return 1
 }
