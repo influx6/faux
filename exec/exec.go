@@ -13,6 +13,7 @@ import (
 	"github.com/influx6/faux/metrics"
 )
 
+// errors ...
 var (
 	ErrCommandFailed = errors.New("Command failed to execute succcesfully")
 )
