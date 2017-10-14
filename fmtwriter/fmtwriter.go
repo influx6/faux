@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	gexec "os/exec"
 
 	"github.com/influx6/faux/exec"
 	"github.com/influx6/faux/metrics"
@@ -39,9 +40,12 @@ func (fm WriterTo) WriteTo(w io.Writer) (int64, error) {
 	}
 
 	cmdName := "gofmt"
-
 	if fm.goimport {
-		cmdName = "goimports"
+		if _, err := gexec.LookPath("goimports"); err == nil {
+			cmdName = "goimports"
+		} else {
+			cmdName = "gofmt"
+		}
 	}
 
 	cmd := exec.New(exec.Command(cmdName), exec.Input(&input), exec.Output(&inout), exec.Err(&inerr))
