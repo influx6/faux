@@ -10,8 +10,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
+
 	"github.com/influx6/faux/metrics"
 	"github.com/influx6/faux/reflection"
+)
+
+var (
+	green = color.New(color.FgGreen)
 )
 
 // FlatDisplay writes giving Entries as seperated blocks of contents where the each content is
@@ -42,7 +48,7 @@ func FlatDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bo
 		bu.WriteString("\n")
 
 		if header != "" {
-			fmt.Fprintf(&bu, "%s %+s", header, en.Message)
+			fmt.Fprintf(&bu, "%s %+s", green.Sprint(header), en.Message)
 		} else {
 			fmt.Fprintf(&bu, "%+s", en.Message)
 		}
@@ -50,15 +56,16 @@ func FlatDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bo
 		fmt.Fprint(&bu, printSpaceLine(2))
 
 		if en.Function != "" {
-			fmt.Fprintf(&bu, "Function: %+s", en.Function)
+			fmt.Fprintf(&bu, "%s: %+s\n", green.Sprint("Function"), en.Function)
+			fmt.Fprint(&bu, printSpaceLine(2))
+			fmt.Fprintf(&bu, "%s: %+s:%d", green.Sprint("File"), en.File, en.Line)
 			fmt.Fprint(&bu, printSpaceLine(2))
 		}
 
-		fmt.Fprint(&bu, "|", en.Function)
 		fmt.Fprint(&bu, printSpaceLine(2))
 
 		for key, value := range en.Field {
-			fmt.Fprintf(&bu, "%+s: %+s", key, printValue(value))
+			fmt.Fprintf(&bu, "%+s: %+s", green.Sprint(key), printValue(value))
 			fmt.Fprint(&bu, printSpaceLine(2))
 		}
 
@@ -69,7 +76,7 @@ func FlatDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bo
 
 //=====================================================================================
 
-// BlockDislay writes giving Entries as seperated blocks of contents where the each content is
+// BlockDisplay writes giving Entries as seperated blocks of contents where the each content is
 // converted within a block like below:
 //
 //  Message: We must create new standard behaviour
@@ -85,7 +92,7 @@ func BlockDisplay(w io.Writer) metrics.Metrics {
 	return BlockDisplayWith(w, "Message:", nil)
 }
 
-// BlockDislay writes giving Entries as seperated blocks of contents where the each content is
+// BlockDisplayWith writes giving Entries as seperated blocks of contents where the each content is
 // converted within a block like below:
 //
 //  Message: We must create new standard behaviour
@@ -105,13 +112,14 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 
 		var bu bytes.Buffer
 		if header != "" {
-			fmt.Fprintf(&bu, "%s %+s\n", header, en.Message)
+			fmt.Fprintf(&bu, "%s %+s\n", green.Sprint(header), en.Message)
 		} else {
 			fmt.Fprintf(&bu, "%+s\n", en.Message)
 		}
 
 		if en.Function != "" {
-			fmt.Fprintf(&bu, "Function: %+s\n", en.Function)
+			fmt.Fprintf(&bu, "%s: %+s\n", green.Sprint("Function"), en.Function)
+			fmt.Fprintf(&bu, "%s: %+s:%d\n", green.Sprint("File"), en.File, en.Line)
 		}
 
 		print(en.Field, func(key []string, value string) {
@@ -124,7 +132,7 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 			spaceLines := printSpaceLine(1)
 
 			fmt.Fprintf(&bu, "+%s+%s+\n", keyLines, valLines)
-			fmt.Fprintf(&bu, "|%s%s%s|%s%s%s|\n", spaceLines, keyVal, spaceLines, spaceLines, value, spaceLines)
+			fmt.Fprintf(&bu, "|%s%s%s|%s%s%s|\n", spaceLines, green.Sprint(keyVal), spaceLines, spaceLines, value, spaceLines)
 			fmt.Fprintf(&bu, "+%s+%s+", keyLines, valLines)
 			fmt.Fprintf(&bu, "\n")
 
@@ -137,7 +145,7 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 
 //=====================================================================================
 
-// StackDislay writes giving Entries as seperated blocks of contents where the each content is
+// StackDisplay writes giving Entries as seperated blocks of contents where the each content is
 // converted within a block like below:
 //
 //  Message: We must create new standard behaviour
@@ -149,7 +157,7 @@ func StackDisplay(w io.Writer) metrics.Metrics {
 	return StackDisplayWith(w, "Message:", "-", nil)
 }
 
-// StackDislayWith writes giving Entries as seperated blocks of contents where the each content is
+// StackDisplayWith writes giving Entries as seperated blocks of contents where the each content is
 // converted within a block like below:
 //
 //  [Header]: We must create new standard behaviour
@@ -165,7 +173,7 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 
 		var bu bytes.Buffer
 		if header != "" {
-			fmt.Fprintf(&bu, "%s %+s\n", header, en.Message)
+			fmt.Fprintf(&bu, "%s %+s\n", green.Sprint(header), en.Message)
 		} else {
 			fmt.Fprintf(&bu, "%+s\n", en.Message)
 		}
@@ -175,11 +183,12 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 		}
 
 		if en.Function != "" {
-			fmt.Fprintf(&bu, "Function: %+s\n", en.Function)
+			fmt.Fprintf(&bu, "%s: %+s\n", green.Sprint("Function"), en.Function)
+			fmt.Fprintf(&bu, "%s: %+s:%d\n", green.Sprint("File"), en.File, en.Line)
 		}
 
 		print(en.Field, func(key []string, value string) {
-			fmt.Fprintf(&bu, "%s %s: %+s\n", tag, strings.Join(key, "."), value)
+			fmt.Fprintf(&bu, "%s %s: %+s\n", tag, green.Sprintf(strings.Join(key, ".")), value)
 		})
 
 		bu.WriteString("\n")

@@ -37,13 +37,13 @@ func NewTrace(comments ...string) *Trace {
 
 	_, file, line, ok := runtime.Caller(1)
 	if !ok {
-		file = "???"
+		file = question
 	}
 
 	var pkg, pkgFile string
 	pkgFileBase := file
 
-	if file != "???" {
+	if file != question {
 		pkgPieces := strings.SplitAfter(pkgFileBase, "/src/")
 		if len(pkgPieces) > 1 {
 			pkgFileBase = pkgPieces[1]
@@ -53,6 +53,8 @@ func NewTrace(comments ...string) *Trace {
 		pkgFile = filepath.Base(pkgFileBase)
 	}
 
+	functionName, _, _ := getFunctionName(3)
+
 	return &Trace{
 		Package:    pkg,
 		LineNumber: line,
@@ -60,7 +62,7 @@ func NewTrace(comments ...string) *Trace {
 		Comments:   comments,
 		StartTime:  time.Now(),
 		File:       pkgFile,
-		Function:   getFunctionName(3),
+		Function:   functionName,
 	}
 
 }
@@ -89,6 +91,8 @@ func NewTraceWithCallDepth(depth int, comments ...string) *Trace {
 		pkgFile = filepath.Base(pkgFileBase)
 	}
 
+	functionName, _, _ := getFunctionName(3)
+
 	return &Trace{
 		Package:    pkg,
 		LineNumber: line,
@@ -96,7 +100,7 @@ func NewTraceWithCallDepth(depth int, comments ...string) *Trace {
 		File:       pkgFile,
 		Comments:   comments,
 		StartTime:  time.Now(),
-		Function:   getFunctionName(333),
+		Function:   functionName,
 	}
 }
 
@@ -116,23 +120,27 @@ func (t *Trace) End() *Trace {
 }
 
 // getFunctionName returns the caller of the function that called it :)
-func getFunctionName(depth int) string {
-
+func getFunctionName(depth int) (string, string, int) {
 	// we get the callers as uintptrs - but we just need 1
 	fpcs := make([]uintptr, 1)
 
 	// skip 3 levels to get to the caller of whoever called Caller()
 	n := runtime.Callers(depth, fpcs)
 	if n == 0 {
-		return "Unknown()" // proper error her would be better
+		return "Unknown()", "???", 0
 	}
+
+	funcPtr := fpcs[0]
+	funcPtrArea := funcPtr - 1
 
 	// get the info of the actual function that's in the pointer
-	fun := runtime.FuncForPC(fpcs[0] - 1)
+	fun := runtime.FuncForPC(funcPtrArea)
 	if fun == nil {
-		return "Unknown()" // proper error her would be better
+		return "Unknown()", "???", 0
 	}
 
+	fileName, line := fun.FileLine(funcPtrArea)
+
 	// return its name
-	return fun.Name()
+	return fun.Name(), fileName, line
 }

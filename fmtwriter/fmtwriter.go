@@ -35,6 +35,10 @@ func NewWith(m metrics.Metrics, wt io.WriterTo, useGoImports bool, attemptFallba
 func (fm WriterTo) WriteTo(w io.Writer) (int64, error) {
 	var backinput, input, inout, inerr bytes.Buffer
 
+	if fm.Metrics == nil {
+		fm.Metrics = metrics.New()
+	}
+
 	if n, err := fm.WriterTo.WriteTo(io.MultiWriter(&input, &backinput)); err != nil && err != io.EOF {
 		return n, err
 	}
@@ -48,7 +52,12 @@ func (fm WriterTo) WriteTo(w io.Writer) (int64, error) {
 		}
 	}
 
-	cmd := exec.New(exec.Command(cmdName), exec.Input(&input), exec.Output(&inout), exec.Err(&inerr))
+	cmd := exec.New(
+		exec.Command(cmdName),
+		exec.Input(&input),
+		exec.Output(&inout),
+		exec.Err(&inerr),
+	)
 
 	if err := cmd.Exec(context.Background(), fm.Metrics); err != nil {
 
