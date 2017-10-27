@@ -464,6 +464,7 @@ func (p *Pair) GetDuration(key interface{}) (time.Duration, bool) {
 	if !found {
 		return 0, false
 	}
+
 	if dval, ok := val.(time.Duration); ok {
 		return dval, true
 	}
