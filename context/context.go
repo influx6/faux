@@ -23,6 +23,7 @@ type Getter interface {
 	GetString(key interface{}) (string, bool)
 	GetFloat32(key interface{}) (float32, bool)
 	GetFloat64(key interface{}) (float64, bool)
+	GetDuration(key interface{}) (time.Duration, bool)
 }
 
 // ValueBag defines a context for holding values to be shared across processes..
@@ -178,53 +179,59 @@ func (c *context) WithValue(key, value interface{}) ValueBag {
 	return child
 }
 
+// GetDuration returns the value for the necessary key within the context.
+func (c *context) GetDuration(key interface{}) (item time.Duration, found bool) {
+	item, found = c.fields.GetDuration(key)
+	return
+}
+
 // Get returns the value for the necessary key within the context.
 func (c *context) Get(key interface{}) (item interface{}, found bool) {
 	item, found = c.fields.Get(key)
 	return
 }
 
-// GetBool collects the string value of a key if it exists.
+// GetBool returns the value type value of a key if it exists.
 func (c *context) GetBool(key interface{}) (bool, bool) {
 	return c.fields.GetBool(key)
 }
 
-// GetFloat64 collects the string value of a key if it exists.
+// GetFloat64 returns the value type value of a key if it exists.
 func (c *context) GetFloat64(key interface{}) (float64, bool) {
 	return c.fields.GetFloat64(key)
 }
 
-// GetFloat32 collects the string value of a key if it exists.
+// GetFloat32 returns the value type value of a key if it exists.
 func (c *context) GetFloat32(key interface{}) (float32, bool) {
 	return c.fields.GetFloat32(key)
 }
 
-// GetInt8 collects the string value of a key if it exists.
+// GetInt8 returns the value type value of a key if it exists.
 func (c *context) GetInt8(key interface{}) (int8, bool) {
 	return c.fields.GetInt8(key)
 }
 
-// GetInt16 collects the string value of a key if it exists.
+// GetInt16 returns the value type value of a key if it exists.
 func (c *context) GetInt16(key interface{}) (int16, bool) {
 	return c.fields.GetInt16(key)
 }
 
-// GetInt64 collects the string value of a key if it exists.
+// GetInt64 returns the value type value of a key if it exists.
 func (c *context) GetInt64(key interface{}) (int64, bool) {
 	return c.fields.GetInt64(key)
 }
 
-// GetInt32 collects the string value of a key if it exists.
+// GetInt32 returns the value type value of a key if it exists.
 func (c *context) GetInt32(key interface{}) (int32, bool) {
 	return c.fields.GetInt32(key)
 }
 
-// GetInt collects the string value of a key if it exists.
+// GetInt returns the value type value of a key if it exists.
 func (c *context) GetInt(key interface{}) (int, bool) {
 	return c.fields.GetInt(key)
 }
 
-// GetString collects the string value of a key if it exists.
+// GetString returns the value type value of a key if it exists.
 func (c *context) GetString(key interface{}) (string, bool) {
 	return c.fields.GetString(key)
 }
@@ -243,6 +250,30 @@ func FromContext(ctx gcontext.Context) *GoogleContext {
 	return &gc
 }
 
+// GetDuration returns the giving value for the provided key if it exists else nil.
+func (g *GoogleContext) GetDuration(key interface{}) (time.Duration, bool) {
+	val := g.Context.Value(key)
+	if val == nil {
+		return 0, false
+	}
+
+	if dval, ok := val.(int64); ok {
+		return time.Duration(dval), true
+	}
+
+	if dval, ok := val.(time.Duration); ok {
+		return dval, true
+	}
+
+	if sval, ok := val.(string); ok {
+		if dur, err := time.ParseDuration(sval); err == nil {
+			return dur, true
+		}
+	}
+
+	return 0, false
+}
+
 // Get returns the giving value for the provided key if it exists else nil.
 func (g *GoogleContext) Get(key interface{}) (interface{}, bool) {
 	val := g.Context.Value(key)
@@ -253,7 +284,7 @@ func (g *GoogleContext) Get(key interface{}) (interface{}, bool) {
 	return val, true
 }
 
-// GetBool collects the string value of a key if it exists.
+// GetBool returns the value type value of a key if it exists.
 func (g *GoogleContext) GetBool(key interface{}) (bool, bool) {
 	val, found := g.Get(key)
 	if !found {
@@ -264,7 +295,7 @@ func (g *GoogleContext) GetBool(key interface{}) (bool, bool) {
 	return value, ok
 }
 
-// GetFloat64 collects the string value of a key if it exists.
+// GetFloat64 returns the value type value of a key if it exists.
 func (g *GoogleContext) GetFloat64(key interface{}) (float64, bool) {
 	val, found := g.Get(key)
 	if !found {
@@ -275,7 +306,7 @@ func (g *GoogleContext) GetFloat64(key interface{}) (float64, bool) {
 	return value, ok
 }
 
-// GetFloat32 collects the string value of a key if it exists.
+// GetFloat32 returns the value type value of a key if it exists.
 func (g *GoogleContext) GetFloat32(key interface{}) (float32, bool) {
 	val, found := g.Get(key)
 	if !found {
@@ -286,7 +317,7 @@ func (g *GoogleContext) GetFloat32(key interface{}) (float32, bool) {
 	return value, ok
 }
 
-// GetInt8 collects the string value of a key if it exists.
+// GetInt8 returns the value type value of a key if it exists.
 func (g *GoogleContext) GetInt8(key interface{}) (int8, bool) {
 	val, found := g.Get(key)
 	if !found {
@@ -297,7 +328,7 @@ func (g *GoogleContext) GetInt8(key interface{}) (int8, bool) {
 	return value, ok
 }
 
-// GetInt16 collects the string value of a key if it exists.
+// GetInt16 returns the value type value of a key if it exists.
 func (g *GoogleContext) GetInt16(key interface{}) (int16, bool) {
 	val, found := g.Get(key)
 	if !found {
@@ -308,7 +339,7 @@ func (g *GoogleContext) GetInt16(key interface{}) (int16, bool) {
 	return value, ok
 }
 
-// GetInt64 collects the string value of a key if it exists.
+// GetInt64 returns the value type value of a key if it exists.
 func (g *GoogleContext) GetInt64(key interface{}) (int64, bool) {
 	val, found := g.Get(key)
 	if !found {
@@ -319,7 +350,7 @@ func (g *GoogleContext) GetInt64(key interface{}) (int64, bool) {
 	return value, ok
 }
 
-// GetInt32 collects the string value of a key if it exists.
+// GetInt32 returns the value type value of a key if it exists.
 func (g *GoogleContext) GetInt32(key interface{}) (int32, bool) {
 	val, found := g.Get(key)
 	if !found {
@@ -330,7 +361,7 @@ func (g *GoogleContext) GetInt32(key interface{}) (int32, bool) {
 	return value, ok
 }
 
-// GetInt collects the string value of a key if it exists.
+// GetInt returns the value type value of a key if it exists.
 func (g *GoogleContext) GetInt(key interface{}) (int, bool) {
 	val, found := g.Get(key)
 	if !found {
@@ -341,7 +372,7 @@ func (g *GoogleContext) GetInt(key interface{}) (int, bool) {
 	return value, ok
 }
 
-// GetString collects the string value of a key if it exists.
+// GetString returns the value type value of a key if it exists.
 func (g *GoogleContext) GetString(key interface{}) (string, bool) {
 	val, found := g.Get(key)
 	if !found {
@@ -427,7 +458,31 @@ func (p *Pair) Root() *Pair {
 	return p.prev.Root()
 }
 
-// GetBool collects the string value of a key if it exists.
+// GetDuration returns the duration value of a key if it exists.
+func (p *Pair) GetDuration(key interface{}) (time.Duration, bool) {
+	val, found := p.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	if dval, ok := val.(int64); ok {
+		return time.Duration(dval), true
+	}
+
+	if dval, ok := val.(time.Duration); ok {
+		return dval, true
+	}
+
+	if sval, ok := val.(string); ok {
+		if dur, err := time.ParseDuration(sval); err == nil {
+			return dur, true
+		}
+	}
+
+	return 0, false
+}
+
+// GetBool returns the bool value of a key if it exists.
 func (p *Pair) GetBool(key interface{}) (bool, bool) {
 	val, found := p.Get(key)
 	if !found {
@@ -438,7 +493,7 @@ func (p *Pair) GetBool(key interface{}) (bool, bool) {
 	return value, ok
 }
 
-// GetFloat64 collects the string value of a key if it exists.
+// GetFloat64 returns the float64 value of a key if it exists.
 func (p *Pair) GetFloat64(key interface{}) (float64, bool) {
 	val, found := p.Get(key)
 	if !found {
@@ -449,7 +504,7 @@ func (p *Pair) GetFloat64(key interface{}) (float64, bool) {
 	return value, ok
 }
 
-// GetFloat32 collects the string value of a key if it exists.
+// GetFloat32 returns the float32 value of a key if it exists.
 func (p *Pair) GetFloat32(key interface{}) (float32, bool) {
 	val, found := p.Get(key)
 	if !found {
@@ -460,7 +515,7 @@ func (p *Pair) GetFloat32(key interface{}) (float32, bool) {
 	return value, ok
 }
 
-// GetInt8 collects the string value of a key if it exists.
+// GetInt8 returns the int8 value of a key if it exists.
 func (p *Pair) GetInt8(key interface{}) (int8, bool) {
 	val, found := p.Get(key)
 	if !found {
@@ -471,7 +526,7 @@ func (p *Pair) GetInt8(key interface{}) (int8, bool) {
 	return value, ok
 }
 
-// GetInt16 collects the string value of a key if it exists.
+// GetInt16 returns the int16 value of a key if it exists.
 func (p *Pair) GetInt16(key interface{}) (int16, bool) {
 	val, found := p.Get(key)
 	if !found {
@@ -482,7 +537,7 @@ func (p *Pair) GetInt16(key interface{}) (int16, bool) {
 	return value, ok
 }
 
-// GetInt64 collects the string value of a key if it exists.
+// GetInt64 returns the value type value of a key if it exists.
 func (p *Pair) GetInt64(key interface{}) (int64, bool) {
 	val, found := p.Get(key)
 	if !found {
@@ -493,7 +548,7 @@ func (p *Pair) GetInt64(key interface{}) (int64, bool) {
 	return value, ok
 }
 
-// GetInt32 collects the string value of a key if it exists.
+// GetInt32 returns the value type value of a key if it exists.
 func (p *Pair) GetInt32(key interface{}) (int32, bool) {
 	val, found := p.Get(key)
 	if !found {
@@ -504,7 +559,7 @@ func (p *Pair) GetInt32(key interface{}) (int32, bool) {
 	return value, ok
 }
 
-// GetInt collects the string value of a key if it exists.
+// GetInt returns the value type value of a key if it exists.
 func (p *Pair) GetInt(key interface{}) (int, bool) {
 	val, found := p.Get(key)
 	if !found {
@@ -515,7 +570,7 @@ func (p *Pair) GetInt(key interface{}) (int, bool) {
 	return value, ok
 }
 
-// GetString collects the string value of a key if it exists.
+// GetString returns the value type value of a key if it exists.
 func (p *Pair) GetString(key interface{}) (string, bool) {
 	val, found := p.Get(key)
 	if !found {
@@ -526,7 +581,7 @@ func (p *Pair) GetString(key interface{}) (string, bool) {
 	return value, ok
 }
 
-// Get collects the value of a key if it exists.
+// Get returns the value of a key if it exists.
 func (p *Pair) Get(key interface{}) (value interface{}, found bool) {
 	if p == nil {
 		return
