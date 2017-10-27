@@ -257,12 +257,12 @@ func (g *GoogleContext) GetDuration(key interface{}) (time.Duration, bool) {
 		return 0, false
 	}
 
-	if dval, ok := val.(int64); ok {
-		return time.Duration(dval), true
-	}
-
 	if dval, ok := val.(time.Duration); ok {
 		return dval, true
+	}
+
+	if dval, ok := val.(int64); ok {
+		return time.Duration(dval), true
 	}
 
 	if sval, ok := val.(string); ok {
@@ -464,13 +464,12 @@ func (p *Pair) GetDuration(key interface{}) (time.Duration, bool) {
 	if !found {
 		return 0, false
 	}
+	if dval, ok := val.(time.Duration); ok {
+		return dval, true
+	}
 
 	if dval, ok := val.(int64); ok {
 		return time.Duration(dval), true
-	}
-
-	if dval, ok := val.(time.Duration); ok {
-		return dval, true
 	}
 
 	if sval, ok := val.(string); ok {
