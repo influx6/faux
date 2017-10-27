@@ -8,13 +8,13 @@ import (
 )
 
 func TestValueBag(t *testing.T) {
-	bag := context.ValueBag()
-	bag.Set("k", "z")
-	bag.Set("m", "z")
-	bag.Set("k", "a")
-	bag.Set("m", "v")
+	bag := context.NewValueBag()
+	bag = bag.WithValue("k", "z")
+	bag = bag.WithValue("m", "z")
+	bag = bag.WithValue("k", "a")
+	bag.WithValue("m", "v")
 
-	if val, _ := bag.GetString("m"); val != "v" {
+	if val, _ := bag.GetString("m"); val != "z" {
 		tests.Failed("Should match expected value")
 	}
 	tests.Passed("Should match expected value")
