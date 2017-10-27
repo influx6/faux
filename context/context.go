@@ -161,10 +161,32 @@ type context struct {
 	fields *Pair
 }
 
+// ValueBagFromAny adds giving key-value pairs into the bag.
+func ValueBagFromAny(fields map[interface{}]interface{}) ValueBag {
+	initial := (*Pair)(nil)
+
+	for key, val := range fields {
+		initial = initial.Append(key, val)
+	}
+
+	return &context{fields: initial}
+}
+
+// ValueBagFrom adds giving key-value pairs into the bag.
+func ValueBagFrom(fields map[string]interface{}) ValueBag {
+	initial := (*Pair)(nil)
+
+	for key, val := range fields {
+		initial = initial.Append(key, val)
+	}
+
+	return &context{fields: initial}
+}
+
 // NewValueBag returns a new context object that meets the Context interface.
 func NewValueBag() ValueBag {
 	cl := context{
-		fields: nilPair,
+		fields: (*Pair)(nil),
 	}
 
 	return &cl
@@ -384,9 +406,6 @@ func (g *GoogleContext) GetString(key interface{}) (string, bool) {
 }
 
 //==============================================================================
-
-// nilPair defines a nil starting pair.
-var nilPair = (*Pair)(nil)
 
 // Pair defines a struct for storing a linked pair of key and values.
 type Pair struct {
