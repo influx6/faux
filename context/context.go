@@ -89,7 +89,7 @@ func New() CancelableContext {
 	return &CnclContext{close: make(chan struct{}), bag: NewValueBag()}
 }
 
-// WithoutTimeut returns a new Context made from provided duration.
+// WithTimeout returns a new Context made from provided duration.
 func WithTimeout(bag ValueBag, d time.Duration) Context {
 	return NewExpiringCnclContext(nil, d, bag)
 }
