@@ -135,7 +135,7 @@ func PoolTreemuxHandler(errHandler ErrorHandler, ops ...Options) (TreemuxHandler
 			ctx.InitForms()
 
 			for key, val := range params {
-				ctx.Set(key, val)
+				ctx.Bag().Set(key, val)
 			}
 
 			if err := middleware(ctx); err != nil && errHandler != nil {
