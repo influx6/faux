@@ -23,11 +23,16 @@ func WithTimelapse(message string, f Field) Timelapse {
 
 // WithMessage returns a new Entry with the provided Level and message used.
 func WithMessage(level Level, message string, m ...interface{}) Entry {
+	return withMessageAt(4, level, message, m...)
+}
+
+// withMessage returns a new Entry with the provided Level and message used.
+func withMessageAt(depth int, level Level, message string, m ...interface{}) Entry {
 	var e Entry
 	e.Level = level
 	e.Field = make(Field)
 	e.Time = time.Now()
-	e.Function, e.File, e.Line = getFunctionName(4)
+	e.Function, e.File, e.Line = getFunctionName(depth)
 
 	if len(m) == 0 {
 		e.Message = message

@@ -43,7 +43,7 @@ func IsExpired(c CancelContext) bool {
 	select {
 	case <-c.Done():
 		return true
-	case <-time.After(10 * time.Millisecond):
+	case <-time.After(5 * time.Millisecond):
 		return false
 	}
 }
