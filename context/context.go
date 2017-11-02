@@ -133,7 +133,7 @@ type ExpiringCnclContext struct {
 
 // NewExpiringCnclContext returns a new instance of the CnclContext.
 func NewExpiringCnclContext(action func(), timeout time.Duration, bag ValueBag) *ExpiringCnclContext {
-	exp := &ExpiringCnclContext{close: make(chan struct{}), action: action, bag: bag}
+	exp := &ExpiringCnclContext{close: make(chan struct{}), action: action, bag: bag, duration: timeout}
 	go exp.monitor()
 	return exp
 }
