@@ -84,6 +84,11 @@ func MakeGoogleContextFrom(ctx CancelContext) gcontext.Context {
 	return cmx
 }
 
+// New returns a new instance of a CancelableContext with ValueBag set.
+func New() CancelableContext {
+	return &CnclContext{close: make(chan struct{}), bag: NewValueBag()}
+}
+
 // NewCnclContext returns a new instance of the CnclContext.
 func NewCnclContext(bag ValueBag) *CnclContext {
 	return &CnclContext{close: make(chan struct{}), bag: bag}
