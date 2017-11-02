@@ -116,8 +116,8 @@ func SetMetrics(r metrics.Metrics) Options {
 // Context defines a http related context object for a request session
 // which is to be served.
 type Context struct {
+	context.ValueBag
 	context.CancelContext
-	context.ValueBagContext
 	path       string
 	render     Render
 	response   *Response

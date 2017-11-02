@@ -18,7 +18,7 @@ const (
 
 // Params defines a function to return all parameter values and query values
 // retrieved from the request.
-func Params(ctx context.ValueBagContext, r *http.Request, multipartFormSize int64) error {
+func Params(ctx context.ValueBag, r *http.Request, multipartFormSize int64) error {
 	if multipartFormSize <= 0 {
 		multipartFormSize = maxsize
 	}

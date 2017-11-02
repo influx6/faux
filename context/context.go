@@ -30,6 +30,9 @@ type Getter interface {
 type ValueBag interface {
 	Getter
 
+	// Set adds a key-value pair into the bag.
+	Set(key, value interface{})
+
 	// WithValue returns a new context then adds the key and value pair into the
 	// context's store.
 	WithValue(key interface{}, value interface{}) ValueBag
@@ -168,6 +171,7 @@ func (cn *ExpiringCnclContext) monitor() {
 // use cases with a explicitly set duration which clears all its internal
 // data after the giving period.
 type context struct {
+	ml     sync.Mutex
 	fields *Pair
 }
 
@@ -202,8 +206,17 @@ func NewValueBag() ValueBag {
 	return &cl
 }
 
+// Set adds given value into context.
+func (c *context) Set(key, value interface{}) {
+	c.ml.Lock()
+	defer c.ml.Unlock()
+	c.fields = Append(c.fields, key, value)
+}
+
 // WithValue returns a new context based on the previos one.
 func (c *context) WithValue(key, value interface{}) ValueBag {
+	c.ml.Lock()
+	defer c.ml.Unlock()
 	child := &context{
 		fields: Append(c.fields, key, value),
 	}
@@ -213,12 +226,16 @@ func (c *context) WithValue(key, value interface{}) ValueBag {
 
 // GetDuration returns the value for the necessary key within the context.
 func (c *context) GetDuration(key interface{}) (item time.Duration, found bool) {
+	c.ml.Lock()
+	defer c.ml.Unlock()
 	item, found = c.fields.GetDuration(key)
 	return
 }
 
 // Get returns the value for the necessary key within the context.
 func (c *context) Get(key interface{}) (item interface{}, found bool) {
+	c.ml.Lock()
+	defer c.ml.Unlock()
 	item, found = c.fields.Get(key)
 	return
 }
