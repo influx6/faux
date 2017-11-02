@@ -35,6 +35,16 @@ type ValueBag interface {
 	WithValue(key interface{}, value interface{}) ValueBag
 }
 
+// IsExpired returns true/false whether the provided CancelContext has expired.
+func IsExpired(c CancelContext) bool {
+	select {
+	case <-c.Done():
+		return true
+	case <-time.After(10 * time.Millisecond):
+		return false
+	}
+}
+
 // CancelContext defines a type which provides Done signal for cancelling operations.
 type CancelContext interface {
 	Done() <-chan struct{}
