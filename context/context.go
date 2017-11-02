@@ -89,6 +89,11 @@ func New() CancelableContext {
 	return &CnclContext{close: make(chan struct{}), bag: NewValueBag()}
 }
 
+// WithoutTimeut returns a new Context made from provided duration.
+func WithTimeout(bag ValueBag, d time.Duration) Context {
+	return NewExpiringCnclContext(nil, d, bag)
+}
+
 // NewCnclContext returns a new instance of the CnclContext.
 func NewCnclContext(bag ValueBag) *CnclContext {
 	return &CnclContext{close: make(chan struct{}), bag: bag}
