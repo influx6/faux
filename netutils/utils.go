@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -188,6 +189,7 @@ func NewHTTPServer(l net.Listener, handle http.Handler, c *tls.Config) (*http.Se
 		TLSConfig:      c,
 	}
 
+	log.Printf("Serving http connection on: %+q\n", s.Addr)
 	go s.Serve(tls)
 
 	return s, tls, nil

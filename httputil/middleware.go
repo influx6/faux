@@ -39,6 +39,14 @@ func IdentityMW(next Handler) Handler {
 	return next
 }
 
+// HTTPFunc returns a http.HandleFunc which wraps the Handler for usage
+// with a server.
+func HTTPFunc(nx Handler, befores ...func()) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		nx(NewContext(SetRequest(r), SetResponseWriter(w, befores...)))
+	}
+}
+
 // WrapHandler attempts to wrap provided http.HandlerFunc to return a httputil.Context.
 func WrapHandler(fx http.HandlerFunc) Handler {
 	return func(ctx *Context) error {
