@@ -89,6 +89,20 @@ func LogMW(next Handler) Handler {
 
 		req := ctx.Request()
 		res := ctx.Response()
+		res.After(func() {
+			m.Emit(metrics.Info("Outgoing HTTP Response").
+				With("method", req.Method).
+				With("status", res.Status).
+				With("header", res.Header()).
+				With("path", req.URL.Path).
+				With("host", req.Host).
+				With("remote", req.RemoteAddr).
+				With("agent", req.UserAgent()).
+				With("request", req.RequestURI).
+				With("outgoing-content-length", res.Size).
+				With("incoming-content-length", req.ContentLength).
+				With("proto", req.Proto))
+		})
 
 		m.Emit(metrics.Info("Incoming HTTP Request").
 			With("method", req.Method).
@@ -119,18 +133,6 @@ func LogMW(next Handler) Handler {
 			return err
 		}
 
-		m.Emit(metrics.Info("Outgoing HTTP Response").
-			With("method", req.Method).
-			With("status", res.Status).
-			With("header", res.Header()).
-			With("path", req.URL.Path).
-			With("host", req.Host).
-			With("remote", req.RemoteAddr).
-			With("agent", req.UserAgent()).
-			With("request", req.RequestURI).
-			With("outgoing-content-length", res.Size).
-			With("incoming-content-length", req.ContentLength).
-			With("proto", req.Proto))
 		return nil
 	}
 }
