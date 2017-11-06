@@ -84,6 +84,8 @@ func GzipServe(fs http.FileSystem, gzipped bool) Handler {
 		}
 
 		if ctx.HasHeader("Accept-Encoding", "gzip") && !gzipped {
+			ctx.SetHeader("Content-Encoding", "gzip")
+
 			gwriter := gzip.NewWriter(ctx.Response())
 			defer gwriter.Close()
 
