@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	htemplate "html/template"
 	"io"
 	"mime/multipart"
 	"net"
@@ -14,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/influx6/faux/context"
 	"github.com/influx6/faux/metrics"
@@ -336,6 +338,18 @@ func (c *Context) Render(code int, tmpl string, data interface{}) (err error) {
 	}
 
 	return c.HTMLBlob(code, buf.Bytes())
+}
+
+// Template renders provided template.Template object into the response object.
+func (c *Context) Template(code int, tmpl *template.Template, data interface{}) error {
+	c.Status(code)
+	return tmpl.Execute(c.response, data)
+}
+
+// HTMLTemplate renders provided template.Template object into the response object.
+func (c *Context) HTMLTemplate(code int, tmpl *htemplate.Template, data interface{}) error {
+	c.Status(code)
+	return tmpl.Execute(c.response, data)
 }
 
 // HTML renders giving html into response.
