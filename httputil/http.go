@@ -48,6 +48,15 @@ func (h handlerImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.fn(ctx)
 }
 
+// HTTPFunc returns a http.HandleFunc which wraps the Handler for usage
+// with a server.
+func HTTPFunc(m metrics.Metrics, nx Handler, befores ...func()) http.HandlerFunc {
+	return handlerImpl{m: m, fn: func(ctx *Context) error {
+		ctx.response.beforeFuncs = append(ctx.response.beforeFuncs, befores...)
+		return nx(ctx)
+	}}.ServeHTTP
+}
+
 // ServeHandler returns a http.Handler which serves request to the provided Handler.
 func ServeHandler(m metrics.Metrics, h Handler) http.Handler {
 	return handlerImpl{m: m, fn: h}
