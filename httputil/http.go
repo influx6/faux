@@ -39,7 +39,13 @@ type handlerImpl struct {
 
 // ServeHTTP implements http.Handler.ServeHttp method.
 func (h handlerImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h.fn(NewContext(SetRequest(r), SetResponseWriter(w), SetMetrics(h.m)))
+	ctx := NewContext(SetRequest(r), SetResponseWriter(w), SetMetrics(h.m))
+	if err := ctx.InitForms(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	h.fn(ctx)
 }
 
 // ServeHandler returns a http.Handler which serves request to the provided Handler.
