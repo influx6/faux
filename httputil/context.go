@@ -33,9 +33,6 @@ type Render interface {
 // ErrorHandler defines a function type which sets giving respnse to a Response object.
 type ErrorHandler func(error, *Context)
 
-// NotFoundHandler defines a function to be used to run a not found op.
-type NotFoundHandler func(*Context) error
-
 // Options defines a function type which receives a Context pointer and
 // sets/modifiers it's internal state values.
 type Options func(*Context)
@@ -89,9 +86,9 @@ func SetRequest(r *http.Request) Options {
 }
 
 // SetNotFound will return a function to set the NotFound handler for a giving context.
-func SetNotFound(r NotFoundHandler) Options {
+func SetNotFound(r Handler) Options {
 	return func(c *Context) {
-		c.nothandler = r
+		c.notfoundHandler = r
 	}
 }
 
@@ -117,13 +114,13 @@ func SetMetrics(r metrics.Metrics) Options {
 // which is to be served.
 type Context struct {
 	context.Context
-	path       string
-	render     Render
-	response   *Response
-	query      url.Values
-	request    *http.Request
-	metrics    metrics.Metrics
-	nothandler NotFoundHandler
+	path            string
+	render          Render
+	response        *Response
+	query           url.Values
+	request         *http.Request
+	metrics         metrics.Metrics
+	notfoundHandler Handler
 }
 
 // NewContext returns a new Context with the Options slice applied.
@@ -151,6 +148,34 @@ func (c *Context) Metrics() metrics.Metrics {
 // Header returns the header associated with the giving request.
 func (c *Context) Header() http.Header {
 	return c.request.Header
+}
+
+// AddHeader adds te value into the giving key into the response object header.
+func (c *Context) AddHeader(key string, value string) {
+	if c.response == nil {
+		return
+	}
+
+	c.response.Header().Add(key, value)
+}
+
+// SetHeader sets te key-value pair into the response object header.
+func (c *Context) SetHeader(key string, value string) {
+	if c.response == nil {
+		return
+	}
+
+	c.response.Header().Set(key, value)
+}
+
+// HasHeader returns true/false if string.Contains validate giving header key
+// has value within string of the request header.
+func (c *Context) HasHeader(key string, value string) bool {
+	if c.request == nil {
+		return false
+	}
+
+	return strings.Contains(c.request.Header.Get(key), value)
 }
 
 // Request returns the associated request.
@@ -474,8 +499,8 @@ func (c *Context) Inline(file, name string) (err error) {
 // NotFound writes calls the giving response against the NotFound handler
 // if present, else uses a http.StatusMovedPermanently status code.
 func (c *Context) NotFound() error {
-	if c.nothandler != nil {
-		return c.nothandler(c)
+	if c.notfoundHandler != nil {
+		return c.notfoundHandler(c)
 	}
 
 	c.response.WriteHeader(http.StatusMovedPermanently)
@@ -535,7 +560,7 @@ func (c *Context) InitForms() error {
 func (c *Context) Reset(r *http.Request, w http.ResponseWriter) {
 	c.request = r
 	c.query = nil
-	c.nothandler = nil
+	c.notfoundHandler = nil
 	c.response = &Response{Writer: w}
 	c.Context = context.NewCnclContext(context.NewValueBag())
 
