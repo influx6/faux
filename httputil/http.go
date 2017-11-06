@@ -43,7 +43,10 @@ func (h handlerImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.Handler(ctx)
+	if err := h.Handler(ctx); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 // HTTPFunc returns a http.HandleFunc which wraps the Handler for usage
