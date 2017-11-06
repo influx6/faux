@@ -324,14 +324,14 @@ var ErrNoRenderInitiated = errors.New("Renderer was not set or is uninitiated")
 
 // Render renders the giving string with data binding using the provided Render
 // of the context.
-func (c *Context) Render(code int, name string, data interface{}) (err error) {
+func (c *Context) Render(code int, tmpl string, data interface{}) (err error) {
 	if c.render == nil {
 		return ErrNoRenderInitiated
 	}
 
 	buf := new(bytes.Buffer)
 
-	if err = c.render.Render(buf, name, data); err != nil {
+	if err = c.render.Render(buf, tmpl, data); err != nil {
 		return
 	}
 

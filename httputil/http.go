@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
+	"mime"
 	"net/http"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"fmt"
@@ -98,6 +100,9 @@ func GzipServe(fs http.FileSystem, gzipped bool) Handler {
 			return err
 		}
 
+		mime := GetFileMimeType(stat.Name())
+		ctx.AddHeader("Content-Type", mime)
+
 		if ctx.HasHeader("Accept-Encoding", "gzip") && gzipped {
 			ctx.SetHeader("Content-Encoding", "gzip")
 			defer ctx.Status(http.StatusOK)
@@ -142,6 +147,16 @@ func GzipServe(fs http.FileSystem, gzipped bool) Handler {
 		http.ServeContent(ctx.Response(), ctx.Request(), stat.Name(), stat.ModTime(), file)
 		return nil
 	}
+}
+
+// GetFileMimeType returns associated mime type for giving file extension.
+func GetFileMimeType(path string) string {
+	ext := filepath.Ext(path)
+	extVal := mime.TypeByExtension(ext)
+	if extVal == "" {
+		extVal = mediaTypes[ext]
+	}
+	return extVal
 }
 
 // Params defines a function to return all parameter values and query values

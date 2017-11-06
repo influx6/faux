@@ -96,3 +96,23 @@ const (
 	HeaderContentSecurityPolicy   = "Content-Security-Policy"
 	HeaderXCSRFToken              = "X-CSRF-Token"
 )
+
+var (
+	mediaTypes = map[string]string{
+		".txt":      "text/plain",
+		".text":     "text/plain",
+		".html":     "text/html",
+		".css":      "text/css",
+		".js":       "text/javascript",
+		".erb":      "template/erb",
+		".min.css":  "text/css",
+		".haml":     "text/haml",
+		".markdown": "text/markdown",
+		".md":       "text/markdown",
+		".svg":      "image/svg+xml",
+		".png":      "image/png",
+		".jpg":      "image/jpg",
+		".gif":      "image/png",
+		".mp3":      "audio/mp3",
+	}
+)
