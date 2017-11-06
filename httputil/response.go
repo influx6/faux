@@ -11,10 +11,21 @@ import (
 // See: https://golang.org/pkg/net/http/#ResponseWriter
 type Response struct {
 	beforeFuncs []func()
+	afterFuncs  []func()
 	Writer      http.ResponseWriter
 	Status      int
 	Size        int64
 	Committed   bool
+}
+
+// Before adds the giving function into a response before list.
+func (r *Response) Before(fn func()) {
+	r.beforeFuncs = append(r.beforeFuncs, fn)
+}
+
+// After adds the giving function into a response after list.
+func (r *Response) After(fn func()) {
+	r.afterFuncs = append(r.afterFuncs, fn)
 }
 
 // Header returns the header map for the writer that will be sent by
@@ -25,11 +36,6 @@ type Response struct {
 // Example: https://golang.org/pkg/net/http/#example_ResponseWriter_trailers
 func (r *Response) Header() http.Header {
 	return r.Writer.Header()
-}
-
-// Before registers a function which is called just before the response is written.
-func (r *Response) Before(fn func()) {
-	r.beforeFuncs = append(r.beforeFuncs, fn)
 }
 
 // WriteHeader sends an HTTP response header with status code. If WriteHeader is
@@ -48,6 +54,10 @@ func (r *Response) WriteHeader(code int) {
 	r.Status = code
 	r.Writer.WriteHeader(code)
 	r.Committed = true
+
+	for _, fn := range r.afterFuncs {
+		fn()
+	}
 }
 
 // Write writes the data to the connection as part of an HTTP reply.
