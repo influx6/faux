@@ -97,6 +97,7 @@ func GzipServe(fs http.FileSystem, gzipped bool) Handler {
 
 		if ctx.HasHeader("Accept-Encoding", "gzip") && gzipped {
 			ctx.SetHeader("Content-Encoding", "gzip")
+			defer ctx.Status(http.StatusOK)
 			http.ServeContent(ctx.Response(), ctx.Request(), stat.Name(), stat.ModTime(), file)
 			return nil
 		}
@@ -111,6 +112,8 @@ func GzipServe(fs http.FileSystem, gzipped bool) Handler {
 			if err != nil && err != io.EOF {
 				return err
 			}
+
+			ctx.Status(http.StatusOK)
 
 			return nil
 		}
@@ -127,10 +130,12 @@ func GzipServe(fs http.FileSystem, gzipped bool) Handler {
 				return err
 			}
 
+			defer ctx.Status(http.StatusOK)
 			http.ServeContent(ctx.Response(), ctx.Request(), stat.Name(), stat.ModTime(), bytes.NewReader(bu.Bytes()))
 			return nil
 		}
 
+		defer ctx.Status(http.StatusOK)
 		http.ServeContent(ctx.Response(), ctx.Request(), stat.Name(), stat.ModTime(), file)
 		return nil
 	}
