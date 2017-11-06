@@ -11,7 +11,6 @@ import (
 	"fmt"
 
 	"github.com/influx6/faux/context"
-	"github.com/influx6/faux/metrics"
 )
 
 const (
@@ -33,39 +32,38 @@ func (w gzipResponseWriter) Write(b []byte) (int, error) {
 
 // handlerImpl implements http.Handler interface.
 type handlerImpl struct {
-	fn Handler
-	m  metrics.Metrics
+	Handler
 }
 
 // ServeHTTP implements http.Handler.ServeHttp method.
 func (h handlerImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := NewContext(SetRequest(r), SetResponseWriter(w), SetMetrics(h.m))
+	ctx := NewContext(SetRequest(r), SetResponseWriter(w))
 	if err := ctx.InitForms(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	h.fn(ctx)
+	h.Handler(ctx)
 }
 
 // HTTPFunc returns a http.HandleFunc which wraps the Handler for usage
 // with a server.
-func HTTPFunc(m metrics.Metrics, nx Handler, befores ...func()) http.HandlerFunc {
-	return handlerImpl{m: m, fn: func(ctx *Context) error {
+func HTTPFunc(nx Handler, befores ...func()) http.HandlerFunc {
+	return handlerImpl{Handler: func(ctx *Context) error {
 		ctx.response.beforeFuncs = append(ctx.response.beforeFuncs, befores...)
 		return nx(ctx)
 	}}.ServeHTTP
 }
 
 // ServeHandler returns a http.Handler which serves request to the provided Handler.
-func ServeHandler(m metrics.Metrics, h Handler) http.Handler {
-	return handlerImpl{m: m, fn: h}
+func ServeHandler(h Handler) http.Handler {
+	return handlerImpl{Handler: h}
 }
 
 // GzipServer returns a http.Handler which handles the necessary bits to gzip or ungzip
 // file resonses from a http.FileSystem.
-func GzipServer(m metrics.Metrics, fs http.FileSystem, gzipped bool) http.Handler {
-	return handlerImpl{m: m, fn: GzipServe(fs, gzipped)}
+func GzipServer(fs http.FileSystem, gzipped bool) http.Handler {
+	return handlerImpl{Handler: GzipServe(fs, gzipped)}
 }
 
 // GzipServe returns a Handler which handles the necessary bits to gzip or ungzip

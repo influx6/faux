@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/dimfeld/httptreemux"
+	"github.com/influx6/faux/metrics"
 )
 
 // Handler defines a function type to process a giving request.
@@ -32,6 +33,76 @@ type Middleware func(next Handler) Handler
 // IdentityHandler defines a Handler function that returns a nil error.
 func IdentityHandler(c *Context) error {
 	return nil
+}
+
+// MetricsMW defines a MW function that adds giving metrics.Metric to all context
+// before calling next handler.
+func MetricsMW(m metrics.Metrics) Middleware {
+	return func(next Handler) Handler {
+		return func(ctx *Context) error {
+			return next(Apply(ctx, SetMetrics(m)))
+		}
+	}
+}
+
+// LogMW defines a log middleware function which wraps a Handler
+// and logs what request and response was sent incoming.
+func LogMW(next Handler) Handler {
+	return func(ctx *Context) error {
+		m := ctx.Metrics()
+		if m == nil && next == nil {
+			return nil
+		}
+		if m == nil && next != nil {
+			return next(ctx)
+		}
+
+		req := ctx.Request()
+		res := ctx.Response()
+
+		m.Emit(metrics.Info("Incoming HTTP Request").
+			With("method", req.Method).
+			With("path", req.URL.Path).
+			With("tls", req.TLS != nil).
+			With("host", req.Host).
+			With("header", req.Header).
+			With("remote", req.RemoteAddr).
+			With("agent", req.UserAgent()).
+			With("request", req.RequestURI).
+			With("content-length", req.ContentLength).
+			With("proto", req.Proto))
+
+		if err := next(ctx); err != nil {
+			m.Emit(metrics.Error(err).
+				WithMessage("Outgoing HTTP Response").
+				With("method", req.Method).
+				With("status", res.Status).
+				With("header", res.Header()).
+				With("path", req.URL.Path).
+				With("host", req.Host).
+				With("remote", req.RemoteAddr).
+				With("agent", req.UserAgent()).
+				With("request", req.RequestURI).
+				With("outgoing-content-length", res.Size).
+				With("incoming-content-length", req.ContentLength).
+				With("proto", req.Proto))
+			return err
+		}
+
+		m.Emit(metrics.Info("Outgoing HTTP Response").
+			With("method", req.Method).
+			With("status", res.Status).
+			With("header", res.Header()).
+			With("path", req.URL.Path).
+			With("host", req.Host).
+			With("remote", req.RemoteAddr).
+			With("agent", req.UserAgent()).
+			With("request", req.RequestURI).
+			With("outgoing-content-length", res.Size).
+			With("incoming-content-length", req.ContentLength).
+			With("proto", req.Proto))
+		return nil
+	}
 }
 
 // IdentityMW defines a Handler function that returns a the next Handler passed to it.
