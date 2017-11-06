@@ -1,6 +1,8 @@
 package tmplutil
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 	"text/template"
 )
@@ -25,6 +27,25 @@ func (g *Group) Add(name string, data string) *Group {
 	defer g.ml.Unlock()
 	g.templates[name] = data
 	return g
+}
+
+// From acts like New but calls template.Lookup on the retunred template
+// to return the first template object forthe first name in the slice provided.
+func (g *Group) From(names ...string) (*template.Template, error) {
+	if len(names) == 0 {
+		return nil, errors.New("Require name slice")
+	}
+
+	tml, err := g.New(names...)
+	if err != nil {
+		return nil, err
+	}
+
+	if initialTml := tml.Lookup(names[0]); initialTml != nil {
+		return initialTml, nil
+	}
+
+	return nil, fmt.Errorf("template object for %+q not found", names[0])
 }
 
 // New returns a template from all templates within group if no names
