@@ -79,7 +79,7 @@ func (vf *VirtualFile) Close() error {
 
 // GetFile define a function type that returns a VirtualFile type
 // or an error.
-type GetFile func(string) (VirtualFile, error)
+type GetFile func(string) (*VirtualFile, error)
 
 // VirtualFileSystem connects a series of functions which are provided
 // to retrieve bundled files and serve to a http server. It implements
@@ -100,5 +100,5 @@ func (v VirtualFileSystem) Open(name string) (http.File, error) {
 		return nil, err
 	}
 
-	return &vfile, nil
+	return vfile, nil
 }
