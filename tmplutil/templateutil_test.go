@@ -1,15 +1,15 @@
-package templateutil_test
+package tmplutil_test
 
 import (
 	"bytes"
 	"testing"
 
-	"github.com/influx6/faux/templateutil"
 	"github.com/influx6/faux/tests"
+	"github.com/influx6/faux/tmplutil"
 )
 
 func TestGroup(t *testing.T) {
-	tg := templateutil.New()
+	tg := tmplutil.New()
 
 	tg.Add("box.tml", []byte(`Alex went to {{.Place}},{{template "area" .}}`))
 	tg.Add("area.tml", []byte(`{{define "area"}} then went to {{.Name}}{{end}}`))

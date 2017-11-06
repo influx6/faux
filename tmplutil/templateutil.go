@@ -1,4 +1,4 @@
-package templateutil
+package tmplutil
 
 import (
 	"sync"
@@ -20,10 +20,11 @@ func New() *Group {
 }
 
 // Add adds giving name and template value into group.
-func (g *Group) Add(name string, data []byte) {
+func (g *Group) Add(name string, data []byte) *Group {
 	g.ml.Lock()
 	defer g.ml.Unlock()
 	g.templates[name] = string(data)
+	return g
 }
 
 // New returns a template from all templates within group if no names
