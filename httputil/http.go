@@ -62,8 +62,13 @@ func ServeHandler(h Handler) http.Handler {
 
 // GzipServer returns a http.Handler which handles the necessary bits to gzip or ungzip
 // file resonses from a http.FileSystem.
-func GzipServer(fs http.FileSystem, gzipped bool) http.Handler {
-	return handlerImpl{Handler: GzipServe(fs, gzipped)}
+func GzipServer(fs http.FileSystem, gzipped bool, mw ...Middleware) http.Handler {
+	zipper := GzipServe(fs, gzipped)
+	if len(mw) != 0 {
+		return handlerImpl{Handler: MWi(mw...)(zipper)}
+	}
+
+	return handlerImpl{Handler: zipper}
 }
 
 // GzipServe returns a Handler which handles the necessary bits to gzip or ungzip
