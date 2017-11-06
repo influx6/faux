@@ -11,8 +11,8 @@ import (
 func TestGroup(t *testing.T) {
 	tg := tmplutil.New()
 
-	tg.Add("box.tml", []byte(`Alex went to {{.Place}},{{template "area" .}}`))
-	tg.Add("area.tml", []byte(`{{define "area"}} then went to {{.Name}}{{end}}`))
+	tg.Add("box.tml", (`Alex went to {{.Place}},{{template "area" .}}`))
+	tg.Add("area.tml", (`{{define "area"}} then went to {{.Name}}{{end}}`))
 
 	tml, err := tg.New("box.tml", "area.tml")
 	if err != nil {

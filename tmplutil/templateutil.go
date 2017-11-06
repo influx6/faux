@@ -20,10 +20,10 @@ func New() *Group {
 }
 
 // Add adds giving name and template value into group.
-func (g *Group) Add(name string, data []byte) *Group {
+func (g *Group) Add(name string, data string) *Group {
 	g.ml.Lock()
 	defer g.ml.Unlock()
-	g.templates[name] = string(data)
+	g.templates[name] = data
 	return g
 }
 
