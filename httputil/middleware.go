@@ -87,9 +87,27 @@ func LogMW(next Handler) Handler {
 			return next(ctx)
 		}
 
+		var err error
 		req := ctx.Request()
 		res := ctx.Response()
 		res.After(func() {
+			if err != nil {
+				m.Emit(metrics.Error(err).
+					WithMessage("Outgoing HTTP Response").
+					With("method", req.Method).
+					With("status", res.Status).
+					With("header", res.Header()).
+					With("path", req.URL.Path).
+					With("host", req.Host).
+					With("remote", req.RemoteAddr).
+					With("agent", req.UserAgent()).
+					With("request", req.RequestURI).
+					With("outgoing-content-length", res.Size).
+					With("incoming-content-length", req.ContentLength).
+					With("proto", req.Proto))
+				return
+			}
+
 			m.Emit(metrics.Info("Outgoing HTTP Response").
 				With("method", req.Method).
 				With("status", res.Status).
@@ -116,24 +134,9 @@ func LogMW(next Handler) Handler {
 			With("content-length", req.ContentLength).
 			With("proto", req.Proto))
 
-		if err := next(ctx); err != nil {
-			m.Emit(metrics.Error(err).
-				WithMessage("Outgoing HTTP Response").
-				With("method", req.Method).
-				With("status", res.Status).
-				With("header", res.Header()).
-				With("path", req.URL.Path).
-				With("host", req.Host).
-				With("remote", req.RemoteAddr).
-				With("agent", req.UserAgent()).
-				With("request", req.RequestURI).
-				With("outgoing-content-length", res.Size).
-				With("incoming-content-length", req.ContentLength).
-				With("proto", req.Proto))
-			return err
-		}
+		err = next(ctx)
 
-		return nil
+		return err
 	}
 }
 
