@@ -48,7 +48,7 @@ func MetricsMW(m metrics.Metrics) Middleware {
 
 // StripPrefixMW returns a middleware which strips the URI of the request of
 // the provided Prefix. All prefix must come in /prefix/ format.
-func StripPrefixMW(prefix string, m metrics.Metrics) Middleware {
+func StripPrefixMW(prefix string) Middleware {
 	return func(next Handler) Handler {
 		return func(ctx *Context) error {
 			if !strings.HasPrefix(prefix, "/") {
