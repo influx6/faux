@@ -49,11 +49,12 @@ func MetricsMW(m metrics.Metrics) Middleware {
 // StripPrefixMW returns a middleware which strips the URI of the request of
 // the provided Prefix. All prefix must come in /prefix/ format.
 func StripPrefixMW(prefix string) Middleware {
+	if !strings.HasPrefix(prefix, "/") {
+		prefix = "/" + prefix
+	}
+
 	return func(next Handler) Handler {
 		return func(ctx *Context) error {
-			if !strings.HasPrefix(prefix, "/") {
-				prefix = "/" + prefix
-			}
 
 			req := ctx.Request()
 			reqURL := req.URL.Path
