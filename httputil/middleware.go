@@ -46,6 +46,12 @@ func MetricsMW(m metrics.Metrics) Middleware {
 	}
 }
 
+// NotFound implements a Handler which returns http.StatusNotFound always.
+func NotFound(ctx *Context) error {
+	ctx.Status(http.StatusNotFound)
+	return nil
+}
+
 // StripPrefixMW returns a middleware which strips the URI of the request of
 // the provided Prefix. All prefix must come in /prefix/ format.
 func StripPrefixMW(prefix string) Middleware {
