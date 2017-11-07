@@ -23,6 +23,18 @@ const (
 	MultipartKey = "MultiPartForm"
 )
 
+// HTTPError defines custom error that can be used to specify
+// status code and message.
+type HTTPError struct {
+	Code int
+	Err  error
+}
+
+// Error returns error string. Implements error interface.
+func (h HTTPError) Error() string {
+	return h.Err.Error()
+}
+
 // Gzip Compression
 type gzipResponseWriter struct {
 	io.Writer
@@ -47,6 +59,11 @@ func (h handlerImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Handler(ctx); err != nil {
+		if httperr, ok := err.(HTTPError); ok {
+			http.Error(w, httperr.Error(), httperr.Code)
+			return
+		}
+
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
