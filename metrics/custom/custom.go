@@ -288,6 +288,9 @@ func printInDepth(item interface{}, do func(key []string, val string), depth int
 			if sm, ok := item.(stringer); ok {
 				val["object.String"] = sm.String()
 			}
+			if sm, ok := item.(error); ok {
+				val["object.ErrorMessage"] = sm.Error()
+			}
 			printMap(val, do, depth+1)
 		}
 

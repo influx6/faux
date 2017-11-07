@@ -135,7 +135,6 @@ func LogMW(next Handler) Handler {
 			With("proto", req.Proto))
 
 		err = next(ctx)
-
 		return err
 	}
 }

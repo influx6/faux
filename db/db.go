@@ -18,6 +18,11 @@ type TableConsumer interface {
 	WithFields(map[string]interface{}) error
 }
 
+// Consumer defines an interface that exposes a Consume method.
+type Consumer interface {
+	Consume(map[string]interface{}) error
+}
+
 // Migration defines an interface which provides structures to setup a new db migration
 // call.
 type Migration interface {
