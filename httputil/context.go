@@ -128,6 +128,7 @@ type Context struct {
 // NewContext returns a new Context with the Options slice applied.
 func NewContext(ops ...Options) *Context {
 	c := &Context{
+		metrics: metrics.New(),
 		Context: context.NewCnclContext(context.NewValueBag()),
 	}
 
@@ -575,6 +576,7 @@ func (c *Context) Reset(r *http.Request, w http.ResponseWriter) {
 	c.request = r
 	c.query = nil
 	c.notfoundHandler = nil
+	c.metrics = metrics.New()
 	c.response = &Response{Writer: w}
 	c.Context = context.NewCnclContext(context.NewValueBag())
 

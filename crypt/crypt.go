@@ -1,6 +1,9 @@
 package crypt
 
 import (
+	"errors"
+	"strings"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -25,4 +28,19 @@ func BcryptGenerate(content []byte, hashComplexity int) ([]byte, error) {
 	}
 
 	return bcrypt.GenerateFromPassword(content, hashComplexity)
+}
+
+// ParseAuthorization returns the scheme and token of the Authorization string
+// if it's valid.
+func ParseAuthorization(val string) (authType string, token string, err error) {
+	authSplit := strings.SplitN(val, " ", 2)
+	if len(authSplit) != 2 {
+		err = errors.New("Invalid Authorization: Expected content: `AuthType Token`")
+		return
+	}
+
+	authType = strings.TrimSpace(authSplit[0])
+	token = strings.TrimSpace(authSplit[1])
+
+	return
 }
