@@ -153,6 +153,15 @@ func (c *Context) Header() http.Header {
 	return c.request.Header
 }
 
+// GetHeader returns associated value of key from request headers.
+func (c *Context) GetHeader(key string) string {
+	if c.request == nil {
+		return ""
+	}
+
+	return c.request.Header.Get(key)
+}
+
 // AddHeader adds te value into the giving key into the response object header.
 func (c *Context) AddHeader(key string, value string) {
 	if c.response == nil {
@@ -173,9 +182,15 @@ func (c *Context) SetHeader(key string, value string) {
 
 // HasHeader returns true/false if string.Contains validate giving header key
 // has value within string of the request header.
+// if value is an empty string, then method only validates that you
+// have key in headers.
 func (c *Context) HasHeader(key string, value string) bool {
 	if c.request == nil {
 		return false
+	}
+
+	if value == "" {
+		return c.request.Header.Get(key) != ""
 	}
 
 	return strings.Contains(c.request.Header.Get(key), value)
