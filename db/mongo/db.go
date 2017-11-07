@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"encoding/json"
-	"sync"
 	"time"
 
 	"gopkg.in/mgo.v2"
@@ -24,26 +23,9 @@ type Config struct {
 	Mode     mgo.Mode
 }
 
-var mgoSessions = struct {
-	ml       sync.Mutex
-	sessions map[string]*mgo.Session
-}{
-	sessions: make(map[string]*mgo.Session),
-}
-
 // GetSession attempts to retrieve the giving session for the given config.
 func GetSession(config Config) (*mgo.Session, error) {
-	key := config.Host + ":" + config.DB
-
-	mgoSessions.ml.Lock()
-
-	ms, ok := mgoSessions.sessions[key]
-	if ok {
-		mgoSessions.ml.Unlock()
-		return ms.Copy(), nil
-	}
-
-	defer mgoSessions.ml.Unlock()
+	// key := config.Host + ":" + config.DB
 
 	// If not found, then attemp to connect and add to session master list.
 	// We need this object to establish a session to our MongoDB.
@@ -67,8 +49,6 @@ func GetSession(config Config) (*mgo.Session, error) {
 	}
 
 	ses.SetMode(config.Mode, true)
-
-	mgoSessions.sessions[key] = ses
 
 	return ses, nil
 }
