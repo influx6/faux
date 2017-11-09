@@ -164,7 +164,7 @@ func NewSystemGroup() *SystemGroup {
 
 // MustRegister will panic if the prefix and FileSystem failed to register
 // It returns itself if successfully to allow chaining.
-func (fs *SystemGroup) MustRegister(prefix string, m FileSystem) *FileSystem {
+func (fs *SystemGroup) MustRegister(prefix string, m FileSystem) *SystemGroup {
 	if err := fs.Register(prefix, m); err != nil {
 		panic(err)
 	}
