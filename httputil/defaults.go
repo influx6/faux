@@ -7,8 +7,8 @@ const (
 	TwentyFourHours   = 86400
 	FourthyEightHours = 2 * TwentyFourHours
 
-	TwentyFourHoursDuration   = 86400 * time.Second
-	FourthyEightHoursDuration = 86400 * 2 * time.Second
+	TwentyFourHoursDuration   = TwentyFourHours * time.Second
+	FourthyEightHoursDuration = TwentyFourHoursDuration * 2
 )
 
 // HTTP methods

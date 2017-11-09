@@ -75,6 +75,20 @@ func StripPrefixMW(prefix string) Middleware {
 	}
 }
 
+// HTTPConditionFunc retusn a handler where a Handler is used as a condition where if the handler
+// returns an error then the errorAction is called else the noerrorAction gets called with
+// context. This allows you create a binary switch where the final action is based on the
+// success of the first. Generally if you wish to pass info around, use the context.Bag()
+// to do so.
+func HTTPConditionFunc(condition Handler, noerrorAction, errorAction Handler) Handler {
+	return func(ctx *Context) error {
+		if err := condition(ctx); err != nil {
+			return errorAction(ctx)
+		}
+		return noerrorAction(ctx)
+	}
+}
+
 // LogMW defines a log middleware function which wraps a Handler
 // and logs what request and response was sent incoming.
 func LogMW(next Handler) Handler {
