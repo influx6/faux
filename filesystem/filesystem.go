@@ -43,6 +43,13 @@ type FileSystem interface {
 	Open(string) (File, error)
 }
 
+// New returns a new instance of a VirtualFileSystem as a FileSystem type.
+func New(fn GetFile) FileSystem {
+	return VirtualFileSystem{
+		GetFileFunc: fn,
+	}
+}
+
 // VirtualFile exposes a slice of []byte and associated name as
 // a http.File. It implements http.File interface.
 type VirtualFile struct {
