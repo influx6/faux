@@ -98,6 +98,9 @@ var (
 		"lessThanEqual": func(b, a int) bool {
 			return b <= a
 		},
+		"bytesToString": func(b []byte) string {
+			return string(b)
+		},
 		"greaterThanF": func(b, a float64) bool {
 			return b > a
 		},
