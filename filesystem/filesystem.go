@@ -245,16 +245,15 @@ func (fs *SystemGroup) Open(path string) (File, error) {
 	path = strings.TrimSuffix(path, "/")
 
 	parts := strings.Split(path, "/")
-
 	if node, ok := fs.systems[parts[0]]; ok {
 		if len(parts) > 1 {
 			if subnode, ok := node.nodes[parts[1]]; ok {
-				return subnode.Open(filepath.Join(parts[1:]...))
+				return subnode.Open(filepath.Join(parts[2:]...))
 			}
 		}
 
 		if node.root != nil {
-			return node.root.Open(filepath.Join(parts[0:]...))
+			return node.root.Open(filepath.Join(parts[1:]...))
 		}
 	}
 
