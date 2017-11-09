@@ -75,6 +75,13 @@ func StripPrefixMW(prefix string) Middleware {
 	}
 }
 
+// HTTPRedirect returns a Handler which always redirect to the given path.
+func HTTPRedirect(to string, code int) Handler {
+	return func(ctx *Context) error {
+		return ctx.Redirect(code, to)
+	}
+}
+
 // HTTPConditionFunc retusn a handler where a Handler is used as a condition where if the handler
 // returns an error then the errorAction is called else the noerrorAction gets called with
 // context. This allows you create a binary switch where the final action is based on the
