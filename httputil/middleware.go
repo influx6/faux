@@ -46,6 +46,30 @@ func MetricsMW(m metrics.Metrics) Middleware {
 	}
 }
 
+// NetworkAuthenticationNeeded implements a Handler which returns http.StatusNetworkAuthenticationRequired always.
+func NetworkAuthenticationNeeded(ctx *Context) error {
+	ctx.Status(http.StatusNetworkAuthenticationRequired)
+	return nil
+}
+
+// NoContentRequest implements a Handler which returns http.StatusNoContent always.
+func NoContentRequest(ctx *Context) error {
+	ctx.Status(http.StatusNoContent)
+	return nil
+}
+
+// OKRequest implements a Handler which returns http.StatusOK always.
+func OKRequest(ctx *Context) error {
+	ctx.Status(http.StatusOK)
+	return nil
+}
+
+// BadRequest implements a Handler which returns http.StatusBagRequest always.
+func BadRequest(ctx *Context) error {
+	ctx.Status(http.StatusBadRequest)
+	return nil
+}
+
 // NotFound implements a Handler which returns http.StatusNotFound always.
 func NotFound(ctx *Context) error {
 	ctx.Status(http.StatusNotFound)
