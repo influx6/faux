@@ -120,16 +120,24 @@ func HTTPConditionFunc(condition Handler, noerrorAction, errorAction Handler) Ha
 	}
 }
 
-// ErrCondition defines a type which sets the error that occurs and the handler to be called
+// ErrorCondition defines a type which sets the error that occurs and the handler to be called
 // for such an error.
-type ErrCondition struct {
+type ErrorCondition struct {
 	Err error
 	Fn  Handler
 }
 
+// ErrCondition returns ErrConditon using provided arguments.
+func ErrCondition(err error, fn Handler) ErrorCondition {
+	return ErrorCondition{
+		Err: err,
+		Fn:  fn,
+	}
+}
+
 // HTTPConditionsFunc returns a Handler where if an error occurs would match the returned
 // error with a Handler to be runned if the match is found.
-func HTTPConditionsFunc(condition Handler, noerrAction Handler, errCons ...ErrCondition) Handler {
+func HTTPConditionsFunc(condition Handler, noerrAction Handler, errCons ...ErrorCondition) Handler {
 	return func(ctx *Context) error {
 		if err := condition(ctx); err != nil {
 			for _, errcon := range errCons {
