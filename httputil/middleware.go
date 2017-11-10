@@ -120,6 +120,29 @@ func HTTPConditionFunc(condition Handler, noerrorAction, errorAction Handler) Ha
 	}
 }
 
+// ErrCondition defines a type which sets the error that occurs and the handler to be called
+// for such an error.
+type ErrCondition struct {
+	Err error
+	Fn  Handler
+}
+
+// HTTPConditionsFunc returns a Handler where if an error occurs would match the returned
+// error with a Handler to be runned if the match is found.
+func HTTPConditionsFunc(condition Handler, noerrAction Handler, errCons ...ErrCondition) Handler {
+	return func(ctx *Context) error {
+		if err := condition(ctx); err != nil {
+			for _, errcon := range errCons {
+				if errcon.Err == err {
+					return errcon.Fn(ctx)
+				}
+			}
+			return err
+		}
+		return noerrAction(ctx)
+	}
+}
+
 // LogMW defines a log middleware function which wraps a Handler
 // and logs what request and response was sent incoming.
 func LogMW(next Handler) Handler {
