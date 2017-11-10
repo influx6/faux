@@ -114,10 +114,35 @@ func HTTPRedirect(to string, code int) Handler {
 func HTTPConditionFunc(condition Handler, noerrorAction, errorAction Handler) Handler {
 	return func(ctx *Context) error {
 		if err := condition(ctx); err != nil {
+			ctx.Metrics().Emit(metrics.Error(err).WithMessage("HTTPConditionFunc").With("httputil_handler_error", err))
 			return errorAction(ctx)
 		}
 		return noerrorAction(ctx)
 	}
+}
+
+// HTTPConditionsFunc returns a Handler where if an error occurs would match the returned
+// error with a Handler to be runned if the match is found.
+func HTTPConditionsFunc(condition Handler, noerrAction Handler, errCons ...ErrConditions) Handler {
+	return func(ctx *Context) error {
+		if err := condition(ctx); err != nil {
+			ctx.Metrics().Emit(metrics.Error(err).WithMessage("HTTPConditionsFunc").With("httputil_handler_error", err))
+			for _, errcon := range errCons {
+				if errcon.Match(err) {
+					return errcon.Handle(ctx)
+				}
+			}
+			return err
+		}
+		return noerrAction(ctx)
+	}
+}
+
+// ErrConditions defines a condition which matches expected error
+// for performing giving action.
+type ErrConditions interface {
+	Match(error) bool
+	Handle(*Context) error
 }
 
 // ErrorCondition defines a type which sets the error that occurs and the handler to be called
@@ -135,20 +160,39 @@ func ErrCondition(err error, fn Handler) ErrorCondition {
 	}
 }
 
-// HTTPConditionsFunc returns a Handler where if an error occurs would match the returned
-// error with a Handler to be runned if the match is found.
-func HTTPConditionsFunc(condition Handler, noerrAction Handler, errCons ...ErrorCondition) Handler {
-	return func(ctx *Context) error {
-		if err := condition(ctx); err != nil {
-			for _, errcon := range errCons {
-				if errcon.Err == err {
-					return errcon.Fn(ctx)
-				}
-			}
-			return err
-		}
-		return noerrAction(ctx)
+// Handler calls the internal Handler with provided Context returning error.
+func (ec ErrorCondition) Handler(ctx *Context) error {
+	return ec.Fn(ctx)
+}
+
+// Match validates the provided error matches expected error.
+func (ec ErrorCondition) Match(err error) bool {
+	return ec.Err == err
+}
+
+// FnErrorCondition defines a type which sets the error that occurs and the handler to be called
+// for such an error.
+type FnErrorCondition struct {
+	Fn  Handler
+	Err func(error) bool
+}
+
+// FnErrCondition returns ErrConditon using provided arguments.
+func FnErrCondition(err func(error) bool, fn Handler) FnErrorCondition {
+	return FnErrorCondition{
+		Err: err,
+		Fn:  fn,
 	}
+}
+
+// Handler calls the internal Handler with provided Context returning error.
+func (ec FnErrorCondition) Handler(ctx *Context) error {
+	return ec.Fn(ctx)
+}
+
+// Match validates the provided error matches expected error.
+func (ec FnErrorCondition) Match(err error) bool {
+	return ec.Err(err)
 }
 
 // LogMW defines a log middleware function which wraps a Handler
