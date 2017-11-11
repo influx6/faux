@@ -55,6 +55,8 @@ func (h handlerImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer ctx.ClearFlashMessages()
+
 	if err := h.Handler(ctx); err != nil {
 		if httperr, ok := err.(HTTPError); ok {
 			http.Error(w, httperr.Error(), httperr.Code)
