@@ -5,9 +5,9 @@ import (
 	"text/template"
 )
 
-// textContextFunctions returns a map of tempalte funcs for usage
+// TextContextFunctions returns a map of tempalte funcs for usage
 // with text/template.Template.
-func textContextFunctions(c *Context) template.FuncMap {
+func TextContextFunctions(c *Context) template.FuncMap {
 	return template.FuncMap{
 		"flash":         c.Flash,
 		"flashMessages": c.FlashMessages,
@@ -26,9 +26,9 @@ func textContextFunctions(c *Context) template.FuncMap {
 	}
 }
 
-// htmlContextFunctions returns a map of tempalte funcs for usage
+// HTMLContextFunctions returns a map of tempalte funcs for usage
 // with text/template.Template.
-func htmlContextFunctions(c *Context) htemplate.FuncMap {
+func HTMLContextFunctions(c *Context) htemplate.FuncMap {
 	return htemplate.FuncMap{
 		"flash":         c.Flash,
 		"flashMessages": c.FlashMessages,
