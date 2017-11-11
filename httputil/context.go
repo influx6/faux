@@ -122,6 +122,7 @@ type Context struct {
 	query           url.Values
 	request         *http.Request
 	metrics         metrics.Metrics
+	flash           map[string][]string
 	notfoundHandler Handler
 }
 
@@ -129,6 +130,7 @@ type Context struct {
 func NewContext(ops ...Options) *Context {
 	c := &Context{
 		metrics: metrics.New(),
+		flash:   make(map[string][]string),
 		Context: context.NewCnclContext(context.NewValueBag()),
 	}
 
@@ -526,6 +528,45 @@ func (c *Context) Inline(file, name string) (err error) {
 	return c.contentDisposition(file, name, "inline")
 }
 
+// SetFlash sets giving message/messages into the slice bucket of the
+// given name list.
+func (c *Context) SetFlash(name string, message string) {
+	if list, ok := c.flash[name]; ok {
+		c.flash[name] = append(list, message)
+	}
+}
+
+// ClearFlashMessages clears all available message items within
+// the flash map.
+func (c *Context) ClearFlashMessages() {
+	c.flash = make(map[string][]string)
+}
+
+// FlashMessages returns available map of all flash messages.
+// A copy is sent not the context currently used instance.
+func (c *Context) FlashMessages() map[string][]string {
+	copy := make(map[string][]string)
+	for name, messages := range c.flash {
+		copy[name] = append([]string{}, messages...)
+	}
+	return copy
+}
+
+// ClearFlash removes all available message items from the context flash message
+// map.
+func (c *Context) ClearFlash(name string) {
+	if _, ok := c.flash[name]; ok {
+		c.flash[name] = nil
+	}
+}
+
+// Flash returns an associated slice of messages/string, for giving
+// flash name/key.
+func (c *Context) Flash(name string) []string {
+	messages := c.flash[name]
+	return messages
+}
+
 // NotFound writes calls the giving response against the NotFound handler
 // if present, else uses a http.StatusMovedPermanently status code.
 func (c *Context) NotFound() error {
@@ -593,6 +634,7 @@ func (c *Context) Reset(r *http.Request, w http.ResponseWriter) {
 	c.notfoundHandler = nil
 	c.metrics = metrics.New()
 	c.response = &Response{Writer: w}
+	c.flash = make(map[string][]string)
 	c.Context = context.NewCnclContext(context.NewValueBag())
 
 	c.InitForms()
