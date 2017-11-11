@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"gopkg.in/mgo.v2/bson"
 
 	"github.com/influx6/faux/metrics"
 	"github.com/influx6/faux/reflection"
@@ -335,6 +336,8 @@ func printMap(items interface{}, do func(key []string, val string), depth int) {
 		for index, item := range bo {
 			do([]string{index}, printValue(item))
 		}
+	case bson.M:
+		print(map[string]interface{}(bo), do)
 	case map[string][]interface{}:
 		for index, item := range bo {
 			printInDepth(item, func(key []string, value string) {
