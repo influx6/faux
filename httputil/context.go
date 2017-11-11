@@ -361,13 +361,13 @@ func (c *Context) Render(code int, tmpl string, data interface{}) (err error) {
 // Template renders provided template.Template object into the response object.
 func (c *Context) Template(code int, tmpl *template.Template, data interface{}) error {
 	c.Status(code)
-	return tmpl.Execute(c.response, data)
+	return tmpl.Funcs(textContextFunctions(c)).Execute(c.response, data)
 }
 
 // HTMLTemplate renders provided template.Template object into the response object.
 func (c *Context) HTMLTemplate(code int, tmpl *htemplate.Template, data interface{}) error {
 	c.Status(code)
-	return tmpl.Execute(c.response, data)
+	return tmpl.Funcs(htmlContextFunctions(c)).Execute(c.response, data)
 }
 
 // HTML renders giving html into response.
