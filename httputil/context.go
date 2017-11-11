@@ -531,9 +531,7 @@ func (c *Context) Inline(file, name string) (err error) {
 // SetFlash sets giving message/messages into the slice bucket of the
 // given name list.
 func (c *Context) SetFlash(name string, message string) {
-	if list, ok := c.flash[name]; ok {
-		c.flash[name] = append(list, message)
-	}
+	c.flash[name] = append(c.flash[name], message)
 }
 
 // ClearFlashMessages clears all available message items within
