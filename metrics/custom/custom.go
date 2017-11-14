@@ -18,7 +18,11 @@ import (
 )
 
 var (
-	green = color.New(color.FgGreen)
+	red     = color.New(color.FgRed)
+	green   = color.New(color.FgGreen)
+	white   = color.New(color.FgWhite)
+	yellow  = color.New(color.FgHiYellow)
+	magenta = color.New(color.FgHiMagenta)
 )
 
 // FlatDisplay writes giving Entries as seperated blocks of contents where the each content is
@@ -49,9 +53,9 @@ func FlatDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bo
 		bu.WriteString("\n")
 
 		if header != "" {
-			fmt.Fprintf(&bu, "%s %+s", green.Sprint(header), en.Message)
+			fmt.Fprintf(&bu, "%s %+s", green.Sprint(header), printAtLevel(en.Level, en.Message))
 		} else {
-			fmt.Fprintf(&bu, "%+s", en.Message)
+			fmt.Fprintf(&bu, "%+s", printAtLevel(en.Level, en.Message))
 		}
 
 		fmt.Fprint(&bu, printSpaceLine(2))
@@ -113,9 +117,9 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 
 		var bu bytes.Buffer
 		if header != "" {
-			fmt.Fprintf(&bu, "%s %+s\n", green.Sprint(header), en.Message)
+			fmt.Fprintf(&bu, "%s %+s\n", green.Sprint(header), printAtLevel(en.Level, en.Message))
 		} else {
-			fmt.Fprintf(&bu, "%+s\n", en.Message)
+			fmt.Fprintf(&bu, "%+s\n", printAtLevel(en.Level, en.Message))
 		}
 
 		if en.Function != "" {
@@ -174,9 +178,9 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 
 		var bu bytes.Buffer
 		if header != "" {
-			fmt.Fprintf(&bu, "%s %+s\n", green.Sprint(header), en.Message)
+			fmt.Fprintf(&bu, "%s %+s\n", green.Sprint(header), printAtLevel(en.Level, en.Message))
 		} else {
-			fmt.Fprintf(&bu, "%+s\n", en.Message)
+			fmt.Fprintf(&bu, "%+s\n", printAtLevel(en.Level, en.Message))
 		}
 
 		if tag == "" {
@@ -235,6 +239,21 @@ func (ce *Emitter) Emit(e metrics.Entry) error {
 }
 
 //=====================================================================================
+
+func printAtLevel(lvl metrics.Level, message string) string {
+	switch lvl {
+	case metrics.ErrorLvl:
+		return red.Sprint(message)
+	case metrics.InfoLvl:
+		return white.Sprint(message)
+	case metrics.RedAlertLvl:
+		return magenta.Sprint(message)
+	case metrics.YellowAlertLvl:
+		return yellow.Sprint(message)
+	}
+
+	return message
+}
 
 func printSpaceLine(length int) string {
 	var lines []string
