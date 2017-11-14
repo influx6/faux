@@ -32,9 +32,6 @@ type Render interface {
 	Render(io.Writer, string, interface{}) error
 }
 
-// ErrorHandler defines a function type which sets giving respnse to a Response object.
-type ErrorHandler func(error, *Context)
-
 // Options defines a function type which receives a Context pointer and
 // sets/modifiers it's internal state values.
 type Options func(*Context)
