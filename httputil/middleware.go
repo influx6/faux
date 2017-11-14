@@ -121,13 +121,22 @@ func HTTPRedirect(to string, code int) Handler {
 }
 
 // Then calls the next Handler after the condition handler returns without error.
-func Then(condition Handler, next Handler) Handler {
+func Then(condition Handler, nexts ...Handler) Handler {
+	if len(nexts) == 0 {
+		return condition
+	}
+
 	return func(c *Context) error {
 		if err := condition(c); err != nil {
 			return err
 		}
 
-		return next(c)
+		for _, next := range nexts {
+			if err := next(c); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 }
 
