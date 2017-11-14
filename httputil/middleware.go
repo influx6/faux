@@ -66,6 +66,18 @@ func OKRequest(ctx *Context) error {
 	return nil
 }
 
+// BadRequestWithError implements a Handler which returns http.StatusBagRequest always.
+func BadRequestWithError(err error, ctx *Context) error {
+	if err != nil {
+		if httperr, ok := err.(HTTPError); ok {
+			http.Error(ctx.Response(), httperr.Error(), httperr.Code)
+			return nil
+		}
+		http.Error(ctx.Response(), err.Error(), http.StatusBadRequest)
+	}
+	return nil
+}
+
 // BadRequest implements a Handler which returns http.StatusBagRequest always.
 func BadRequest(ctx *Context) error {
 	ctx.Status(http.StatusBadRequest)
@@ -154,7 +166,7 @@ func ErrorsAsResponse(code int, next Handler) Handler {
 		if err := next(ctx); err != nil {
 			ctx.Metrics().Emit(metrics.Error(err).WithMessage("HTTPConditionFunc").With("httputil_handler_error", err))
 			if httperr, ok := err.(HTTPError); ok {
-				http.Error(ctx.response, httperr.Error(), httperr.Code)
+				http.Error(ctx.Response(), httperr.Error(), httperr.Code)
 				return err
 			}
 
@@ -162,7 +174,7 @@ func ErrorsAsResponse(code int, next Handler) Handler {
 				code = http.StatusBadRequest
 			}
 
-			http.Error(ctx.response, err.Error(), code)
+			http.Error(ctx.Response(), err.Error(), code)
 			return err
 		}
 		return nil
