@@ -105,6 +105,17 @@ func HTTPRedirect(to string, code int) Handler {
 	}
 }
 
+// Then calls the next Handler after the condition handler returns without error.
+func Then(condition Handler, next Handler) Handler {
+	return func(c *Context) error {
+		if err := condition(c); err != nil {
+			return err
+		}
+
+		return next(c)
+	}
+}
+
 // HTTPConditionFunc retusn a handler where a Handler is used as a condition where if the handler
 // returns an error then the errorAction is called else the noerrorAction gets called with
 // context. This allows you create a binary switch where the final action is based on the
@@ -268,17 +279,6 @@ func WrapHandler(fx http.HandlerFunc) Handler {
 	return func(ctx *Context) error {
 		fx(ctx.Response(), ctx.Request())
 		return nil
-	}
-}
-
-// MixHandler wraps two provided Handler and returns a new Middleware.
-func MixHandler(mo, mi Handler) Handler {
-	return func(c *Context) error {
-		if err := mo(c); err != nil {
-			return err
-		}
-
-		return mi(c)
 	}
 }
 
