@@ -124,3 +124,33 @@ func (ng *GeneratorRegistry) CreateWithJSON(id string, config interface{}) (Op, 
 
 	return ng.CreateFromBytes(id, data)
 }
+
+// MultiRunner will run necessary commands to update apt-get for a debian/ubuntu system.
+type MultiRunner struct {
+	Then Op
+	Pre  []Op
+	Post []Op
+}
+
+// Exec executes giving spells in a before-now-after sequence.
+func (gn MultiRunner) Exec(ctx context.CancelContext, m metrics.Metrics) error {
+	for _, item := range gn.Pre {
+		if err := item.Exec(ctx, m); err != nil {
+			return err
+		}
+	}
+
+	if gn.Then != nil {
+		if err := gn.Then.Exec(ctx, m); err != nil {
+			return err
+		}
+	}
+
+	for _, item := range gn.Post {
+		if err := item.Exec(ctx, m); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
