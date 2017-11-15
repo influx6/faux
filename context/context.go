@@ -48,8 +48,14 @@ func IsExpired(c CancelContext) bool {
 	}
 }
 
+// Deadline exposes a single method to return expected deadline for context.
+type Deadline interface {
+	Deadline() (time.Time, bool)
+}
+
 // CancelContext defines a type which provides Done signal for cancelling operations.
 type CancelContext interface {
+	Deadline
 	Done() <-chan struct{}
 }
 
@@ -115,6 +121,11 @@ func (cn *CnclContext) Cancel() {
 	})
 }
 
+// Deadline returns giving time when context is expected to be canceled.
+func (cn *CnclContext) Deadline() (time.Time, bool) {
+	return time.Time{}, false
+}
+
 // Done returns a channel to signal ending of op.
 // It implements the CancelContext.
 func (cn *CnclContext) Done() <-chan struct{} {
@@ -127,15 +138,20 @@ type ExpiringCnclContext struct {
 	action   func()
 	once     sync.Once
 	duration time.Duration
-	// mu       sync.Mutex
-	bag ValueBag
+	deadline time.Time
+	bag      ValueBag
 }
 
 // NewExpiringCnclContext returns a new instance of the CnclContext.
 func NewExpiringCnclContext(action func(), timeout time.Duration, bag ValueBag) *ExpiringCnclContext {
-	exp := &ExpiringCnclContext{close: make(chan struct{}), action: action, bag: bag, duration: timeout}
+	exp := &ExpiringCnclContext{close: make(chan struct{}), action: action, bag: bag, duration: timeout, deadline: time.Now().Add(timeout)}
 	go exp.monitor()
 	return exp
+}
+
+// Deadline returns giving time when context is expected to be canceled.
+func (cn *ExpiringCnclContext) Deadline() (time.Time, bool) {
+	return cn.deadline, true
 }
 
 // Cancel closes the internal channel of the contxt
@@ -293,6 +309,11 @@ func (c *context) GetInt(key interface{}) (int, bool) {
 // GetString returns the value type value of a key if it exists.
 func (c *context) GetString(key interface{}) (string, bool) {
 	return c.fields.GetString(key)
+}
+
+// Deadline returns giving time when context is expected to be canceled.
+func (c *context) Deadline() (time.Time, bool) {
+	return time.Time{}, false
 }
 
 //==============================================================================
