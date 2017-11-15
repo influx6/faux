@@ -197,7 +197,7 @@ func (c *Commander) Exec(ctx context.CancelContext, metric metrics.Metrics) erro
 
 	metric.Emit(metrics.Info("Executing native commands").WithID("shell:exec").WithFields(metrics.Field{
 		"command": strings.Join(execCommand, " "),
-		"envs":    cmder.Env,
+		"envs":    c.Envs,
 	}))
 
 	if !c.Async {
@@ -206,7 +206,7 @@ func (c *Commander) Exec(ctx context.CancelContext, metric metrics.Metrics) erro
 			metric.Emit(metrics.Error(err).WithID("shell:exec:error").WithFields(metrics.Field{
 				"error":      err.Error(),
 				"command":    strings.Join(execCommand, " "),
-				"envs":       cmder.Env,
+				"envs":       c.Envs,
 				"error_data": string(errCopy.Bytes()),
 			}))
 		}
@@ -215,7 +215,7 @@ func (c *Commander) Exec(ctx context.CancelContext, metric metrics.Metrics) erro
 
 	if err := cmder.Start(); err != nil {
 		metric.Emit(metrics.Error(err).WithID("shell:exec:error").WithFields(metrics.Field{
-			"envs":       cmder.Env,
+			"envs":       c.Envs,
 			"error":      err.Error(),
 			"command":    strings.Join(execCommand, " "),
 			"error_data": string(errCopy.Bytes()),
@@ -234,6 +234,7 @@ func (c *Commander) Exec(ctx context.CancelContext, metric metrics.Metrics) erro
 
 	if err := cmder.Wait(); err != nil {
 		metric.Emit(metrics.Error(err).WithID("shell:exec:error").WithFields(metrics.Field{
+			"envs":       c.Envs,
 			"error":      err.Error(),
 			"command":    strings.Join(execCommand, " "),
 			"error_data": string(errCopy.Bytes()),
@@ -247,6 +248,7 @@ func (c *Commander) Exec(ctx context.CancelContext, metric metrics.Metrics) erro
 
 	if !cmder.ProcessState.Success() {
 		metric.Emit(metrics.Error(ErrCommandFailed).WithID("shell:exec:error").WithFields(metrics.Field{
+			"envs":       c.Envs,
 			"error":      ErrCommandFailed.Error(),
 			"command":    strings.Join(execCommand, " "),
 			"error_data": string(errCopy.Bytes()),
