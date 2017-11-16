@@ -3,6 +3,7 @@ package httputil
 import (
 	"context"
 	"crypto/tls"
+	"net"
 	"net/http"
 
 	"github.com/influx6/faux/netutils"
@@ -18,8 +19,9 @@ type Server interface {
 }
 
 type serverItem struct {
-	server *http.Server
-	man    *autocert.Manager
+	server   *http.Server
+	listener net.Listener
+	man      *autocert.Manager
 }
 
 // WaitAndShutdown attempts to wait till a interrupt is received.
@@ -48,7 +50,8 @@ func ListenWith(tlsconfig *tls.Config, addr string, handler http.Handler) (Serve
 	}
 
 	return &serverItem{
-		server: server,
+		server:   server,
+		listener: listener,
 	}, nil
 }
 
@@ -73,7 +76,8 @@ func Listen(tlsOK bool, addr string, handler http.Handler) (Server, error) {
 	}
 
 	return &serverItem{
-		server: server,
-		man:    man,
+		server:   server,
+		listener: listener,
+		man:      man,
 	}, nil
 }
