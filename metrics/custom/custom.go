@@ -32,7 +32,7 @@ var (
 //
 //  Message: We must create new standard behaviour 	Function: BuildPack  |  display: red,  words: 20,
 //
-func FlatDisplay(w io.Writer) metrics.Metrics {
+func FlatDisplay(w io.Writer) metrics.Processors {
 	return FlatDisplayWith(w, "Message:", nil)
 }
 
@@ -43,7 +43,7 @@ func FlatDisplay(w io.Writer) metrics.Metrics {
 //
 //  [Header]: We must create new standard behaviour 	Function: BuildPack  |  display: red,  words: 20,
 //
-func FlatDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bool) metrics.Metrics {
+func FlatDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bool) metrics.Processors {
 	return NewEmitter(w, func(en metrics.Entry) []byte {
 		if filterFn != nil && !filterFn(en) {
 			return nil
@@ -93,7 +93,7 @@ func FlatDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bo
 //  | displayrange.bolder.size |  20      |
 //  +--------------------------+----------+
 //
-func BlockDisplay(w io.Writer) metrics.Metrics {
+func BlockDisplay(w io.Writer) metrics.Processors {
 	return BlockDisplayWith(w, "Message:", nil)
 }
 
@@ -109,7 +109,7 @@ func BlockDisplay(w io.Writer) metrics.Metrics {
 //  | displayrange.bolder.size |  20      |
 //  +--------------------------+----------+
 //
-func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bool) metrics.Metrics {
+func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bool) metrics.Processors {
 	return NewEmitter(w, func(en metrics.Entry) []byte {
 		if filterFn != nil && !filterFn(en) {
 			return nil
@@ -158,7 +158,7 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 //  - displayrange.address.bolder: "No 20 tokura flag"
 //  - displayrange.bolder.size:  20
 //
-func StackDisplay(w io.Writer) metrics.Metrics {
+func StackDisplay(w io.Writer) metrics.Processors {
 	return StackDisplayWith(w, "Message:", "-", nil)
 }
 
@@ -170,7 +170,7 @@ func StackDisplay(w io.Writer) metrics.Metrics {
 //  [tag] displayrange.address.bolder: "No 20 tokura flag"
 //  [tag] displayrange.bolder.size:  20
 //
-func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metrics.Entry) bool) metrics.Metrics {
+func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metrics.Entry) bool) metrics.Processors {
 	return NewEmitter(w, func(en metrics.Entry) []byte {
 		if filterFn != nil && !filterFn(en) {
 			return nil
@@ -203,20 +203,6 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 
 //=====================================================================================
 
-// SwitchEmitter returns a emitter that converts the behaviour of the output based on giving key and value from
-// each Entry.
-func SwitchEmitter(keyName string, w io.Writer, transformers map[string]func(metrics.Entry) []byte) metrics.Metrics {
-	emitters := make(map[string]metrics.Metrics)
-
-	for id, tm := range transformers {
-		emitters[id] = NewEmitter(w, tm)
-	}
-
-	return metrics.Switch(keyName, emitters)
-}
-
-//=====================================================================================
-
 // Emitter emits all entries into the entries into a sink io.writer after
 // transformation from giving transformer function..
 type Emitter struct {
@@ -232,8 +218,8 @@ func NewEmitter(w io.Writer, transform func(metrics.Entry) []byte) *Emitter {
 	}
 }
 
-// Emit implements the metrics.metrics interface.
-func (ce *Emitter) Emit(e metrics.Entry) error {
+// Handle implements the metrics.metrics interface.
+func (ce *Emitter) Handle(e metrics.Entry) error {
 	_, err := ce.Sink.Write(ce.Transform(e))
 	return err
 }

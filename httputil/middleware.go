@@ -148,7 +148,7 @@ func Then(condition Handler, nexts ...Handler) Handler {
 func HTTPConditionFunc(condition Handler, noerrorAction, errorAction Handler) Handler {
 	return func(ctx *Context) error {
 		if err := condition(ctx); err != nil {
-			ctx.Metrics().Emit(metrics.Error(err).WithMessage("HTTPConditionFunc").With("httputil_handler_error", err))
+			ctx.Metrics().Emit(metrics.Error(err), metrics.Message("HTTPConditionFunc"), metrics.With("httputil_handler_error", err))
 			return errorAction(ctx)
 		}
 		return noerrorAction(ctx)
@@ -161,7 +161,7 @@ func HTTPConditionFunc(condition Handler, noerrorAction, errorAction Handler) Ha
 func HTTPConditionErrorFunc(condition Handler, noerrorAction Handler, errorAction ErrorHandler) Handler {
 	return func(ctx *Context) error {
 		if err := condition(ctx); err != nil {
-			ctx.Metrics().Emit(metrics.Error(err).WithMessage("HTTPConditionFunc").With("httputil_handler_error", err))
+			ctx.Metrics().Emit(metrics.Error(err), metrics.Message("HTTPConditionFunc"), metrics.With("httputil_handler_error", err))
 			return errorAction(err, ctx)
 		}
 		return noerrorAction(ctx)
@@ -173,7 +173,7 @@ func HTTPConditionErrorFunc(condition Handler, noerrorAction Handler, errorActio
 func ErrorsAsResponse(code int, next Handler) Handler {
 	return func(ctx *Context) error {
 		if err := next(ctx); err != nil {
-			ctx.Metrics().Emit(metrics.Error(err).WithMessage("HTTPConditionFunc").With("httputil_handler_error", err))
+			ctx.Metrics().Emit(metrics.Error(err), metrics.Message("HTTPConditionFunc"), metrics.With("httputil_handler_error", err))
 			if httperr, ok := err.(HTTPError); ok {
 				http.Error(ctx.Response(), httperr.Error(), httperr.Code)
 				return err
@@ -195,7 +195,7 @@ func ErrorsAsResponse(code int, next Handler) Handler {
 func HTTPConditionsFunc(condition Handler, noerrAction Handler, errCons ...ErrConditions) Handler {
 	return func(ctx *Context) error {
 		if err := condition(ctx); err != nil {
-			ctx.Metrics().Emit(metrics.Error(err).WithMessage("HTTPConditionsFunc").With("httputil_handler_error", err))
+			ctx.Metrics().Emit(metrics.Error(err), metrics.Message("HTTPConditionsFunc"), metrics.With("httputil_handler_error", err))
 			for _, errcon := range errCons {
 				if errcon.Match(err) {
 					return errcon.Handle(ctx)
@@ -281,47 +281,47 @@ func LogMW(next Handler) Handler {
 		res := ctx.Response()
 		res.After(func() {
 			if err != nil {
-				m.Emit(metrics.Error(err).
-					WithMessage("Outgoing HTTP Response").
-					With("method", req.Method).
-					With("status", res.Status).
-					With("header", res.Header()).
-					With("path", req.URL.Path).
-					With("host", req.Host).
-					With("remote", req.RemoteAddr).
-					With("agent", req.UserAgent()).
-					With("request", req.RequestURI).
-					With("outgoing-content-length", res.Size).
-					With("incoming-content-length", req.ContentLength).
-					With("proto", req.Proto))
+				m.Emit(metrics.Error(err),
+					metrics.Message("Outgoing HTTP Response"),
+					metrics.With("method", req.Method),
+					metrics.With("status", res.Status),
+					metrics.With("header", res.Header()),
+					metrics.With("path", req.URL.Path),
+					metrics.With("host", req.Host),
+					metrics.With("remote", req.RemoteAddr),
+					metrics.With("agent", req.UserAgent()),
+					metrics.With("request", req.RequestURI),
+					metrics.With("outgoing-content-length", res.Size),
+					metrics.With("incoming-content-length", req.ContentLength),
+					metrics.With("proto", req.Proto))
 				return
 			}
 
-			m.Emit(metrics.Info("Outgoing HTTP Response").
-				With("method", req.Method).
-				With("status", res.Status).
-				With("header", res.Header()).
-				With("path", req.URL.Path).
-				With("host", req.Host).
-				With("remote", req.RemoteAddr).
-				With("agent", req.UserAgent()).
-				With("request", req.RequestURI).
-				With("outgoing-content-length", res.Size).
-				With("incoming-content-length", req.ContentLength).
-				With("proto", req.Proto))
+			m.Emit(metrics.Info("Outgoing HTTP Response"),
+				metrics.With("method", req.Method),
+				metrics.With("status", res.Status),
+				metrics.With("header", res.Header()),
+				metrics.With("path", req.URL.Path),
+				metrics.With("host", req.Host),
+				metrics.With("remote", req.RemoteAddr),
+				metrics.With("agent", req.UserAgent()),
+				metrics.With("request", req.RequestURI),
+				metrics.With("outgoing-content-length", res.Size),
+				metrics.With("incoming-content-length", req.ContentLength),
+				metrics.With("proto", req.Proto))
 		})
 
-		m.Emit(metrics.Info("Incoming HTTP Request").
-			With("method", req.Method).
-			With("path", req.URL.Path).
-			With("tls", req.TLS != nil).
-			With("host", req.Host).
-			With("header", req.Header).
-			With("remote", req.RemoteAddr).
-			With("agent", req.UserAgent()).
-			With("request", req.RequestURI).
-			With("content-length", req.ContentLength).
-			With("proto", req.Proto))
+		m.Emit(metrics.Info("Incoming HTTP Request"),
+			metrics.With("method", req.Method),
+			metrics.With("path", req.URL.Path),
+			metrics.With("tls", req.TLS != nil),
+			metrics.With("host", req.Host),
+			metrics.With("header", req.Header),
+			metrics.With("remote", req.RemoteAddr),
+			metrics.With("agent", req.UserAgent()),
+			metrics.With("request", req.RequestURI),
+			metrics.With("content-length", req.ContentLength),
+			metrics.With("proto", req.Proto))
 
 		err = next(ctx)
 		return err

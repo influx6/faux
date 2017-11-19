@@ -7,8 +7,8 @@ import (
 // Drain emits all entries into nothingness.
 type Drain struct{}
 
-// Emit implements the metrics.metrics interface and does nothing with the
+// Handle implements the metrics.metrics interface and does nothing with the
 // provided entry.
-func (Drain) Emit(e metrics.Entry) error {
+func (Drain) Handle(e metrics.Entry) error {
 	return nil
 }
