@@ -14,7 +14,7 @@ import (
 	"github.com/influx6/faux/db/sql"
 	"github.com/influx6/faux/db/sql/tables"
 	"github.com/influx6/faux/metrics"
-	"github.com/influx6/faux/metrics/sentries/stdout"
+	"github.com/influx6/faux/metrics/custom"
 	"github.com/influx6/faux/naming"
 	"github.com/influx6/faux/tests"
 	uuid "github.com/satori/go.uuid"
@@ -25,7 +25,7 @@ import (
 var (
 	basicNamer = naming.NewNamer("%s_%s", naming.PrefixNamer{Prefix: "test"})
 
-	log = metrics.New(stdout.Stdout{})
+	log = metrics.New(custom.BlockDisplay(os.Stdout))
 
 	DBPortEnv     = "MYSQL_PORT"
 	DBIPEnv       = "MYSQL_IP"

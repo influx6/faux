@@ -10,7 +10,6 @@ import (
 	"github.com/influx6/faux/db"
 	"github.com/influx6/faux/db/sql/tables"
 	"github.com/influx6/faux/metrics"
-	"github.com/influx6/faux/metrics/sentries/stdout"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -54,7 +53,7 @@ func (dl dBMaker) New() (*sqlx.DB, error) {
 	addr := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dl.config.User, dl.config.UserPassword, dl.config.DBIP, dl.config.DBPort, dl.config.DBName)
 	db, err := sqlx.Connect(dl.config.DBDriver, addr)
 	if err != nil {
-		dl.log.Emit(stdout.Error("Failed to connect to SQLServer: %+q", err).WithFields(metrics.Fields{
+		dl.log.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{
 			"ip":     dl.config.DBIP,
 			"port":   dl.config.DBPort,
 			"dbName": dl.config.DBName,
@@ -122,13 +121,13 @@ func (sq *SQL) migrate() error {
 	defer dbi.Close()
 
 	for _, table := range sq.tables {
-		sq.l.Emit(stdout.Info("Executing Migration").WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Info("Executing Migration"), metrics.WithFields(metrics.Field{
 			"query": table.String(),
 			"table": table.TableName,
 		}))
 
 		if _, err := dbi.Exec(table.String()); err != nil {
-			sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{"query": table.String(), "table": table.TableName}))
+			sq.l.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{"query": table.String(), "table": table.TableName}))
 			return err
 		}
 	}
@@ -141,7 +140,7 @@ func (sq *SQL) migrate() error {
 // Save takes the giving table name with the giving fields and attempts to save this giving
 // data appropriately into the giving db.
 func (sq *SQL) Save(identity db.TableIdentity, table db.TableFields) error {
-	defer sq.l.Emit(stdout.Info("Save to DB").With("table", identity.Table()).Trace("db.Save").End())
+	defer sq.l.Emit(metrics.Info("Save to DB"), metrics.With("table", identity.Table()))
 
 	if err := sq.migrate(); err != nil {
 		return err
@@ -170,10 +169,10 @@ func (sq *SQL) Save(identity db.TableIdentity, table db.TableFields) error {
 	values = append(values, time.Now().UTC())
 
 	query := fmt.Sprintf(insertTemplate, identity.Table(), fieldNameMarkers(fieldNames), fieldMarkers(len(fieldNames)))
-	sq.l.Emit(stdout.Info("DB:Query").With("query", query))
+	sq.l.Emit(metrics.Info("DB:Query"), metrics.With("query", query))
 
 	if _, err := db.Exec(query, values...); err != nil {
-		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
 			"table": identity.Table(),
@@ -189,7 +188,7 @@ func (sq *SQL) Save(identity db.TableIdentity, table db.TableFields) error {
 // index - defines the string which should identify the key to be retrieved from the fields to target the
 // data to be updated in the db.
 func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index string, indexValue interface{}) error {
-	defer sq.l.Emit(stdout.Info("Update to DB").With("table", identity.Table()).Trace("db.Update").End())
+	defer sq.l.Emit(metrics.Info("Update to DB"), metrics.With("table", identity.Table()))
 
 	if err := sq.migrate(); err != nil {
 		return err
@@ -212,7 +211,7 @@ func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index str
 
 	indexValueString, err := printLiteral(indexValue)
 	if err != nil {
-		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"table": identity.Table(),
 		}))
@@ -221,7 +220,7 @@ func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index str
 
 	sets, err := setValues(tableFields)
 	if err != nil {
-		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"table": identity.Table(),
 		}))
@@ -229,10 +228,10 @@ func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index str
 	}
 
 	query := fmt.Sprintf(updateTemplate, identity.Table(), sets, index, indexValueString)
-	sq.l.Emit(stdout.Info("DB:Query").With("query", query))
+	sq.l.Emit(metrics.Info("DB:Query"), metrics.With("query", query))
 
 	if _, err := db.Exec(query); err != nil {
-		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
 			"table": identity.Table(),
@@ -245,12 +244,12 @@ func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index str
 
 // GetAllPerPage retrieves the giving data from the specific db with the specific index and value.
 func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy string, page int, responsePerPage int) ([]map[string]interface{}, int, error) {
-	defer sq.l.Emit(stdout.Info("Retrieve all records from DB").With("table", table.Table()).WithFields(metrics.Fields{
+	defer sq.l.Emit(metrics.Info("Retrieve all records from DB"), metrics.With("table", table.Table()), metrics.WithFields(metrics.Field{
 		"page":            page,
 		"order":           order,
 		"orderBy":         orderBy,
 		"responsePerPage": responsePerPage,
-	}).Trace("db.GetAllPerPage").End())
+	}))
 
 	if err := sq.migrate(); err != nil {
 		return nil, -1, err
@@ -288,7 +287,7 @@ func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy strin
 		}
 	}
 
-	sq.l.Emit(stdout.Info("DB:Query:GetAllPerPage").WithFields(metrics.Fields{
+	sq.l.Emit(metrics.Info("DB:Query:GetAllPerPage"), metrics.WithFields(metrics.Field{
 		"starting_index":       indexToStart,
 		"total_records_wanted": totalWanted,
 		"order":                order,
@@ -302,11 +301,11 @@ func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy strin
 	}
 
 	query := fmt.Sprintf(selectLimitedTemplate, table.Table(), orderBy, order, totalWanted, indexToStart)
-	sq.l.Emit(stdout.Info("DB:Query:GetAllPerPage").With("query", query))
+	sq.l.Emit(metrics.Info("DB:Query:GetAllPerPage"), metrics.With("query", query))
 
 	rows, err := db.Queryx(query)
 	if err != nil {
-		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -320,7 +319,7 @@ func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy strin
 		mo := make(map[string]interface{})
 
 		if err := rows.MapScan(mo); err != nil {
-			sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+			sq.l.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{
 				"err":   err,
 				"query": query,
 				"table": table.Table(),
@@ -337,11 +336,11 @@ func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy strin
 
 // GetAllPerPageBy retrieves the giving data from the specific db with the specific index and value.
 func (sq *SQL) GetAllPerPageBy(table db.TableIdentity, order string, orderBy string, page int, responsePerPage int, mx func(*sqlx.Rows) error) (int, error) {
-	defer sq.l.Emit(stdout.Info("Retrieve all records from DB").With("table", table.Table()).WithFields(metrics.Fields{
+	defer sq.l.Emit(metrics.Info("Retrieve all records from DB"), metrics.With("table", table.Table()), metrics.WithFields(metrics.Field{
 		"order":           order,
 		"page":            page,
 		"responsePerPage": responsePerPage,
-	}).Trace("db.GetAllPerPageBy").End())
+	}))
 
 	if err := sq.migrate(); err != nil {
 		return -1, err
@@ -356,7 +355,7 @@ func (sq *SQL) GetAllPerPageBy(table db.TableIdentity, order string, orderBy str
 
 	if page <= 0 && responsePerPage <= 0 {
 		records, err := sq.GetAll(table, order, orderBy)
-		return  len(records), err
+		return len(records), err
 	}
 
 	// Get total number of records.
@@ -388,7 +387,7 @@ func (sq *SQL) GetAllPerPageBy(table db.TableIdentity, order string, orderBy str
 		}
 	}
 
-	sq.l.Emit(stdout.Info("DB:Query:GetAllPerPageBy").WithFields(metrics.Fields{
+	sq.l.Emit(metrics.Info("DB:Query:GetAllPerPageBy"), metrics.WithFields(metrics.Field{
 		"starting_index":       indexToStart,
 		"total_records_wanted": totalWanted,
 		"order":                order,
@@ -403,11 +402,11 @@ func (sq *SQL) GetAllPerPageBy(table db.TableIdentity, order string, orderBy str
 
 	query := fmt.Sprintf(selectLimitedTemplate, table.Table(), orderBy, order, totalWanted, indexToStart)
 
-	sq.l.Emit(stdout.Info("DB:Query:GetAllPerPageBy").With("query", query))
+	sq.l.Emit(metrics.Info("DB:Query:GetAllPerPageBy"), metrics.With("query", query))
 
 	rows, err := db.Queryx(query)
 	if err != nil {
-		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -415,24 +414,6 @@ func (sq *SQL) GetAllPerPageBy(table db.TableIdentity, order string, orderBy str
 
 		return -1, err
 	}
-
-	// var fields []map[string]interface{}
-
-	// for rows.Next() {
-	// 	mo := make(map[string]interface{})
-
-	// 	if err := rows.MapScan(mo); err != nil {
-	// 		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
-	// 			"err":   err,
-	// 			"query": query,
-	// 			"table": table.Table(),
-	// 		}))
-
-	// 		return nil, -1, err
-	// 	}
-
-	// 	fields = append(fields, naturalizeMap(mo))
-	// }
 
 	if err := mx(rows); err != nil {
 		return -1, err
@@ -443,7 +424,7 @@ func (sq *SQL) GetAllPerPageBy(table db.TableIdentity, order string, orderBy str
 
 // GetAll retrieves the giving data from the specific db with the specific index and value.
 func (sq *SQL) GetAll(table db.TableIdentity, order string, orderBy string) ([]map[string]interface{}, error) {
-	defer sq.l.Emit(stdout.Info("Retrieve all records from DB").With("table", table.Table()).Trace("db.GetAll").End())
+	defer sq.l.Emit(metrics.Info("Retrieve all records from DB"), metrics.With("table", table.Table()))
 
 	if err := sq.migrate(); err != nil {
 		return nil, err
@@ -468,11 +449,11 @@ func (sq *SQL) GetAll(table db.TableIdentity, order string, orderBy string) ([]m
 	var fields []map[string]interface{}
 
 	query := fmt.Sprintf(selectAllTemplate, table.Table(), orderBy, order)
-	sq.l.Emit(stdout.Info("DB:Query:GetAll").With("query", query))
+	sq.l.Emit(metrics.Info("DB:Query:GetAll"), metrics.With("query", query))
 
 	rows, err := db.Queryx(query)
 	if err != nil {
-		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -483,7 +464,7 @@ func (sq *SQL) GetAll(table db.TableIdentity, order string, orderBy string) ([]m
 	for rows.Next() {
 		mo := make(map[string]interface{})
 		if err := rows.MapScan(mo); err != nil {
-			sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+			sq.l.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{
 				"err":   err,
 				"query": query,
 				"table": table.Table(),
@@ -499,7 +480,7 @@ func (sq *SQL) GetAll(table db.TableIdentity, order string, orderBy string) ([]m
 
 // GetAllBy retrieves the giving data from the specific db with the specific index and value.
 func (sq *SQL) GetAllBy(table db.TableIdentity, order string, orderBy string, mx func(*sqlx.Rows) error) error {
-	defer sq.l.Emit(stdout.Info("Retrieve all records from DB").With("table", table.Table()).Trace("db.GetAllBy").End())
+	defer sq.l.Emit(metrics.Info("Retrieve all records from DB"), metrics.With("table", table.Table()))
 
 	if err := sq.migrate(); err != nil {
 		return nil
@@ -525,11 +506,11 @@ func (sq *SQL) GetAllBy(table db.TableIdentity, order string, orderBy string, mx
 
 	query := fmt.Sprintf(selectAllTemplate, table.Table(), orderBy, order)
 
-	sq.l.Emit(stdout.Info("DB:Query:GetAll").With("query", query))
+	sq.l.Emit(metrics.Info("DB:Query:GetAll"), metrics.With("query", query))
 
 	rows, err := db.Queryx(query)
 	if err != nil {
-		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -547,11 +528,11 @@ func (sq *SQL) GetAllBy(table db.TableIdentity, order string, orderBy string, mx
 
 // Get retrieves the giving data from the specific db with the specific index and value.
 func (sq *SQL) Get(table db.TableIdentity, consumer db.TableConsumer, index string, indexValue interface{}) error {
-	defer sq.l.Emit(stdout.Info("Get record from DB").WithFields(metrics.Fields{
+	defer sq.l.Emit(metrics.Info("Get record from DB"), metrics.WithFields(metrics.Field{
 		"table":      table.Table(),
 		"index":      index,
 		"indexValue": indexValue,
-	}).Trace("db.Get").End())
+	}))
 
 	if err := sq.migrate(); err != nil {
 		return err
@@ -566,7 +547,7 @@ func (sq *SQL) Get(table db.TableIdentity, consumer db.TableConsumer, index stri
 
 	indexValueString, err := printLiteral(indexValue)
 	if err != nil {
-		sq.l.Emit(stdout.Error("DB:Query: %+q", err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Errorf("DB:Query: %+q", err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"table": table.Table(),
 		}))
@@ -574,11 +555,11 @@ func (sq *SQL) Get(table db.TableIdentity, consumer db.TableConsumer, index stri
 	}
 
 	query := fmt.Sprintf(selectItemTemplate, table.Table(), index, indexValueString)
-	sq.l.Emit(stdout.Info("DB:Query").With("query", query))
+	sq.l.Emit(metrics.Info("DB:Query"), metrics.With("query", query))
 
 	row := db.QueryRowx(query)
 	if err := row.Err(); err != nil {
-		sq.l.Emit(stdout.Error("DB:Query: %+q", err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Errorf("DB:Query: %+q", err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -589,7 +570,7 @@ func (sq *SQL) Get(table db.TableIdentity, consumer db.TableConsumer, index stri
 	mo := make(map[string]interface{})
 
 	if err := row.MapScan(mo); err != nil {
-		sq.l.Emit(stdout.Error("DB:Query: %+q", err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Errorf("DB:Query: %+q", err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -598,13 +579,13 @@ func (sq *SQL) Get(table db.TableIdentity, consumer db.TableConsumer, index stri
 		return err
 	}
 
-	sq.l.Emit(stdout.Debug("Consumer:Get:Fields").WithFields(metrics.Fields{
+	sq.l.Emit(metrics.Info("Consumer:Get:Fields"), metrics.WithFields(metrics.Field{
 		"table":    table.Table(),
 		"response": mo,
 	}))
 
 	if err := consumer.WithFields(naturalizeMap(mo)); err != nil {
-		sq.l.Emit(stdout.Error("Consumer:WithFields: %+q", err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Errorf("Consumer:WithFields: %+q", err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -618,11 +599,11 @@ func (sq *SQL) Get(table db.TableIdentity, consumer db.TableConsumer, index stri
 
 // GetBy retrieves the giving data from the specific db with the specific index and value.
 func (sq *SQL) GetBy(table db.TableIdentity, consumer func(*sqlx.Row) error, index string, indexValue interface{}) error {
-	defer sq.l.Emit(stdout.Info("Get record from DB").WithFields(metrics.Fields{
+	defer sq.l.Emit(metrics.Info("Get record from DB"), metrics.WithFields(metrics.Field{
 		"table":      table.Table(),
 		"index":      index,
 		"indexValue": indexValue,
-	}).Trace("db.GetBy").End())
+	}))
 
 	if err := sq.migrate(); err != nil {
 		return err
@@ -637,7 +618,7 @@ func (sq *SQL) GetBy(table db.TableIdentity, consumer func(*sqlx.Row) error, ind
 
 	indexValueString, err := printLiteral(indexValue)
 	if err != nil {
-		sq.l.Emit(stdout.Error("DB:Query: %+q", err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Errorf("DB:Query: %+q", err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"table": table.Table(),
 		}))
@@ -645,11 +626,11 @@ func (sq *SQL) GetBy(table db.TableIdentity, consumer func(*sqlx.Row) error, ind
 	}
 
 	query := fmt.Sprintf(selectItemTemplate, table.Table(), index, indexValueString)
-	sq.l.Emit(stdout.Info("DB:Query").With("query", query))
+	sq.l.Emit(metrics.Info("DB:Query"), metrics.With("query", query))
 
 	row := db.QueryRowx(query)
 	if err := row.Err(); err != nil {
-		sq.l.Emit(stdout.Error("DB:Query: %+q", err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Errorf("DB:Query: %+q", err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -658,7 +639,7 @@ func (sq *SQL) GetBy(table db.TableIdentity, consumer func(*sqlx.Row) error, ind
 	}
 
 	if err := consumer(row); err != nil {
-		sq.l.Emit(stdout.Error("DB:Query: %+q", err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Errorf("DB:Query: %+q", err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -667,8 +648,8 @@ func (sq *SQL) GetBy(table db.TableIdentity, consumer func(*sqlx.Row) error, ind
 		return err
 	}
 
-	sq.l.Emit(stdout.Debug("Consumer:Get:Fields").WithFields(metrics.Fields{
-		"table":    table.Table(),
+	sq.l.Emit(metrics.Info("Consumer:Get:Fields"), metrics.WithFields(metrics.Field{
+		"table":      table.Table(),
 		"index":      index,
 		"indexValue": indexValue,
 	}))
@@ -678,9 +659,9 @@ func (sq *SQL) GetBy(table db.TableIdentity, consumer func(*sqlx.Row) error, ind
 
 // Count retrieves the total number of records from the specific table from the db.
 func (sq *SQL) Count(table db.TableIdentity) (int, error) {
-	defer sq.l.Emit(stdout.Info("Count record from DB").WithFields(metrics.Fields{
+	defer sq.l.Emit(metrics.Info("Count record from DB"), metrics.WithFields(metrics.Field{
 		"table": table.Table(),
-	}).Trace("db.Get").End())
+	}))
 
 	if err := sq.migrate(); err != nil {
 		return 0, err
@@ -696,10 +677,10 @@ func (sq *SQL) Count(table db.TableIdentity) (int, error) {
 	var records int
 
 	query := fmt.Sprintf(countTemplate, table.Table())
-	sq.l.Emit(stdout.Info("DB:Query").With("query", query))
+	sq.l.Emit(metrics.Info("DB:Query"), metrics.With("query", query))
 
 	if err := db.Get(&records, query); err != nil {
-		sq.l.Emit(stdout.Error("DB:Query").WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Errorf("DB:Query"), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -712,11 +693,11 @@ func (sq *SQL) Count(table db.TableIdentity) (int, error) {
 
 // Delete removes the giving data from the specific db with the specific index and value.
 func (sq *SQL) Delete(table db.TableIdentity, index string, indexValue interface{}) error {
-	defer sq.l.Emit(stdout.Info("Delete record from DB").WithFields(metrics.Fields{
+	defer sq.l.Emit(metrics.Info("Delete record from DB"), metrics.WithFields(metrics.Field{
 		"table":      table.Table(),
 		"index":      index,
 		"indexValue": indexValue,
-	}).Trace("db.GetAll").End())
+	}))
 
 	if err := sq.migrate(); err != nil {
 		return err
@@ -736,7 +717,7 @@ func (sq *SQL) Delete(table db.TableIdentity, index string, indexValue interface
 
 	indexValueString, err := printLiteral(indexValue)
 	if err != nil {
-		sq.l.Emit(stdout.Error("DB:Query: %+q", err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Errorf("DB:Query: %+q", err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"table": table.Table(),
 		}))
@@ -744,10 +725,10 @@ func (sq *SQL) Delete(table db.TableIdentity, index string, indexValue interface
 	}
 
 	query := fmt.Sprintf(deleteTemplate, table.Table(), index, indexValueString)
-	sq.l.Emit(stdout.Info("DB:Query").With("query", query))
+	sq.l.Emit(metrics.Info("DB:Query"), metrics.With("query", query))
 
 	if _, err := db.Exec(query); err != nil {
-		sq.l.Emit(stdout.Error(err).WithFields(metrics.Fields{
+		sq.l.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
