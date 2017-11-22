@@ -152,7 +152,7 @@ func TLSCipher(cs uint16) string {
 
 //==============================================================================
 
-//MakeListener returns a new net.Listener for http.Request
+// MakeListener returns a new net.Listener requests.
 func MakeListener(protocol string, addr string, conf *tls.Config) (net.Listener, error) {
 	var l net.Listener
 	var err error
@@ -170,6 +170,29 @@ func MakeListener(protocol string, addr string, conf *tls.Config) (net.Listener,
 	return l, nil
 }
 
+// TCPListener returns a new net.Listener requests.
+func TCPListener(addr string, conf *tls.Config) (net.Listener, error) {
+	var l net.Listener
+	var err error
+
+	if conf != nil {
+		l, err = tls.Listen("tcp", addr, conf)
+	} else {
+		l, err = net.Listen("tcp", addr)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	tpcl, ok := l.(*net.TCPListener)
+	if !ok {
+		return nil, errors.New("Expected net.TCPListener type")
+	}
+
+	return NewKeepAliveListener(tpcl), nil
+}
+
 //NewHTTPServer returns a new http.Server using the provided listener
 func NewHTTPServer(l net.Listener, handle http.Handler, c *tls.Config) (*http.Server, net.Listener, error) {
 	tl, ok := l.(*net.TCPListener)
@@ -178,7 +201,7 @@ func NewHTTPServer(l net.Listener, handle http.Handler, c *tls.Config) (*http.Se
 		return nil, nil, fmt.Errorf("Listener is not type *net.TCPListener")
 	}
 
-	tls := newKeepAliveListener(tl)
+	tls := NewKeepAliveListener(tl)
 
 	s := &http.Server{
 		Addr:           tl.Addr().String(),
@@ -199,6 +222,14 @@ type keepAliveListener struct {
 	*net.TCPListener
 }
 
+// NewKeepAliveListener returns a new net.Listener from underline net.TCPListener
+// where produced net.Conns respect keep alive regualations.
+func NewKeepAliveListener(tl *net.TCPListener) net.Listener {
+	return &keepAliveListener{
+		TCPListener: tl,
+	}
+}
+
 func (kl *keepAliveListener) Accept() (net.Conn, error) {
 	conn, err := kl.TCPListener.AcceptTCP()
 	if err != nil {
@@ -206,15 +237,9 @@ func (kl *keepAliveListener) Accept() (net.Conn, error) {
 	}
 
 	conn.SetKeepAlive(true)
-	conn.SetKeepAlivePeriod(5 * time.Minute)
+	conn.SetKeepAlivePeriod(2 * time.Minute)
 
 	return conn, nil
-}
-
-func newKeepAliveListener(tl *net.TCPListener) net.Listener {
-	return &keepAliveListener{
-		TCPListener: tl,
-	}
 }
 
 // NewConn returns a tls.Conn object from the provided parameters.
