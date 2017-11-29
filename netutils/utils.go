@@ -28,7 +28,7 @@ func GetAddr(addr string) string {
 	}
 
 	ip, port, err := net.SplitHostPort(addr)
-	if err == nil && ip == "" || ip == "0.0.0.0" {
+	if err == nil && (ip == "" || ip == "0.0.0.0") {
 		if realIP, err := GetMainIP(); err == nil {
 			return net.JoinHostPort(realIP, port)
 		}
@@ -314,11 +314,7 @@ func ProxyHTTPRequest(src net.Conn, dest net.Conn) error {
 		return errors.New("No Response Read")
 	}
 
-	if err = res.Write(src); err != nil {
-		return err
-	}
-
-	return nil
+	return res.Write(src)
 }
 
 // hop headers, These are removed when sent to the backend
@@ -385,11 +381,7 @@ func ConnToHTTP(src net.Conn, destReq *http.Request, destRes http.ResponseWriter
 		destRes.Header().Add(k, strings.Join(v, ","))
 	}
 
-	if err := res.Write(destRes); err != nil {
-		return err
-	}
-
-	return nil
+	return res.Write(destRes)
 }
 
 // HTTPToConn proxies a src Request to a net.Con connection and writes back
@@ -411,11 +403,7 @@ func HTTPToConn(srcReq *http.Request, srcRes http.ResponseWriter, dest net.Conn)
 
 	srcRes.WriteHeader(res.StatusCode)
 
-	if err := res.Write(srcRes); err != nil {
-		return err
-	}
-
-	return nil
+	return res.Write(srcRes)
 }
 
 //==============================================================================
