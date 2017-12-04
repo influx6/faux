@@ -12,7 +12,7 @@ const (
 	charsLen     = 28
 	charsByte    = byte(28)
 	defaultIDLen = 10
-	tickOffset   = 16 * time.Second
+	tickOffset   = 30 * time.Second
 )
 
 // Clock exposes a giving monotonic lamport clocking structure which returns
@@ -60,6 +60,9 @@ func NewClock(tickT TickType, timeOffset time.Duration, origin string, id string
 
 // Now returns new monotonic UUID which is consistently increasing.
 func (c *Clock) Now() UUID {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	var uuid UUID
 	uuid.ID = c.id
 	uuid.Type = c.tickT
@@ -69,10 +72,12 @@ func (c *Clock) Now() UUID {
 	case LAMPORTTICK:
 		if c.last != nil {
 			uuid.Tick = c.last.Tick + 1
+		} else {
+			uuid.Tick = 1
 		}
 	case UNIXTICK:
-		newTick := time.Now().Add(c.offset).UTC().Unix()
-		if c.last != nil && newTick < c.last.Tick {
+		newTick := time.Now().UTC().Add(c.offset).Unix()
+		if c.last != nil && newTick <= c.last.Tick {
 			lastTime := time.Unix(c.last.Tick, 0)
 			lastTime = lastTime.Add(c.offset).UTC()
 			newTick = lastTime.Unix()
@@ -80,10 +85,8 @@ func (c *Clock) Now() UUID {
 		uuid.Tick = newTick
 	}
 
-	c.mu.Lock()
 	newUUID := uuid
 	c.last = &newUUID
-	c.mu.Unlock()
 
 	return uuid
 }
@@ -100,5 +103,5 @@ func generateLength(m int) []byte {
 }
 
 func init() {
-	// rand.Seed(time.Now().Unix())
+	rand.Seed(time.Now().Unix())
 }

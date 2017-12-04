@@ -25,6 +25,7 @@ func TestMonotonicClock(t *testing.T) {
 		if last.GreaterThan(now) {
 			tests.Failed("Should always have increasing uuid values")
 		}
+		last = now
 	}
 	tests.Passed("Should never match any other other timestamp")
 }
