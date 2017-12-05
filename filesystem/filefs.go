@@ -9,8 +9,9 @@ import (
 // FilePortal defines an error which exposes methods to
 // treat a underline store has a file system.
 type FilePortal interface {
-	Remove(string) error
+	Has(string) bool
 	RemoveAll() error
+	Remove(string) error
 	Save(string, []byte) error
 	Get(string) ([]byte, error)
 	Within(string) (FilePortal, error)
@@ -26,6 +27,14 @@ type FileFS struct {
 // It enforces all operations to occur within provided path.
 func (fs FileFS) Within(path string) (FilePortal, error) {
 	return FileFS{Dir: filepath.Join(fs.Dir, path)}, nil
+}
+
+// Has return true/false if giving file exists in directory of fs.
+func (fs FileFS) Has(file string) bool {
+	if err := os.Stat(filepath.Join(fs.Dir, file)); err != nil {
+		return false
+	}
+	return true
 }
 
 // Save saves giving file into FileFS.Dir, overwriting any same file
