@@ -51,7 +51,7 @@ func (fs FileFS) Save(file string, data []byte) error {
 	return err
 }
 
-// RemovAll remove FileFS.Dir and contents.
+// RemoveAll removes all files within FileFS.Dir and contents.
 func (fs FileFS) RemoveAll() error {
 	if err := os.RemoveAll(fs.Dir); err != nil {
 		if perr, ok := err.(*os.PathError); ok && perr.Err == os.ErrNotExist {
