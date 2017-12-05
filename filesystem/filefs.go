@@ -31,7 +31,7 @@ func (fs FileFS) Within(path string) (FilePortal, error) {
 
 // Has return true/false if giving file exists in directory of fs.
 func (fs FileFS) Has(file string) bool {
-	if err := os.Stat(filepath.Join(fs.Dir, file)); err != nil {
+	if _, err := os.Stat(filepath.Join(fs.Dir, file)); err != nil {
 		return false
 	}
 	return true
