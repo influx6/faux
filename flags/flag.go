@@ -28,7 +28,7 @@ OTHERS:
 	e.g -timeout=4m, -timeout=4h
 
 WARNING:
-	Uses internal flag package so flags must preced command name.
+	Uses internal flag package so flags must precede command name.
 `
 
 	cmdUsageTml = `Command: [flags] {{ toLower .Name}} 
@@ -52,7 +52,7 @@ OTHERS:
 	e.g -timeout=4m, -timeout=4h
 
 WARNING:
-	Uses internal flag package so flags must preced command name.
+	Uses internal flag package so flags must precede command name.
 `
 )
 
