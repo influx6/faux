@@ -408,8 +408,8 @@ func Run(title string, cmds ...Command) {
 
 				if err := cmd.Action(ctx); err != nil {
 					fmt.Fprint(os.Stderr, err.Error())
-					return
 				}
+				return
 			}
 
 			fmt.Println(commandHelp[cmd.Name])
