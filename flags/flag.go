@@ -34,8 +34,8 @@ DESC:
 	{{.Desc}}
 
 Flags:
-	{{ range $_, $fl := .Flags }}
-	{{toLower .Name}}.{{toLower $fl.FlagName}}		Default: {{.Default}}	Desc: {{.Desc }}
+	{{$cmdName := .Name}}{{ range $_, $fl := .Flags }}
+	{{toLower $cmdName}}.{{toLower $fl.FlagName}}		Default: {{.Default}}	Desc: {{.Desc }}
 	{{end}}
 
 OTHERS:
