@@ -38,6 +38,12 @@ Flags:
 	{{toLower $cmdName}}.{{toLower $fl.FlagName}}		Default: {{.Default}}	Desc: {{.Desc }}
 	{{end}}
 
+USAGE:
+
+	{{ range $_, $fl := .Flags }}
+	{{$cmdName}} {{toLower $cmdName}}.{{toLower $fl.FlagName}}={{.Default}}
+	{{end}}
+
 OTHERS:
 	Commands which respect context.Context, can set timeout by using the -timeout flag.
 	e.g -timeout=4m, -timeout=4h
