@@ -31,20 +31,19 @@ WARNING:
 	Uses internal flag package so flags must precede command name.
 `
 
-	cmdUsageTml = `Command: [flags] {{ toLower .Name}} 
+	cmdUsageTml = `Command: {{toLower .Title}} [flags] {{ toLower .Cmd.Name}} 
 
 DESC:
-	{{.Desc}}
+	{{.Cmd.Desc}}
 
 Flags:
-	{{$cmdName := .Name}}{{ range $_, $fl := .Flags }}
+	{{$title := toLower .Title}}{{$cmdName := .Cmd.Name}}{{ range $_, $fl := .Cmd.Flags }}
 	{{toLower $cmdName}}.{{toLower $fl.FlagName}}		Default: {{.Default}}	Desc: {{.Desc }}
 	{{end}}
 
 USAGE:
-
-	{{ range $_, $fl := .Flags }}
-	{{toLower $cmdName}}.{{toLower $fl.FlagName}}={{.Default}} {{toLower $cmdName}} 
+	{{ range $_, $fl := .Cmd.Flags }}
+	{{$title}} -{{toLower $cmdName}}.{{toLower $fl.FlagName}}={{.Default}} {{toLower $cmdName}} 
 	{{end}}
 
 OTHERS:
@@ -379,7 +378,13 @@ func Run(title string, cmds ...Command) {
 	for _, cmd := range cmds {
 		if tml, err := template.New("command.Usage").Funcs(defs).Parse(cmdUsageTml); err == nil {
 			var bu bytes.Buffer
-			if err := tml.Execute(&bu, cmd); err == nil {
+			if err := tml.Execute(&bu, struct {
+				Title string
+				Cmd   Command
+			}{
+				Title: title,
+				Cmd:   cmd,
+			}); err == nil {
 				commandHelp[cmd.Name] = bu.String()
 			} else {
 				commandHelp[cmd.Name] = err.Error()
