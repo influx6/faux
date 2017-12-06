@@ -41,7 +41,7 @@ Flags:
 USAGE:
 
 	{{ range $_, $fl := .Flags }}
-	{{$cmdName}} {{toLower $cmdName}}.{{toLower $fl.FlagName}}={{.Default}}
+	{{toLower $cmdName}} {{toLower $cmdName}}.{{toLower $fl.FlagName}}={{.Default}}
 	{{end}}
 
 OTHERS:
