@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	usageTml = `Usage: {{ toLower .Title}} [command] [flags]
+	usageTml = `Usage: {{ toLower .Title}} [flags] [command] 
 
 COMMANDS:{{ range .Commands }}
 	{{toLower .Name }}	{{cutoff .ShortDesc 40 }}
@@ -26,9 +26,12 @@ HELP:
 OTHERS:
 	Commands which respect context.Context, can set timeout by using the -timeout flag.
 	e.g -timeout=4m, -timeout=4h
+
+WARNING:
+	Uses internal flag package so flags must preced command name.
 `
 
-	cmdUsageTml = `Command: {{ toLower .Name}} [flags]
+	cmdUsageTml = `Command: [flags] {{ toLower .Name}} 
 
 DESC:
 	{{.Desc}}
@@ -41,12 +44,15 @@ Flags:
 USAGE:
 
 	{{ range $_, $fl := .Flags }}
-	{{toLower $cmdName}} {{toLower $cmdName}}.{{toLower $fl.FlagName}}={{.Default}}
+	{{toLower $cmdName}}.{{toLower $fl.FlagName}}={{.Default}} {{toLower $cmdName}} 
 	{{end}}
 
 OTHERS:
 	Commands which respect context.Context, can set timeout by using the -timeout flag.
 	e.g -timeout=4m, -timeout=4h
+
+WARNING:
+	Uses internal flag package so flags must preced command name.
 `
 )
 
@@ -170,17 +176,17 @@ type Int64Flag struct {
 }
 
 // FlagName returns name of flag.
-func (s Int64Flag) FlagName() string {
+func (s *Int64Flag) FlagName() string {
 	return s.Name
 }
 
 // Value returns internal value of flag pointer.
-func (s Int64Flag) Value() interface{} {
+func (s *Int64Flag) Value() interface{} {
 	return *s.value
 }
 
 // DefaultValue returns default value of flag pointer.
-func (s Int64Flag) DefaultValue() interface{} {
+func (s *Int64Flag) DefaultValue() interface{} {
 	return s.Default
 }
 
@@ -244,8 +250,7 @@ func (s IntFlag) DefaultValue() interface{} {
 
 // Parse sets the underline flag ready for value receiving.
 func (s *IntFlag) Parse(cmd string) {
-	s.value = new(int)
-	flag.IntVar(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), strings.ToLower(s.Name)), s.Default, s.Desc)
+	s.value = flag.Int(fmt.Sprintf("%s.%s", strings.ToLower(cmd), strings.ToLower(s.Name)), s.Default, s.Desc)
 }
 
 // BoolFlag implements a structure for parsing bool flags.
@@ -355,22 +360,6 @@ type Command struct {
 func Run(title string, cmds ...Command) {
 	commandHelp := make(map[string]string)
 
-	// Register all flags first.
-	for _, cmd := range cmds {
-		for _, flag := range cmd.Flags {
-			flag.Parse(cmd.Name)
-		}
-
-		if tml, err := template.New("command.Usage").Funcs(defs).Parse(cmdUsageTml); err == nil {
-			var bu bytes.Buffer
-			if err := tml.Execute(&bu, cmd); err == nil {
-				commandHelp[cmd.Name] = bu.String()
-			} else {
-				commandHelp[cmd.Name] = err.Error()
-			}
-		}
-	}
-
 	if tml, err := template.New("flags.Usage").Funcs(defs).Parse(usageTml); err == nil {
 		var bu bytes.Buffer
 		if err := tml.Execute(&bu, struct {
@@ -386,10 +375,30 @@ func Run(title string, cmds ...Command) {
 		}
 	}
 
+	// Register all flags first.
+	for _, cmd := range cmds {
+		if tml, err := template.New("command.Usage").Funcs(defs).Parse(cmdUsageTml); err == nil {
+			var bu bytes.Buffer
+			if err := tml.Execute(&bu, cmd); err == nil {
+				commandHelp[cmd.Name] = bu.String()
+			} else {
+				commandHelp[cmd.Name] = err.Error()
+			}
+		}
+
+		for _, flag := range cmd.Flags {
+			flag.Parse(cmd.Name)
+		}
+	}
+
 	flag.Parse()
 
 	command := strings.ToLower(flag.Arg(0))
 	subCommand := strings.ToLower(flag.Arg(1))
+	if command == "printflags" {
+		flag.PrintDefaults()
+		return
+	}
 
 	for _, cmd := range cmds {
 		if strings.ToLower(cmd.Name) == command {
