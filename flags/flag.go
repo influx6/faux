@@ -433,18 +433,20 @@ func Run(title string, cmds ...Command) {
 					return
 				}
 
+				ch := make(chan os.Signal, 3)
+				signal.Notify(ch, syscall.SIGQUIT)
+				signal.Notify(ch, syscall.SIGTERM)
+				signal.Notify(ch, os.Interrupt)
+
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
 					if err := cmd.Action(ctx); err != nil {
 						fmt.Fprint(os.Stderr, err.Error())
+						ctx.Cancel()
+						close(ch)
 					}
 				}()
-
-				ch := make(chan os.Signal, 3)
-				signal.Notify(ch, syscall.SIGQUIT)
-				signal.Notify(ch, syscall.SIGTERM)
-				signal.Notify(ch, os.Interrupt)
 
 				<-ch
 				ctx.Cancel()
