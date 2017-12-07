@@ -416,7 +416,7 @@ func Run(title string, cmds ...Command) {
 					valCtx.Set(strings.ToLower(flag.FlagName()), flag.Value())
 				}
 
-				var ctx context.Context
+				var ctx context.CancelableContext
 				if *timeout == 0 {
 					ctx = context.NewCnclContext(valCtx)
 				} else {
