@@ -6,7 +6,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"text/template"
 	"time"
 
@@ -346,11 +348,12 @@ type Action func(context.Context) error
 // Command defines structures which define specific actions to be executed
 // with associated flags.
 type Command struct {
-	Name      string
-	Desc      string
-	ShortDesc string
-	Flags     []Flag
-	Action    Action
+	Name        string
+	Desc        string
+	ShortDesc   string
+	Flags       []Flag
+	Action      Action
+	WaitOnCtrlC bool
 }
 
 // Run adds all commands and appropriate flags for each commands.
@@ -420,9 +423,26 @@ func Run(title string, cmds ...Command) {
 					ctx = context.NewExpiringCnclContext(nil, *timeout, valCtx)
 				}
 
-				if err := cmd.Action(ctx); err != nil {
-					fmt.Fprint(os.Stderr, err.Error())
+				if !cmd.WaitOnCtrlC {
+					if err := cmd.Action(ctx); err != nil {
+						fmt.Fprint(os.Stderr, err.Error())
+					}
+					return
 				}
+
+				go func() {
+					if err := cmd.Action(ctx); err != nil {
+						fmt.Fprint(os.Stderr, err.Error())
+					}
+				}()
+
+				ch := make(chan os.Signal, 3)
+				signal.Notify(ch, syscall.SIGQUIT)
+				signal.Notify(ch, syscall.SIGTERM)
+				signal.Notify(ch, os.Interrupt)
+
+				<-ch
+				ctx.Cancel()
 				return
 			}
 
