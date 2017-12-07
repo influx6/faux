@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"text/template"
 	"time"
@@ -408,6 +409,8 @@ func Run(title string, cmds ...Command) {
 		return
 	}
 
+	var wg sync.WaitGroup
+
 	for _, cmd := range cmds {
 		if strings.ToLower(cmd.Name) == command {
 			if subCommand != "help" {
@@ -430,7 +433,9 @@ func Run(title string, cmds ...Command) {
 					return
 				}
 
+				wg.Add(1)
 				go func() {
+					defer wg.Done()
 					if err := cmd.Action(ctx); err != nil {
 						fmt.Fprint(os.Stderr, err.Error())
 					}
@@ -454,4 +459,6 @@ func Run(title string, cmds ...Command) {
 	if flag.Usage != nil {
 		flag.Usage()
 	}
+
+	wg.Wait()
 }
