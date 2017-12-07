@@ -413,7 +413,7 @@ func Run(title string, cmds ...Command) {
 
 	for _, cmd := range cmds {
 		if strings.ToLower(cmd.Name) == command {
-			if subCommand != "help" && subCommand != "" {
+			if subCommand != "help" {
 				valCtx := context.NewValueBag()
 				for _, flag := range cmd.Flags {
 					valCtx.Set(strings.ToLower(flag.FlagName()), flag.Value())
