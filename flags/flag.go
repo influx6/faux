@@ -91,24 +91,24 @@ type DurationFlag struct {
 }
 
 // FlagName returns name of flag.
-func (s DurationFlag) FlagName() string {
+func (s *DurationFlag) FlagName() string {
 	return s.Name
 }
 
 // DefaultValue returns default value of flag pointer.
-func (s DurationFlag) DefaultValue() interface{} {
+func (s *DurationFlag) DefaultValue() interface{} {
 	return s.Default
 }
 
 // Value returns internal value of flag pointer.
-func (s DurationFlag) Value() interface{} {
+func (s *DurationFlag) Value() interface{} {
 	return *s.value
 }
 
 // Parse sets the underline flag ready for value receiving.
 func (s *DurationFlag) Parse(cmd string) {
 	s.value = new(time.Duration)
-	flag.DurationVar(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), strings.ToLower(s.Name)), s.Default, s.Desc)
+	flag.DurationVar(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), s.Name), s.Default, s.Desc)
 }
 
 // Float64Flag implements a structure for parsing float64 flags.
@@ -120,24 +120,24 @@ type Float64Flag struct {
 }
 
 // FlagName returns name of flag.
-func (s Float64Flag) FlagName() string {
+func (s *Float64Flag) FlagName() string {
 	return s.Name
 }
 
 // DefaultValue returns default value of flag pointer.
-func (s Float64Flag) DefaultValue() interface{} {
+func (s *Float64Flag) DefaultValue() interface{} {
 	return s.Default
 }
 
 // Value returns internal value of flag pointer.
-func (s Float64Flag) Value() interface{} {
+func (s *Float64Flag) Value() interface{} {
 	return *s.value
 }
 
 // Parse sets the underline flag ready for value receiving.
 func (s *Float64Flag) Parse(cmd string) {
 	s.value = new(float64)
-	flag.Float64Var(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), strings.ToLower(s.Name)), s.Default, s.Desc)
+	flag.Float64Var(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), s.Name), s.Default, s.Desc)
 }
 
 // UInt64Flag implements a structure for parsing uint64 flags.
@@ -149,24 +149,24 @@ type UInt64Flag struct {
 }
 
 // FlagName returns name of flag.
-func (s UInt64Flag) FlagName() string {
+func (s *UInt64Flag) FlagName() string {
 	return s.Name
 }
 
 // DefaultValue returns default value of flag pointer.
-func (s UInt64Flag) DefaultValue() interface{} {
+func (s *UInt64Flag) DefaultValue() interface{} {
 	return s.Default
 }
 
 // Value returns internal value of flag pointer.
-func (s UInt64Flag) Value() interface{} {
+func (s *UInt64Flag) Value() interface{} {
 	return *s.value
 }
 
 // Parse sets the underline flag ready for value receiving.
 func (s *UInt64Flag) Parse(cmd string) {
 	s.value = new(uint64)
-	flag.Uint64Var(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), strings.ToLower(s.Name)), s.Default, s.Desc)
+	flag.Uint64Var(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), s.Name), s.Default, s.Desc)
 }
 
 // Int64Flag implements a structure for parsing int64 flags.
@@ -195,7 +195,7 @@ func (s *Int64Flag) DefaultValue() interface{} {
 // Parse sets the underline flag ready for value receiving.
 func (s *Int64Flag) Parse(cmd string) {
 	s.value = new(int64)
-	flag.Int64Var(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), strings.ToLower(s.Name)), s.Default, s.Desc)
+	flag.Int64Var(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), s.Name), s.Default, s.Desc)
 }
 
 // UIntFlag implements a structure for parsing uint flags.
@@ -209,21 +209,21 @@ type UIntFlag struct {
 // Parse sets the underline flag ready for value receiving.
 func (s *UIntFlag) Parse(cmd string) {
 	s.value = new(uint)
-	flag.UintVar(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), strings.ToLower(s.Name)), s.Default, s.Desc)
+	flag.UintVar(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), s.Name), s.Default, s.Desc)
 }
 
 // FlagName returns name of flag.
-func (s UIntFlag) FlagName() string {
+func (s *UIntFlag) FlagName() string {
 	return s.Name
 }
 
 // DefaultValue returns default value of flag pointer.
-func (s UIntFlag) DefaultValue() interface{} {
+func (s *UIntFlag) DefaultValue() interface{} {
 	return s.Default
 }
 
 // Value returns internal value of flag pointer.
-func (s UIntFlag) Value() interface{} {
+func (s *UIntFlag) Value() interface{} {
 	return *s.value
 }
 
@@ -236,23 +236,23 @@ type IntFlag struct {
 }
 
 // FlagName returns name of flag.
-func (s IntFlag) FlagName() string {
+func (s *IntFlag) FlagName() string {
 	return s.Name
 }
 
 // Value returns internal value of flag pointer.
-func (s IntFlag) Value() interface{} {
+func (s *IntFlag) Value() interface{} {
 	return *s.value
 }
 
 // DefaultValue returns default value of flag pointer.
-func (s IntFlag) DefaultValue() interface{} {
+func (s *IntFlag) DefaultValue() interface{} {
 	return s.Default
 }
 
 // Parse sets the underline flag ready for value receiving.
 func (s *IntFlag) Parse(cmd string) {
-	s.value = flag.Int(fmt.Sprintf("%s.%s", strings.ToLower(cmd), strings.ToLower(s.Name)), s.Default, s.Desc)
+	s.value = flag.Int(fmt.Sprintf("%s.%s", strings.ToLower(cmd), s.Name), s.Default, s.Desc)
 }
 
 // BoolFlag implements a structure for parsing bool flags.
@@ -264,24 +264,24 @@ type BoolFlag struct {
 }
 
 // FlagName returns name of flag.
-func (s BoolFlag) FlagName() string {
+func (s *BoolFlag) FlagName() string {
 	return s.Name
 }
 
 // Value returns internal value of flag pointer.
-func (s BoolFlag) Value() interface{} {
+func (s *BoolFlag) Value() interface{} {
 	return *s.value
 }
 
 // DefaultValue returns default value of flag pointer.
-func (s BoolFlag) DefaultValue() interface{} {
+func (s *BoolFlag) DefaultValue() interface{} {
 	return s.Default
 }
 
 // Parse sets the underline flag ready for value receiving.
 func (s *BoolFlag) Parse(cmd string) {
 	s.value = new(bool)
-	flag.BoolVar(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), strings.ToLower(s.Name)), s.Default, s.Desc)
+	flag.BoolVar(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), s.Name), s.Default, s.Desc)
 }
 
 // TBoolFlag implements a structure for parsing bool flags that are true by default.
@@ -293,17 +293,17 @@ type TBoolFlag struct {
 }
 
 // DefaultValue returns default value of flag pointer.
-func (s TBoolFlag) DefaultValue() interface{} {
+func (s *TBoolFlag) DefaultValue() interface{} {
 	return true
 }
 
 // FlagName returns name of flag.
-func (s TBoolFlag) FlagName() string {
+func (s *TBoolFlag) FlagName() string {
 	return s.Name
 }
 
 // Value returns internal value of flag pointer.
-func (s TBoolFlag) Value() interface{} {
+func (s *TBoolFlag) Value() interface{} {
 	return *s.value
 }
 
@@ -311,7 +311,7 @@ func (s TBoolFlag) Value() interface{} {
 func (s *TBoolFlag) Parse(cmd string) {
 	s.Default = true
 	s.value = new(bool)
-	flag.BoolVar(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), strings.ToLower(s.Name)), true, s.Desc)
+	flag.BoolVar(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), s.Name), true, s.Desc)
 }
 
 // StringFlag implements a structure for parsing string flags.
@@ -323,24 +323,24 @@ type StringFlag struct {
 }
 
 // FlagName returns name of flag.
-func (s StringFlag) FlagName() string {
+func (s *StringFlag) FlagName() string {
 	return s.Name
 }
 
 // DefaultValue returns default value of flag pointer.
-func (s StringFlag) DefaultValue() interface{} {
+func (s *StringFlag) DefaultValue() interface{} {
 	return s.Default
 }
 
 // Value returns internal value of flag pointer.
-func (s StringFlag) Value() interface{} {
+func (s *StringFlag) Value() interface{} {
 	return *s.value
 }
 
 // Parse sets the underline flag ready for value receiving.
 func (s *StringFlag) Parse(cmd string) {
 	s.value = new(string)
-	flag.StringVar(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), strings.ToLower(s.Name)), s.Default, s.Desc)
+	flag.StringVar(s.value, fmt.Sprintf("%s.%s", strings.ToLower(cmd), s.Name), s.Default, s.Desc)
 }
 
 // Action defines a giving function to be executed for a Command.
