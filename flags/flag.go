@@ -443,7 +443,6 @@ func Run(title string, cmds ...Command) {
 					defer wg.Done()
 					if err := cmd.Action(ctx); err != nil {
 						fmt.Fprint(os.Stderr, err.Error())
-						ctx.Cancel()
 						close(ch)
 					}
 				}()
