@@ -44,7 +44,7 @@ func (fs FileFS) Save(file string, data []byte) error {
 	targetDir := filepath.Dir(targetPath)
 
 	if _, err := os.Stat(targetDir); err != nil {
-		if mkerr := os.MkdirAll(targetDir, 0500); mkerr != nil {
+		if mkerr := os.MkdirAll(targetDir, 0700); mkerr != nil {
 			return mkerr
 		}
 	}
