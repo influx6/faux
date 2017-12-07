@@ -416,7 +416,7 @@ func Run(title string, cmds ...Command) {
 			if subCommand != "help" {
 				valCtx := context.NewValueBag()
 				for _, flag := range cmd.Flags {
-					valCtx.Set(strings.ToLower(flag.FlagName()), flag.Value())
+					valCtx.Set(flag.FlagName(), flag.Value())
 				}
 
 				var ctx context.CancelableContext
