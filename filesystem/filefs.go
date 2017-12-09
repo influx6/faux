@@ -9,9 +9,11 @@ import (
 // FilePortal defines an error which exposes methods to
 // treat a underline store has a file system.
 type FilePortal interface {
+	Name() string
 	Has(string) bool
 	RemoveAll() error
 	Remove(string) error
+	Dirs() ([]FilePortal, error)
 	Save(string, []byte) error
 	Get(string) ([]byte, error)
 	Within(string) (FilePortal, error)
@@ -29,12 +31,39 @@ func (fs FileFS) Within(path string) (FilePortal, error) {
 	return FileFS{Dir: filepath.Join(fs.Dir, path)}, nil
 }
 
+// Name returns underline name of giving FS.
+func (fs FileFS) Name() string {
+	return filepath.Base(fs.Dir)
+}
+
 // Has return true/false if giving file exists in directory of fs.
 func (fs FileFS) Has(file string) bool {
 	if _, err := os.Stat(filepath.Join(fs.Dir, file)); err != nil {
 		return false
 	}
 	return true
+}
+
+// Dirs returns all top level directory in file.
+func (fs FileFS) Dirs() ([]FilePortal, error) {
+	item, err := os.Open(fs.Dir)
+	if err != nil {
+		return nil, err
+	}
+
+	dirs, err := item.Readdir(-1)
+	if err != nil {
+		return nil, err
+	}
+
+	var portals []FilePortal
+	for _, dir := range dirs {
+		portals = append(portals, FileFS{
+			Dir: filepath.Join(fs.Dir, dir.Name()),
+		})
+	}
+
+	return portals, nil
 }
 
 // Save saves giving file into FileFS.Dir, overwriting any same file
