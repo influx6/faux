@@ -27,11 +27,11 @@ HELP:
 	Run [command] help
 
 OTHERS:
-	Commands which respect context.Context, can set timeout by using the -timeout flag.
-	e.g -timeout=4m, -timeout=4h
+	Run '{{toLower .Title}} printflags' to print all flags of all commands.
 
 WARNING:
-	Uses internal flag package so flags must precede command name.
+	Uses internal flag package so flags must precede command name. 
+	e.g '{{toLower .Title}} -cmd.flag=4 run'
 `
 
 	cmdUsageTml = `Command: {{toLower .Title}} [flags] {{ toLower .Cmd.Name}} 
@@ -54,7 +54,8 @@ OTHERS:
 	e.g -timeout=4m, -timeout=4h
 
 WARNING:
-	Uses internal flag package so flags must precede command name.
+	Uses internal flag package so flags must precede command name. 
+	e.g '{{toLower .Title}} -cmd.flag=4 run'
 `
 )
 
