@@ -56,10 +56,9 @@ func DebianPackageInstall(pkgName string, action PackageAction, upstartbased boo
 		action = RemoveAction
 	}
 
-	switch upstartbased {
-	case true:
+	if upstartbased {
 		command = fmt.Sprintf("DEBIAN_FRONTEND=noninteractive sudo -E apt-get %+s -y -o Dpkg::Options::=\"--force-confnew\" %s", action, pkgName)
-	case false:
+	} else {
 		command = fmt.Sprintf("DEBIAN_FRONTEND=noninteractive sudo -E apt-get %+s -y %s", action, pkgName)
 	}
 
