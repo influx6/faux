@@ -22,7 +22,7 @@ func Header(message string, val ...interface{}) {
 // Info logs the info message using the giving message and values.
 func Info(message string, val ...interface{}) {
 	if testing.Verbose() {
-		logger.Output(2, fmt.Sprintf("\t- %s\n", fmt.Sprintf(message, val...)))
+		logger.Output(2, fmt.Sprintf("\t-\t %s\n", fmt.Sprintf(message, val...)))
 	}
 }
 
