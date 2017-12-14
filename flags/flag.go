@@ -19,41 +19,41 @@ import (
 const (
 	usageTml = `Usage: {{ toLower .Title}} [flags] [command] 
 
-COMMANDS:{{ range .Commands }}
-	{{toLower .Name }}	{{cutoff .ShortDesc 40 }}
+⡿ COMMANDS:{{ range .Commands }}
+	⠙ {{toLower .Name }}	{{cutoff .ShortDesc 40 }}
 {{end}}
 
-HELP:
+⡿ HELP:
 	Run [command] help
 
-OTHERS:
+⡿ OTHERS:
 	Run '{{toLower .Title}} printflags' to print all flags of all commands.
 
-WARNING:
+⡿ WARNING:
 	Uses internal flag package so flags must precede command name. 
 	e.g '{{toLower .Title}} -cmd.flag=4 run'
 `
 
 	cmdUsageTml = `Command: {{toLower .Title}} [flags] {{ toLower .Cmd.Name}} 
 
-DESC:
+⡿ DESC:
 	{{.Cmd.Desc}}
 
-Flags:
+⡿ Flags:
 	{{$title := toLower .Title}}{{$cmdName := .Cmd.Name}}{{ range $_, $fl := .Cmd.Flags }}
-	{{toLower $cmdName}}.{{toLower $fl.FlagName}}		Default: {{.Default}}	Desc: {{.Desc }}
+	⠙ {{toLower $cmdName}}.{{toLower $fl.FlagName}}		Default: {{.Default}}	Desc: {{.Desc }}
 	{{end}}
 
-USAGE:
+⡿ USAGE:
 	{{ range $_, $fl := .Cmd.Flags }}
-	{{$title}} -{{toLower $cmdName}}.{{toLower $fl.FlagName}}={{.Default}} {{toLower $cmdName}} 
+	⠙ {{$title}} -{{toLower $cmdName}}.{{toLower $fl.FlagName}}={{.Default}} {{toLower $cmdName}} 
 	{{end}}
 
-OTHERS:
+⡿ OTHERS:
 	Commands which respect context.Context, can set timeout by using the -timeout flag.
 	e.g -timeout=4m, -timeout=4h
 
-WARNING:
+⡿ WARNING:
 	Uses internal flag package so flags must precede command name. 
 	e.g '{{toLower .Title}} -cmd.flag=4 run'
 `
