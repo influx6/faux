@@ -79,7 +79,7 @@ func (r *Response) Write(b []byte) (n int, err error) {
 
 // Push adds support for http.Pusher, if available and lets you push resources.
 func (r *Response) Push(target string, ops *http.PushOptions) error {
-	if pusher, ok := r.Writer.(*http.Pusher); ok {
+	if pusher, ok := r.Writer.(http.Pusher); ok {
 		return pusher.Push(target, ops)
 	}
 	return ErrNoPush
