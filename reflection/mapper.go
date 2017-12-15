@@ -50,6 +50,13 @@ func TimeInverseMapper(layout string) InverseMapAdapter {
 	}
 }
 
+// Mapper defines an interface which exposes methods to
+// map a struct from giving tags to a map and vise-versa.
+type Mapper interface {
+	MapTo(string, interface{}, map[string]interface{}) error
+	MapFrom(string, interface{}) (map[string]interface{}, error)
+}
+
 // StructMapper implements a struct mapping utility which allows mapping struct fields
 // to a map and vise-versa.
 // It uses custom adapters which if available for a giving type will handle the necessary
