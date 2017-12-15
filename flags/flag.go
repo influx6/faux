@@ -447,7 +447,7 @@ func Run(title string, cmds ...Command) {
 
 		for _, flag := range cmd.Flags {
 			if err := flag.Parse(cmd.Name); err != nil {
-				log.Fatalf("Flags error: %+q : %+s", flag.Name(), err)
+				log.Fatalf("Flags error: %+q : %+s", flag.FlagName(), err)
 				return
 			}
 		}
