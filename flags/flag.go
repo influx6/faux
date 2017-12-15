@@ -21,7 +21,7 @@ const (
 	usageTml = `Usage: {{ toLower .Title}} [flags] [command] 
 
 ⡿ COMMANDS:{{ range .Commands }}
-	⠙ {{toLower .Name }}	{{cutoff .ShortDesc 40 }}
+	⠙ {{toLower .Name }}	{{if isEmpty .ShortDesc }}{{cutoff .Desc 40 }}{{else}}{{cutoff .ShortDesc 40 }}{{end}}
 {{end}}
 
 ⡿ HELP:
@@ -66,6 +66,9 @@ var (
 	defs = template.FuncMap{
 		"toLower": strings.ToLower,
 		"toUpper": strings.ToUpper,
+		"isEmpty": func(val string) bool {
+			return strings.TrimSpace(val) == ""
+		},
 		"cutoff": func(val string, limit int) string {
 			if len(val) > limit {
 				return val[:limit]
