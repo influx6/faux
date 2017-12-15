@@ -2,8 +2,14 @@ package httputil
 
 import (
 	"bufio"
+	"errors"
 	"net"
 	"net/http"
+)
+
+// errors ...
+var (
+	ErrNoPush = errors.New("Push Not Supported")
 )
 
 // Response wraps an http.ResponseWriter and implements its interface to be used
@@ -69,6 +75,14 @@ func (r *Response) Write(b []byte) (n int, err error) {
 	n, err = r.Writer.Write(b)
 	r.Size += int64(n)
 	return
+}
+
+// Push adds support for http.Pusher, if available and lets you push resources.
+func (r *Response) Push(target string, ops *http.PushOptions) error {
+	if pusher, ok := r.Writer.(*http.Pusher); ok {
+		return pusher.Push(target, ops)
+	}
+	return ErrNoPush
 }
 
 // Flush implements the http.Flusher interface to allow an HTTP handler to flush
