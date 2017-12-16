@@ -115,6 +115,7 @@ func (sq *SQL) migrate() error {
 
 	dbi, err := sq.d.New()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
@@ -143,11 +144,13 @@ func (sq *SQL) Save(identity db.TableIdentity, table db.TableFields) error {
 	defer sq.l.Emit(metrics.Info("Save to DB"), metrics.With("table", identity.Table()))
 
 	if err := sq.migrate(); err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
 	db, err := sq.d.New()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
@@ -155,10 +158,16 @@ func (sq *SQL) Save(identity db.TableIdentity, table db.TableFields) error {
 
 	tx, err := db.Begin()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
-	fields := table.Fields()
+	fields, err := table.Fields()
+	if err != nil {
+		sq.l.Emit(metrics.Error(err))
+		return err
+	}
+
 	fieldNames := fieldNames(fields)
 	values := fieldValues(fieldNames, fields)
 
@@ -191,11 +200,13 @@ func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index str
 	defer sq.l.Emit(metrics.Info("Update to DB"), metrics.With("table", identity.Table()))
 
 	if err := sq.migrate(); err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
 	db, err := sq.d.New()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
@@ -203,10 +214,16 @@ func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index str
 
 	tx, err := db.Begin()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
-	tableFields := table.Fields()
+	tableFields, err := table.Fields()
+	if err != nil {
+		sq.l.Emit(metrics.Error(err))
+		return err
+	}
+
 	tableFields["updated_at"] = time.Now().UTC()
 
 	indexValueString, err := printLiteral(indexValue)
@@ -252,11 +269,13 @@ func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy strin
 	}))
 
 	if err := sq.migrate(); err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return nil, -1, err
 	}
 
 	db, err := sq.d.New()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return nil, -1, err
 	}
 
@@ -264,12 +283,16 @@ func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy strin
 
 	if page <= 0 && responsePerPage <= 0 {
 		records, err := sq.GetAll(table, order, orderBy)
+		if err != nil {
+			sq.l.Emit(metrics.Error(err))
+		}
 		return records, len(records), err
 	}
 
 	// Get total number of records.
 	totalRecords, err := sq.Count(table)
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return nil, -1, err
 	}
 
@@ -343,11 +366,13 @@ func (sq *SQL) GetAllPerPageBy(table db.TableIdentity, order string, orderBy str
 	}))
 
 	if err := sq.migrate(); err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return -1, err
 	}
 
 	db, err := sq.d.New()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return -1, err
 	}
 
@@ -361,6 +386,7 @@ func (sq *SQL) GetAllPerPageBy(table db.TableIdentity, order string, orderBy str
 	// Get total number of records.
 	totalRecords, err := sq.Count(table)
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return -1, err
 	}
 
@@ -416,6 +442,7 @@ func (sq *SQL) GetAllPerPageBy(table db.TableIdentity, order string, orderBy str
 	}
 
 	if err := mx(rows); err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return -1, err
 	}
 
@@ -427,11 +454,13 @@ func (sq *SQL) GetAll(table db.TableIdentity, order string, orderBy string) ([]m
 	defer sq.l.Emit(metrics.Info("Retrieve all records from DB"), metrics.With("table", table.Table()))
 
 	if err := sq.migrate(); err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return nil, err
 	}
 
 	db, err := sq.d.New()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return nil, err
 	}
 
@@ -483,11 +512,13 @@ func (sq *SQL) GetAllBy(table db.TableIdentity, order string, orderBy string, mx
 	defer sq.l.Emit(metrics.Info("Retrieve all records from DB"), metrics.With("table", table.Table()))
 
 	if err := sq.migrate(); err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return nil
 	}
 
 	db, err := sq.d.New()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return nil
 	}
 
@@ -520,6 +551,7 @@ func (sq *SQL) GetAllBy(table db.TableIdentity, order string, orderBy string, mx
 	}
 
 	if err := mx(rows); err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
@@ -535,11 +567,13 @@ func (sq *SQL) Get(table db.TableIdentity, consumer db.TableConsumer, index stri
 	}))
 
 	if err := sq.migrate(); err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
 	db, err := sq.d.New()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
@@ -606,11 +640,13 @@ func (sq *SQL) GetBy(table db.TableIdentity, consumer func(*sqlx.Row) error, ind
 	}))
 
 	if err := sq.migrate(); err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
 	db, err := sq.d.New()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
@@ -664,11 +700,13 @@ func (sq *SQL) Count(table db.TableIdentity) (int, error) {
 	}))
 
 	if err := sq.migrate(); err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return 0, err
 	}
 
 	db, err := sq.d.New()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return 0, err
 	}
 
@@ -700,11 +738,13 @@ func (sq *SQL) Delete(table db.TableIdentity, index string, indexValue interface
 	}))
 
 	if err := sq.migrate(); err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
 	db, err := sq.d.New()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 
@@ -712,6 +752,7 @@ func (sq *SQL) Delete(table db.TableIdentity, index string, indexValue interface
 
 	tx, err := db.Begin()
 	if err != nil {
+		sq.l.Emit(metrics.Error(err))
 		return err
 	}
 

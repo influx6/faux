@@ -9,7 +9,7 @@ type TableIdentity interface {
 // TableFields defines an interface which exposes method to return a map of all data
 // associated with the defined structure.
 type TableFields interface {
-	Fields() map[string]interface{}
+	Fields() (map[string]interface{}, error)
 }
 
 // TableConsumer defines an interface which accepts a map of data which will be loaded
