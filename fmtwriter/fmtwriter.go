@@ -43,12 +43,10 @@ func (fm WriterTo) WriteTo(w io.Writer) (int64, error) {
 		return n, err
 	}
 
-	cmdName := "gofmt"
+	cmdName := "gofmt -s"
 	if fm.goreturn {
 		if _, err := gexec.LookPath("goreturns"); err == nil {
 			cmdName = "goreturns"
-		} else {
-			cmdName = "gofmt"
 		}
 	}
 
