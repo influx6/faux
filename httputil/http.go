@@ -1,6 +1,7 @@
 package httputil
 
 import (
+	"encoding/base64"
 	"errors"
 	"io"
 	"mime"
@@ -156,4 +157,16 @@ func ParseAuthorization(val string) (authType string, token string, err error) {
 	token = strings.TrimSpace(authSplit[1])
 
 	return
+}
+
+// ParseTokens parses the base64 encoded token sent as part of the Authorization string,
+// It expects all parts of string to be seperated with ':', returning splitted slice.
+func ParseTokens(val string) ([]string, error) {
+	var decoded []byte
+	decoded, err = base64.StdEncoding.DecodeString(val)
+	if err != nil {
+		return nil, err
+	}
+
+	return strings.Split(string(decoded), ":"), nil
 }
