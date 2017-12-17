@@ -618,7 +618,7 @@ func (sq *SQL) Get(table db.TableIdentity, consumer db.TableConsumer, index stri
 		"response": mo,
 	}))
 
-	if err := consumer.WithFields(naturalizeMap(mo)); err != nil {
+	if err := consumer.Consume(naturalizeMap(mo)); err != nil {
 		sq.l.Emit(metrics.Errorf("Consumer:WithFields: %+q", err), metrics.WithFields(metrics.Field{
 			"err":   err,
 			"query": query,
