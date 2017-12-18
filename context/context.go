@@ -191,141 +191,178 @@ func (cn *ExpiringCnclContext) monitor() {
 // use cases with a explicitly set duration which clears all its internal
 // data after the giving period.
 type vbag struct {
-	ml     sync.Mutex
-	fields *Pair
-}
-
-// ValueBagFromAny adds giving key-value pairs into the bag.
-func ValueBagFromAny(fields map[interface{}]interface{}) ValueBag {
-	initial := (*Pair)(nil)
-
-	for key, val := range fields {
-		initial = initial.Append(key, val)
-	}
-
-	return &vbag{fields: initial}
+	ml     sync.RWMutex
+	fields map[interface{}]interface{}
 }
 
 // ValueBagFrom adds giving key-value pairs into the bag.
-func ValueBagFrom(fields map[string]interface{}) ValueBag {
-	initial := (*Pair)(nil)
-
-	for key, val := range fields {
-		initial = initial.Append(key, val)
-	}
-
-	return &vbag{fields: initial}
+func ValueBagFrom(fields map[interface{}]interface{}) ValueBag {
+	return &vbag{fields: fields}
 }
 
 // NewValueBag returns a new context object that meets the Context interface.
 func NewValueBag() ValueBag {
-	cl := vbag{
-		fields: (*Pair)(nil),
+	return &vbag{
+		fields: map[interface{}]interface{}{},
 	}
-
-	return &cl
 }
 
 // Set adds given value into context.
 func (c *vbag) Set(key, value interface{}) {
 	c.ml.Lock()
 	defer c.ml.Unlock()
-	c.fields = Append(c.fields, key, value)
+	c.fields[key] = value
 }
 
 // WithValue returns a new context based on the previos one.
 func (c *vbag) WithValue(key, value interface{}) ValueBag {
-	c.ml.Lock()
-	defer c.ml.Unlock()
-	child := &vbag{
-		fields: Append(c.fields, key, value),
+	c.ml.RLock()
+	defer c.ml.RUnlock()
+
+	fields := make(map[interface{}]interface{})
+	for k, v := range c.fields {
+		fields[k] = v
 	}
 
-	return child
-}
-
-// GetDuration returns the value for the necessary key within the context.
-func (c *vbag) GetDuration(key interface{}) (item time.Duration, found bool) {
-	c.ml.Lock()
-	defer c.ml.Unlock()
-	item, found = c.fields.GetDuration(key)
-	return
-}
-
-// Get returns the value for the necessary key within the context.
-func (c *vbag) Get(key interface{}) (item interface{}, found bool) {
-	c.ml.Lock()
-	defer c.ml.Unlock()
-	item, found = c.fields.Get(key)
-	return
-}
-
-// GetBool returns the value type value of a key if it exists.
-func (c *vbag) GetBool(key interface{}) (bool, bool) {
-	c.ml.Lock()
-	defer c.ml.Unlock()
-	return c.fields.GetBool(key)
-}
-
-// GetFloat64 returns the value type value of a key if it exists.
-func (c *vbag) GetFloat64(key interface{}) (float64, bool) {
-	c.ml.Lock()
-	defer c.ml.Unlock()
-	return c.fields.GetFloat64(key)
-}
-
-// GetFloat32 returns the value type value of a key if it exists.
-func (c *vbag) GetFloat32(key interface{}) (float32, bool) {
-	c.ml.Lock()
-	defer c.ml.Unlock()
-	return c.fields.GetFloat32(key)
-}
-
-// GetInt8 returns the value type value of a key if it exists.
-func (c *vbag) GetInt8(key interface{}) (int8, bool) {
-	c.ml.Lock()
-	defer c.ml.Unlock()
-	return c.fields.GetInt8(key)
-}
-
-// GetInt16 returns the value type value of a key if it exists.
-func (c *vbag) GetInt16(key interface{}) (int16, bool) {
-	c.ml.Lock()
-	defer c.ml.Unlock()
-	return c.fields.GetInt16(key)
-}
-
-// GetInt64 returns the value type value of a key if it exists.
-func (c *vbag) GetInt64(key interface{}) (int64, bool) {
-	c.ml.Lock()
-	defer c.ml.Unlock()
-	return c.fields.GetInt64(key)
-}
-
-// GetInt32 returns the value type value of a key if it exists.
-func (c *vbag) GetInt32(key interface{}) (int32, bool) {
-	c.ml.Lock()
-	defer c.ml.Unlock()
-	return c.fields.GetInt32(key)
-}
-
-// GetInt returns the value type value of a key if it exists.
-func (c *vbag) GetInt(key interface{}) (int, bool) {
-	c.ml.Lock()
-	defer c.ml.Unlock()
-	return c.fields.GetInt(key)
-}
-
-// GetString returns the value type value of a key if it exists.
-func (c *vbag) GetString(key interface{}) (string, bool) {
-	c.ml.Lock()
-	defer c.ml.Unlock()
-	return c.fields.GetString(key)
+	fields[key] = value
+	return ValueBagFrom(fields)
 }
 
 // Deadline returns giving time when context is expected to be canceled.
 func (c *vbag) Deadline() (time.Time, bool) {
 	return time.Time{}, false
+}
+
+// GetDuration returns the duration value of a key if it exists.
+func (c *vbag) GetDuration(key interface{}) (time.Duration, bool) {
+	val, found := c.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	if dval, ok := val.(time.Duration); ok {
+		return dval, true
+	}
+
+	if dval, ok := val.(int64); ok {
+		return time.Duration(dval), true
+	}
+
+	if sval, ok := val.(string); ok {
+		if dur, err := time.ParseDuration(sval); err == nil {
+			return dur, true
+		}
+	}
+
+	return 0, false
+}
+
+// GetBool returns the bool value of a key if it exists.
+func (c *vbag) GetBool(key interface{}) (bool, bool) {
+	val, found := c.Get(key)
+	if !found {
+		return false, false
+	}
+
+	value, ok := val.(bool)
+	return value, ok
+}
+
+// GetFloat64 returns the float64 value of a key if it exists.
+func (c *vbag) GetFloat64(key interface{}) (float64, bool) {
+	val, found := c.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(float64)
+	return value, ok
+}
+
+// GetFloat32 returns the float32 value of a key if it exists.
+func (c *vbag) GetFloat32(key interface{}) (float32, bool) {
+	val, found := c.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(float32)
+	return value, ok
+}
+
+// GetInt8 returns the int8 value of a key if it exists.
+func (c *vbag) GetInt8(key interface{}) (int8, bool) {
+	val, found := c.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int8)
+	return value, ok
+}
+
+// GetInt16 returns the int16 value of a key if it exists.
+func (c *vbag) GetInt16(key interface{}) (int16, bool) {
+	val, found := c.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int16)
+	return value, ok
+}
+
+// GetInt64 returns the value type value of a key if it exists.
+func (c *vbag) GetInt64(key interface{}) (int64, bool) {
+	val, found := c.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int64)
+	return value, ok
+}
+
+// GetInt32 returns the value type value of a key if it exists.
+func (c *vbag) GetInt32(key interface{}) (int32, bool) {
+	val, found := c.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int32)
+	return value, ok
+}
+
+// GetInt returns the value type value of a key if it exists.
+func (c *vbag) GetInt(key interface{}) (int, bool) {
+	val, found := c.Get(key)
+	if !found {
+		return 0, false
+	}
+
+	value, ok := val.(int)
+	return value, ok
+}
+
+// GetString returns the value type value of a key if it exists.
+func (c *vbag) GetString(key interface{}) (string, bool) {
+	val, found := c.Get(key)
+	if !found {
+		return "", false
+	}
+
+	value, ok := val.(string)
+	return value, ok
+}
+
+// Get returns the value of a key if it exists.
+func (c *vbag) Get(key interface{}) (value interface{}, found bool) {
+	c.ml.RLock()
+	defer c.ml.RUnlock()
+
+	item, ok := c.fields[key]
+	return item, ok
 }
 
 //==============================================================================
