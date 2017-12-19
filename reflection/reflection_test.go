@@ -47,17 +47,17 @@ func TestMatchFunction(t *testing.T) {
 	var addr1 = func(_ Addrs) error { return nil }
 	var addr2 = func(_ Addrs) error { return nil }
 
-	if !reflection.MatchElement(addr1, addr2, false) {
+	if !reflection.MatchFunction(addr1, addr2) {
 		tests.Failed("Should have matched argument types successfully")
 	}
 	tests.Passed("Should have matched argument types successfully")
 
-	if !reflection.MatchElement(&addr1, &addr2, false) {
+	if !reflection.MatchFunction(&addr1, &addr2) {
 		tests.Failed("Should have matched argument types successfully")
 	}
 	tests.Passed("Should have matched argument types successfully")
 
-	if reflection.MatchElement(&addr1, addr2, false) {
+	if reflection.MatchFunction(&addr1, addr2) {
 		tests.Failed("Should have failed matched argument types successfully")
 	}
 	tests.Passed("Should have failed matched argument types successfully")
