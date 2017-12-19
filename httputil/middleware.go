@@ -51,7 +51,7 @@ func MetricsMW(m metrics.Metrics) Middleware {
 
 // GorillaMW returns a middleware which wraps the next handler
 // with the GorillaMuxVars.
-func GorillaMW(m metrics.Metrics) Middleware {
+func GorillaMW() Middleware {
 	return func(next Handler) Handler {
 		return GorillaMuxHandler(next)
 	}
