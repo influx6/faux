@@ -51,10 +51,8 @@ func MetricsMW(m metrics.Metrics) Middleware {
 
 // GorillaMW returns a middleware which wraps the next handler
 // with the GorillaMuxVars.
-func GorillaMW() Middleware {
-	return func(next Handler) Handler {
+func GorillaMW(next Handler) Handler {
 		return GorillaMuxHandler(next)
-	}
 }
 
 // NetworkAuthenticationNeeded implements a Handler which returns http.StatusNetworkAuthenticationRequired always.
