@@ -140,6 +140,36 @@ func Then(condition Handler, nexts ...Handler) Handler {
 	}
 }
 
+// OnError calls the next Handler after the condition handler returns an error.
+func OnError(condition Handler, errorAction Handler) Handler {
+	if len(nexts) == 0 {
+		return condition
+	}
+
+	return func(c *Context) error {
+		if err := condition(c); err != nil {
+			return errorAction(c)
+		}
+
+		return nil
+	}
+}
+
+// OnErrorAccess calls the next ErrorHandler after the condition handler returns an error.
+func OnErrorAccess(condition Handler, errorAction ErrorHandler) Handler {
+	if len(nexts) == 0 {
+		return condition
+	}
+
+	return func(c *Context) error {
+		if err := condition(c); err != nil {
+			return errorAction(err, c)
+		}
+
+		return nil
+	}
+}
+
 // HTTPConditionFunc retusn a handler where a Handler is used as a condition where if the handler
 // returns an error then the errorAction is called else the noerrorAction gets called with
 // context. This allows you create a binary switch where the final action is based on the
