@@ -50,6 +50,111 @@ func FuncType(elem interface{}) (reflect.Type, error) {
 	return tl, nil
 }
 
+// MatchElement attempts to validate that both element are equal in type and value.
+func MatchElement(me interface{}, other interface{}, allowFunctions bool) bool {
+	meType := reflect.TypeOf(me)
+	otherType := reflect.TypeOf(other)
+
+	// if one is pointer, then both must be.
+	if meType.Kind() == reflect.Ptr && otherType.Kind() != reflect.Ptr {
+		return false
+	}
+
+	// if one is pointer, then both must be.
+	if otherType.Kind() == reflect.Ptr && meType.Kind() != reflect.Ptr {
+		return false
+	}
+
+	if meType.Kind() == reflect.Ptr {
+		meType = meType.Elem()
+	}
+
+	if otherType.Kind() == reflect.Ptr {
+		otherType = otherType.Elem()
+	}
+
+	if meType.Kind() == reflect.Func {
+		if allowFunctions {
+			return MatchFunction(me, other)
+		}
+
+		return false
+	}
+
+	if otherType.AssignableTo(meType) {
+		return true
+	}
+
+	return true
+}
+
+// MatchFunction attempts to validate if giving types are functions and
+// exactly match in arguments and returns.
+func MatchFunction(me interface{}, other interface{}) bool {
+	meType := reflect.TypeOf(me)
+	otherType := reflect.TypeOf(other)
+
+	// if one is pointer, then both must be.
+	if meType.Kind() == reflect.Ptr && otherType.Kind() != reflect.Ptr {
+		return false
+	}
+
+	// if one is pointer, then both must be.
+	if otherType.Kind() == reflect.Ptr && meType.Kind() != reflect.Ptr {
+		return false
+	}
+
+	if meType.Kind() == reflect.Ptr {
+		meType = meType.Elem()
+	}
+
+	if otherType.Kind() == reflect.Ptr {
+		otherType = otherType.Elem()
+	}
+
+	if meType.Kind() != reflect.Func {
+		return false
+	}
+
+	if otherType.Kind() != reflect.Func {
+		return false
+	}
+
+	if otherType.NumIn() != meType.NumIn() {
+		return false
+	}
+
+	if otherType.NumOut() != meType.NumOut() {
+		return false
+	}
+
+	for i := 0; i < meType.NumIn(); i++ {
+		item := meType.In(i)
+		otherItem := otherType.In(i)
+		if item.Kind() != reflect.Func && !MatchElement(item, otherItem, true) {
+			return false
+		}
+
+		if item.Kind() == reflect.Func && !MatchFunction(item, otherItem) {
+			return false
+		}
+	}
+
+	for i := 0; i < meType.NumOut(); i++ {
+		item := meType.Out(i)
+		otherItem := otherType.Out(i)
+		if item.Kind() != reflect.Func && !MatchElement(item, otherItem, true) {
+			return false
+		}
+
+		if item.Kind() == reflect.Func && !MatchFunction(item, otherItem) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // StructAndEmbeddedTypes returns the type of the giving element and a slice of
 // all composed types.
 func StructAndEmbeddedTypes(elem interface{}) (reflect.Type, []reflect.Type, error) {

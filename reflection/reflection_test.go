@@ -41,6 +41,45 @@ type Addrs struct {
 	Addr string
 }
 
+type addrFunc func(Addrs) error
+
+func TestMatchFunction(t *testing.T) {
+	var addr1 = func(_ Addrs) error { return nil }
+	var addr2 = func(_ Addrs) error { return nil }
+
+	if !reflection.MatchElement(addr1, addr2, false) {
+		tests.Failed("Should have matched argument types successfully")
+	}
+	tests.Passed("Should have matched argument types successfully")
+
+	if !reflection.MatchElement(&addr1, &addr2, false) {
+		tests.Failed("Should have matched argument types successfully")
+	}
+	tests.Passed("Should have matched argument types successfully")
+
+	if reflection.MatchElement(&addr1, addr2, false) {
+		tests.Failed("Should have failed matched argument types successfully")
+	}
+	tests.Passed("Should have failed matched argument types successfully")
+}
+
+func TestMatchElement(t *testing.T) {
+	if !reflection.MatchElement(Addrs{}, Addrs{}, false) {
+		tests.Failed("Should have matched argument types successfully")
+	}
+	tests.Passed("Should have matched argument types successfully")
+
+	if !reflection.MatchElement(new(Addrs), new(Addrs), false) {
+		tests.Failed("Should have matched argument types successfully")
+	}
+	tests.Passed("Should have matched argument types successfully")
+
+	if reflection.MatchElement(new(Addrs), Addrs{}, false) {
+		tests.Failed("Should have failed matched argument types successfully")
+	}
+	tests.Passed("Should have failed matched argument types successfully")
+}
+
 func TestStructMapperWthFieldStruct(t *testing.T) {
 	layout := "Mon Jan 2 2006 15:04:05 -0700 MST"
 	timeType := reflect.TypeOf((*time.Time)(nil))
