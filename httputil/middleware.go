@@ -120,8 +120,8 @@ func HTTPRedirect(to string, code int) Handler {
 	}
 }
 
-// Then calls the next Handler after the condition handler returns without error.
-func Then(condition Handler, nexts ...Handler) Handler {
+// OnDone calls the next Handler after the condition handler returns without error.
+func OnDone(condition Handler, nexts ...Handler) Handler {
 	if len(nexts) == 0 {
 		return condition
 	}
@@ -142,10 +142,6 @@ func Then(condition Handler, nexts ...Handler) Handler {
 
 // OnError calls the next Handler after the condition handler returns an error.
 func OnError(condition Handler, errorAction Handler) Handler {
-	if len(nexts) == 0 {
-		return condition
-	}
-
 	return func(c *Context) error {
 		if err := condition(c); err != nil {
 			return errorAction(c)
@@ -157,10 +153,6 @@ func OnError(condition Handler, errorAction Handler) Handler {
 
 // OnErrorAccess calls the next ErrorHandler after the condition handler returns an error.
 func OnErrorAccess(condition Handler, errorAction ErrorHandler) Handler {
-	if len(nexts) == 0 {
-		return condition
-	}
-
 	return func(c *Context) error {
 		if err := condition(c); err != nil {
 			return errorAction(err, c)
