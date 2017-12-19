@@ -1,8 +1,8 @@
 package sql
 
 import (
-	"errors"
 	"fmt"
+	"encoding/json"
 	"strconv"
 	"strings"
 	"time"
@@ -226,7 +226,7 @@ func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index str
 
 	tableFields["updated_at"] = time.Now().UTC()
 
-	indexValueString, err := printLiteral(indexValue)
+	indexValueString, err := ToValueString(indexValue)
 	if err != nil {
 		sq.l.Emit(metrics.Error(err), metrics.WithFields(metrics.Field{
 			"err":   err,
@@ -579,7 +579,7 @@ func (sq *SQL) Get(table db.TableIdentity, consumer db.TableConsumer, index stri
 
 	defer db.Close()
 
-	indexValueString, err := printLiteral(indexValue)
+	indexValueString, err := ToValueString(indexValue)
 	if err != nil {
 		sq.l.Emit(metrics.Errorf("DB:Query: %+q", err), metrics.WithFields(metrics.Field{
 			"err":   err,
@@ -652,7 +652,7 @@ func (sq *SQL) GetBy(table db.TableIdentity, consumer func(*sqlx.Row) error, ind
 
 	defer db.Close()
 
-	indexValueString, err := printLiteral(indexValue)
+	indexValueString, err := ToValueString(indexValue)
 	if err != nil {
 		sq.l.Emit(metrics.Errorf("DB:Query: %+q", err), metrics.WithFields(metrics.Field{
 			"err":   err,
@@ -756,7 +756,7 @@ func (sq *SQL) Delete(table db.TableIdentity, index string, indexValue interface
 		return err
 	}
 
-	indexValueString, err := printLiteral(indexValue)
+	indexValueString, err := ToValueString(indexValue)
 	if err != nil {
 		sq.l.Emit(metrics.Errorf("DB:Query: %+q", err), metrics.WithFields(metrics.Field{
 			"err":   err,
@@ -814,7 +814,7 @@ func setValues(fields map[string]interface{}) (string, error) {
 	var vals []string
 
 	for name, val := range fields {
-		rv, err := printLiteral(val)
+		rv, err := ToValueString(val)
 		if err != nil {
 			return "", err
 		}
@@ -867,23 +867,34 @@ func fieldNames(fields map[string]interface{}) []string {
 	return names
 }
 
-// printLiteral attempts to provide a function to allow us easily convert
-// simple values like int, float, uint to string for use in queries.
-func printLiteral(item interface{}) (string, error) {
-	switch rl := item.(type) {
-	case int, int64, int32:
-		return strconv.Itoa(rl.(int)), nil
-	case float32, float64:
-		return strconv.FormatFloat(rl.(float64), 'f', 2, 64), nil
-	case string:
-		return strconv.Quote(rl), nil
-	case []byte:
-		return strconv.Quote(string(rl)), nil
+// ToValueString returns the string representation of a basic go core data type for usage in
+// a db call.
+func ToValueString(val interface{}) (string, error) {
+	switch bo := val.(type) {
+	case *time.Time:
+		return bo.UTC().String(), nil
 	case time.Time:
-		return strconv.Quote(rl.String()), nil
+		return bo.UTC().String(), nil
+	case string:
+		return strconv.Quote(bo), nil
+	case int:
+		return strconv.Itoa(bo), nil
+	case []byte:
+		return strconv.Quote(string(bo)), nil
+	case int64:
+		return strconv.Itoa(int(bo)), nil
+	case rune:
+		return strconv.QuoteRune(bo), nil
+	case bool:
+		return strconv.FormatBool(bo), nil
 	case byte:
-		return strconv.QuoteRune(rune(rl)), nil
-	default:
-		return "", errors.New("Not basic type")
+		return strconv.QuoteRune(rune(bo)), nil
+	case float64:
+		return strconv.FormatFloat(bo, 'f', 4, 64), nil
+	case float32:
+		return strconv.FormatFloat(float64(bo), 'f', 4, 64), nil
 	}
+
+	data, err := json.Marshal(val)
+	return string(data), err
 }
