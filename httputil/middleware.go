@@ -6,6 +6,7 @@ import (
 
 	"github.com/dimfeld/httptreemux"
 	"github.com/influx6/faux/metrics"
+	"github.com/gorilla/mux"
 )
 
 // Handler defines a function type to process a giving request.
@@ -110,6 +111,18 @@ func StripPrefixMW(prefix string) Middleware {
 			req.URL.Path = strings.TrimPrefix(reqURL, prefix)
 			return next(ctx)
 		}
+	}
+}
+
+// GorillaMuxVars retrieves the parameter lists from the underline
+// variable map provided by the gorilla mux router and stores those
+// into the context.
+func GorillaMuxVars() Handler {
+	return func(ctx *Context) error {
+		for k, v := range mux.Vars(ctx.Request()){
+			ctx.Bag().Set(k,v)
+		}
+		return nil
 	}
 }
 
