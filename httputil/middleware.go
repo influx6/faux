@@ -49,6 +49,14 @@ func MetricsMW(m metrics.Metrics) Middleware {
 	}
 }
 
+// GorillaMW returns a middleware which wraps the next handler
+// with the GorillaMuxVars.
+func GorillaMW(m metrics.Metrics) Middleware {
+	return func(next Handler) Handler {
+		return GorillaMuxHandler(next)
+	}
+}
+
 // NetworkAuthenticationNeeded implements a Handler which returns http.StatusNetworkAuthenticationRequired always.
 func NetworkAuthenticationNeeded(ctx *Context) error {
 	ctx.Status(http.StatusNetworkAuthenticationRequired)
@@ -114,16 +122,23 @@ func StripPrefixMW(prefix string) Middleware {
 	}
 }
 
+// GorillaMuxHandler returns a Handler which handles the underline retrieval of
+// parameters using gorilla mux router.
+func GorillaMuxHandler(next Handler) Handler {
+	return func(ctx *Context) error {
+		GorillaMuxVars(ctx)
+		return next(ctx)
+	}
+}
+
 // GorillaMuxVars retrieves the parameter lists from the underline
 // variable map provided by the gorilla mux router and stores those
 // into the context.
-func GorillaMuxVars() Handler {
-	return func(ctx *Context) error {
-		for k, v := range mux.Vars(ctx.Request()){
-			ctx.Bag().Set(k,v)
-		}
-		return nil
+func GorillaMuxVars(ctx *Context) error {
+	for k, v := range mux.Vars(ctx.Request()){
+		ctx.Bag().Set(k,v)
 	}
+	return nil
 }
 
 // HTTPRedirect returns a Handler which always redirect to the given path.
