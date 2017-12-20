@@ -475,6 +475,10 @@ func MWi(mos ...Middleware) Middleware {
 		initial = IdentityMW
 	}
 
+	if len(mos) == 1 {
+		return mos[0]
+	}
+
 	for _, mw := range mos {
 		if initial == nil {
 			initial = mw
