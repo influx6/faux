@@ -11,6 +11,8 @@ import (
 
 	"context"
 
+	"time"
+
 	"github.com/influx6/faux/metrics"
 )
 
@@ -50,6 +52,13 @@ func Binary(bin string, flag string) CommanderOption {
 	return func(cm *Commander) {
 		cm.Binary = bin
 		cm.Flag = flag
+	}
+}
+
+// Timeout sets the commander to run in synchronouse mode.
+func Timeout(d time.Duration) CommanderOption {
+	return func(cm *Commander) {
+		cm.Timeout = d
 	}
 }
 
@@ -124,6 +133,7 @@ type Commander struct {
 	Async       bool
 	Command     string
 	SubCommands []string
+	Timeout     time.Duration
 	Dir         string
 	Binary      string
 	Flag        string
@@ -161,6 +171,15 @@ func (c *Commander) Exec(ctx context.Context, metric metrics.Metrics) error {
 
 	if c.Flag == "" {
 		c.Flag = "-c"
+	}
+
+	var cancel func()
+	if c.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, c.Timeout)
+	}
+
+	if cancel != nil {
+		defer cancel()
 	}
 
 	var execCommand []string

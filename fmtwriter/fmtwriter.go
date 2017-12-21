@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	gexec "os/exec"
+	"time"
 
 	"github.com/influx6/faux/exec"
 	"github.com/influx6/faux/metrics"
@@ -52,9 +53,11 @@ func (fm WriterTo) WriteTo(w io.Writer) (int64, error) {
 
 	cmd := exec.New(
 		exec.Command(cmdName),
+		exec.Async(),
 		exec.Input(&input),
 		exec.Output(&inout),
 		exec.Err(&inerr),
+		exec.Timeout(50*time.Second),
 	)
 
 	if err := cmd.Exec(context.Background(), fm.Metrics); err != nil {
