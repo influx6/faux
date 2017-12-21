@@ -9,7 +9,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/influx6/faux/context"
+	"context"
+
 	"github.com/influx6/faux/metrics"
 )
 
@@ -144,7 +145,7 @@ func New(ops ...CommanderOption) *Commander {
 }
 
 // ExecWithExitCode executes giving command associated within the command with os/exec.
-func (c *Commander) ExecWithExitCode(ctx context.CancelContext, metric metrics.Metrics) (int, error) {
+func (c *Commander) ExecWithExitCode(ctx context.Context, metric metrics.Metrics) (int, error) {
 	if err := c.Exec(ctx, metric); err != nil {
 		return getExitStatus(err), err
 	}
@@ -153,7 +154,7 @@ func (c *Commander) ExecWithExitCode(ctx context.CancelContext, metric metrics.M
 }
 
 // Exec executes giving command associated within the command with os/exec.
-func (c *Commander) Exec(ctx context.CancelContext, metric metrics.Metrics) error {
+func (c *Commander) Exec(ctx context.Context, metric metrics.Metrics) error {
 	if c.Binary == "" {
 		c.Binary = "/bin/sh"
 	}

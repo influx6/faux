@@ -3,18 +3,18 @@ package flags
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 	"syscall"
 	"text/template"
 	"time"
 
-	"github.com/influx6/faux/context"
+	"github.com/influx6/faux/bag"
 )
 
 const (
@@ -393,8 +393,15 @@ func (s *StringFlag) Parse(cmd string) error {
 	return nil
 }
 
+// Context defines a interface which combines the bag.Getter with a
+// provided context.
+type Context interface {
+	bag.Getter
+	context.Context
+}
+
 // Action defines a giving function to be executed for a Command.
-type Action func(context.Context) error
+type Action func(Context) error
 
 // Command defines structures which define specific actions to be executed
 // with associated flags.
@@ -462,57 +469,61 @@ func Run(title string, cmds ...Command) {
 		return
 	}
 
-	var wg sync.WaitGroup
-
-	for _, cmd := range cmds {
+	var cmd Command
+	var found bool
+	for _, cmd = range cmds {
 		if strings.ToLower(cmd.Name) == command {
-			if subCommand != "help" {
-				valCtx := context.NewValueBag()
-				for _, flag := range cmd.Flags {
-					valCtx.Set(flag.FlagName(), flag.Value())
-				}
-
-				var ctx context.CancelableContext
-				if *timeout == 0 {
-					ctx = context.NewCnclContext(valCtx)
-				} else {
-					ctx = context.NewExpiringCnclContext(nil, *timeout, valCtx)
-				}
-
-				if !cmd.WaitOnCtrlC {
-					if err := cmd.Action(ctx); err != nil {
-						fmt.Fprint(os.Stderr, err.Error())
-					}
-					return
-				}
-
-				ch := make(chan os.Signal, 3)
-				signal.Notify(ch, syscall.SIGQUIT)
-				signal.Notify(ch, syscall.SIGTERM)
-				signal.Notify(ch, os.Interrupt)
-
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					if err := cmd.Action(ctx); err != nil {
-						fmt.Fprint(os.Stderr, err.Error())
-						close(ch)
-					}
-				}()
-
-				<-ch
-				ctx.Cancel()
-				return
-			}
-
-			fmt.Println(commandHelp[cmd.Name])
-			return
+			found = true
+			break
 		}
 	}
 
-	if flag.Usage != nil {
-		flag.Usage()
+	if !found {
+		if flag.Usage != nil {
+			flag.Usage()
+		}
+		return
 	}
 
-	wg.Wait()
+	if subCommand == "help" {
+		fmt.Println(commandHelp[cmd.Name])
+		return
+	}
+
+	var cancler func()
+	var ctx context.Context
+
+	if *timeout != 0 {
+		ctx, cancler = context.WithTimeout(ctx, *timeout)
+	} else {
+		ctx = context.Background()
+	}
+
+	for _, flag := range cmd.Flags {
+		ctx = context.WithValue(ctx, flag.FlagName(), flag.Value())
+	}
+
+	func() {
+		defer cancler()
+		if !cmd.WaitOnCtrlC {
+			if err := cmd.Action(bag.FromContext(ctx)); err != nil {
+				fmt.Fprint(os.Stderr, err.Error())
+			}
+		}
+	}()
+
+	ch := make(chan os.Signal, 3)
+	signal.Notify(ch, os.Interrupt)
+	signal.Notify(ch, syscall.SIGQUIT)
+	signal.Notify(ch, syscall.SIGTERM)
+
+	go func() {
+		defer cancler()
+		if err := cmd.Action(bag.FromContext(ctx)); err != nil {
+			fmt.Fprint(os.Stderr, err.Error())
+			close(ch)
+		}
+	}()
+
+	<-ctx.Done()
 }
