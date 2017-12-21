@@ -510,8 +510,8 @@ func Run(title string, cmds ...Command) {
 	if !cmd.WaitOnCtrlC {
 		if err := cmd.Action(bag.FromContext(ctx)); err != nil {
 			fmt.Fprint(os.Stderr, err.Error())
-			return
 		}
+		return
 	}
 
 	ch := make(chan os.Signal, 3)
