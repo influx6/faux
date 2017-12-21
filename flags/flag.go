@@ -504,7 +504,9 @@ func Run(title string, cmds ...Command) {
 	}
 
 	func() {
-		defer cancler()
+		if cancler != nil {
+			defer cancler()
+		}
 		if !cmd.WaitOnCtrlC {
 			if err := cmd.Action(bag.FromContext(ctx)); err != nil {
 				fmt.Fprint(os.Stderr, err.Error())
@@ -518,7 +520,9 @@ func Run(title string, cmds ...Command) {
 	signal.Notify(ch, syscall.SIGTERM)
 
 	go func() {
-		defer cancler()
+		if cancler != nil {
+			defer cancler()
+		}
 		if err := cmd.Action(bag.FromContext(ctx)); err != nil {
 			fmt.Fprint(os.Stderr, err.Error())
 			close(ch)
