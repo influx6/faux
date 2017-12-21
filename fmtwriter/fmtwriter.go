@@ -63,7 +63,7 @@ func (fm WriterTo) WriteTo(w io.Writer) (int64, error) {
 	if err := cmd.Exec(context.Background(), fm.Metrics); err != nil {
 
 		// If we must attempt to fallback to gofmt, due to goreturn error, attempt to
-		if fm.goreturn && fm.attemptFallback {
+		if fm.attemptFallback {
 			fmt.Printf("------------------------- ATTEMPTING GOFMT FALLBACK (GOIMPORTS FAILED) --------------------------------------------\n")
 			fmt.Printf("Error:\n%s\n", err.Error())
 			fmt.Printf("---------------------------------------------------------------------\n")

@@ -507,13 +507,12 @@ func Run(title string, cmds ...Command) {
 		ctx = context.WithValue(ctx, flag.FlagName(), flag.Value())
 	}
 
-	func() {
-		if !cmd.WaitOnCtrlC {
-			if err := cmd.Action(bag.FromContext(ctx)); err != nil {
-				fmt.Fprint(os.Stderr, err.Error())
-			}
+	if !cmd.WaitOnCtrlC {
+		if err := cmd.Action(bag.FromContext(ctx)); err != nil {
+			fmt.Fprint(os.Stderr, err.Error())
+			return
 		}
-	}()
+	}
 
 	ch := make(chan os.Signal, 3)
 	signal.Notify(ch, os.Interrupt)
