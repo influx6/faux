@@ -18,7 +18,7 @@ import (
 	"github.com/influx6/faux/auth/service/providers/oauthbolt"
 	"github.com/influx6/faux/httputil"
 	"github.com/influx6/faux/metrics"
-	"github.com/influx6/faux/metrics/sentries/stdout"
+	"github.com/influx6/faux/metrics/custom"
 	"github.com/influx6/faux/tests"
 )
 
@@ -26,7 +26,7 @@ var (
 	id           = "323"
 	clientId     = "43434as43423d232fr232"
 	clientSecret = "af3434Ju83434HK23232"
-	events       = metrics.New(stdout.Stderr{})
+	events       = metrics.New(custom.StackDisplay(os.Stdout))
 )
 
 func TestAuthAPI(t *testing.T) {
@@ -37,7 +37,7 @@ func TestAuthAPI(t *testing.T) {
 		ClientSecret: clientSecret,
 	}, "http://localhost:80/")
 
-	googleService, err := oauthbolt.New(events, client)
+	googleService, err := oauthbolt.New(client)
 	if err != nil {
 		tests.Failed("Should have successfully created bolt service")
 	}

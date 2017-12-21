@@ -11,8 +11,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
+	"context"
+
 	"github.com/influx6/faux/auth"
-	"github.com/influx6/faux/context"
 	"github.com/influx6/faux/httputil"
 )
 
@@ -144,19 +145,19 @@ func (au AuthAPI) Approve(c *httputil.Context) error {
 	response.Code = code
 	response.Identity = identity
 
-	if err2 := au.Service.Approve(c, response); err2 != nil {
+	if err2 := au.Service.Approve(c.Context(), response); err2 != nil {
 		return err2
 	}
 
 	// if we received approval then retrieve identity and add as cookie.
-	identityData, err := au.Service.Get(c, identity)
+	identityData, err := au.Service.Get(c.Context(), identity)
 	if err != nil {
 		return err
 	}
 
 	// If expired then reovke.
 	if identityData.Status > Resolved {
-		if err := au.Service.Revoke(c, identity); err != nil {
+		if err := au.Service.Revoke(c.Context(), identity); err != nil {
 			return err
 		}
 	}
@@ -194,7 +195,7 @@ func (au AuthAPI) Register(c *httputil.Context) error {
 	inibase := fmt.Sprintf("%s:%s:%s:%s", au.ServiceName, fromURL, randString(15), identity)
 	secret := base64.StdEncoding.EncodeToString([]byte(inibase))
 
-	redirectURL, err := au.Service.New(c, identity, secret)
+	redirectURL, err := au.Service.New(c.Context(), identity, secret)
 	if err != nil {
 		return err
 	}
@@ -214,7 +215,7 @@ func (au AuthAPI) Revoke(c *httputil.Context) error {
 		return errors.New("identity param not found")
 	}
 
-	if err := au.Service.Revoke(c, identity); err != nil {
+	if err := au.Service.Revoke(c.Context(), identity); err != nil {
 		return err
 	}
 
@@ -224,7 +225,7 @@ func (au AuthAPI) Revoke(c *httputil.Context) error {
 // RetrieveAll defines a function to return a existing oauth access record through the underline
 // OAuthService.
 func (au AuthAPI) RetrieveAll(c *httputil.Context) error {
-	identities, err := au.Service.Identities(c)
+	identities, err := au.Service.Identities(c.Context())
 	if err != nil {
 		return err
 	}
@@ -241,7 +242,7 @@ func (au AuthAPI) Retrieve(c *httputil.Context) error {
 		return errors.New("identity param not found")
 	}
 
-	identityInfo, err := au.Service.Get(c, identity)
+	identityInfo, err := au.Service.Get(c.Context(), identity)
 	if err != nil {
 		return err
 	}
@@ -277,14 +278,14 @@ func (au AuthAPI) Authenticate(c *httputil.Context) error {
 			return errors.New("Identity does not match token identity")
 		}
 
-		if err := au.Service.Authenticate(c, identity, bearer, userToken); err != nil {
+		if err := au.Service.Authenticate(c.Context(), identity, bearer, userToken); err != nil {
 			return err
 		}
 
 		return nil
 	}
 
-	if err := au.Service.Authenticate(c, identity, bearer, token); err != nil {
+	if err := au.Service.Authenticate(c.Context(), identity, bearer, token); err != nil {
 		return err
 	}
 

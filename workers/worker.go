@@ -12,7 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/influx6/faux/context"
+	"context"
+
 	"github.com/influx6/faux/panics"
 	"github.com/satori/go.uuid"
 )

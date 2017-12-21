@@ -4,13 +4,14 @@ import (
 	"os"
 	"testing"
 
+	"context"
+
 	"github.com/influx6/faux/auth"
 	"github.com/influx6/faux/auth/google"
 	"github.com/influx6/faux/auth/service"
 	"github.com/influx6/faux/auth/service/providers/oauthbolt"
-	"github.com/influx6/faux/context"
 	"github.com/influx6/faux/metrics"
-	"github.com/influx6/faux/metrics/sentries/stdout"
+	"github.com/influx6/faux/metrics/custom"
 	"github.com/influx6/faux/tests"
 )
 
@@ -18,21 +19,21 @@ var (
 	id           = "323"
 	clientId     = "43434as43423d232fr232"
 	clientSecret = "af3434Ju83434HK23232"
-	events       = metrics.New(stdout.Stderr{})
+	events       = metrics.New(custom.StackDisplay(os.Stdout))
 
 	expectedURL = `https://accounts.google.com/o/oauth2/auth?client_id=43434as43423d232fr232&redirect_uri=http%3A%2F%2Flocalhost%3A80%2F&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile&state=RestMan%3A323`
 )
 
 func TestOAuthBolt(t *testing.T) {
 	defer os.Remove("oauth-bolted.db")
-	ctx := context.New()
+	ctx := context.Background()
 
 	client := google.New(auth.Credential{
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
 	}, "http://localhost:80/")
 
-	bolt, err := oauthbolt.New(events, client)
+	bolt, err := oauthbolt.New(client)
 	if err != nil {
 		tests.Failed("Should have successfully created bolt service")
 	}

@@ -3,7 +3,8 @@ package linux
 import (
 	"fmt"
 
-	"github.com/influx6/faux/context"
+	"context"
+
 	"github.com/influx6/faux/exec"
 	"github.com/influx6/faux/metrics"
 )
@@ -33,7 +34,7 @@ func (ap PackageAction) String() string {
 }
 
 // UpdateApt runs necessary commands to install `sudo` package on ubuntu/devian systems
-func UpdateApt(ctx context.CancelContext, m metrics.Metrics) (int, error) {
+func UpdateApt(ctx context.Context, m metrics.Metrics) (int, error) {
 	if err := exec.New(exec.Command("if ! type sudo; then exit 1; fi")).Exec(ctx, m); err != nil {
 		return exec.New(exec.Async(), exec.Command("sudo apt-get -y update")).ExecWithExitCode(ctx, m)
 	}
@@ -41,22 +42,22 @@ func UpdateApt(ctx context.CancelContext, m metrics.Metrics) (int, error) {
 }
 
 // Purge runs necessary commands to remove package on ubuntu/devian systems
-func Purge(ctx context.CancelContext, m metrics.Metrics, pkg string, upstart bool) (int, error) {
+func Purge(ctx context.Context, m metrics.Metrics, pkg string, upstart bool) (int, error) {
 	return DebianPackageInstall(pkg, PurgeAction, upstart).ExecWithExitCode(ctx, m)
 }
 
 // Remove runs necessary commands to remove package on ubuntu/devian systems
-func Remove(ctx context.CancelContext, m metrics.Metrics, pkg string, upstart bool) (int, error) {
+func Remove(ctx context.Context, m metrics.Metrics, pkg string, upstart bool) (int, error) {
 	return DebianPackageInstall(pkg, RemoveAction, upstart).ExecWithExitCode(ctx, m)
 }
 
 // Install runs necessary commands to install package on ubuntu/devian systems
-func Install(ctx context.CancelContext, m metrics.Metrics, pkg string, upstart bool) (int, error) {
+func Install(ctx context.Context, m metrics.Metrics, pkg string, upstart bool) (int, error) {
 	return DebianPackageInstall(pkg, InstallAction, upstart).ExecWithExitCode(ctx, m)
 }
 
 // InstallSudo runs necessary commands to install `sudo` package on ubuntu/devian systems
-func InstallSudo(ctx context.CancelContext, m metrics.Metrics, upstart bool) (int, error) {
+func InstallSudo(ctx context.Context, m metrics.Metrics, upstart bool) (int, error) {
 	if err := exec.New(exec.Command("if ! type sudo; then exit 1; fi")).Exec(ctx, m); err != nil {
 		return DebianPackageInstall("sudo", InstallAction, upstart).ExecWithExitCode(ctx, m)
 	}

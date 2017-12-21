@@ -11,7 +11,7 @@ import (
 
 	"fmt"
 
-	"github.com/influx6/faux/context"
+	"context"
 )
 
 const (

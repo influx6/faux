@@ -2,6 +2,7 @@ package httputil
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -17,7 +18,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/influx6/faux/context"
+	"github.com/influx6/faux/bag"
 	"github.com/influx6/faux/metrics"
 )
 
@@ -91,14 +92,6 @@ func SetNotFound(r Handler) Options {
 	}
 }
 
-// SetContext returns the Option to set the internal cancelable context of a giving
-// Context.
-func SetContext(c context.Context) Options {
-	return func(c *Context) {
-		c.Context = c
-	}
-}
-
 // SetMetrics returns a Option to sets the giving Metrics object for logging into
 // the provided context.
 func SetMetrics(r metrics.Metrics) Options {
@@ -112,7 +105,7 @@ func SetMetrics(r metrics.Metrics) Options {
 // Context defines a http related context object for a request session
 // which is to be served.
 type Context struct {
-	context.Context
+	bag.ValueBag
 	path            string
 	render          Render
 	response        *Response
@@ -126,9 +119,9 @@ type Context struct {
 // NewContext returns a new Context with the Options slice applied.
 func NewContext(ops ...Options) *Context {
 	c := &Context{
-		metrics: metrics.New(),
-		flash:   make(map[string][]string),
-		Context: context.NewCnclContext(context.NewValueBag()),
+		metrics:  metrics.New(),
+		flash:    make(map[string][]string),
+		ValueBag: bag.NewValueBag(),
 	}
 
 	for _, op := range ops {
@@ -142,9 +135,23 @@ func NewContext(ops ...Options) *Context {
 	return c
 }
 
+// Bag returns the underline value bag
+// DEPRECATED: This is added to provided backward compatiblity.
+func (c *Context) Bag() bag.ValueBag {
+	return c.ValueBag
+}
+
 // Metrics returns metric logger for giving context.
 func (c *Context) Metrics() metrics.Metrics {
 	return c.metrics
+}
+
+// Context returns the underline context.Context for the request.
+func (c *Context) Context() context.Context {
+	if c.request != nil {
+		return c.request.Context()
+	}
+	return nil
 }
 
 // Header returns the header associated with the giving request.
@@ -628,9 +635,9 @@ func (c *Context) Reset(r *http.Request, w http.ResponseWriter) {
 	c.query = nil
 	c.notfoundHandler = nil
 	c.metrics = metrics.New()
+	c.ValueBag = bag.NewValueBag()
 	c.response = &Response{Writer: w}
 	c.flash = make(map[string][]string)
-	c.Context = context.NewCnclContext(context.NewValueBag())
 
 	c.InitForms()
 }

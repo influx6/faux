@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 
+	"context"
+
 	"github.com/BurntSushi/toml"
-	"github.com/influx6/faux/context"
 	"github.com/influx6/faux/metrics"
 )
 
@@ -17,7 +18,7 @@ var (
 
 // Op defines an interface which expose an exec method.
 type Op interface {
-	Exec(context.CancelContext, metrics.Metrics) error
+	Exec(context.Context, metrics.Metrics) error
 }
 
 // Function defines a interface for a function which returns a giving Op.
@@ -133,7 +134,7 @@ type MultiRunner struct {
 }
 
 // Exec executes giving spells in a before-now-after sequence.
-func (gn MultiRunner) Exec(ctx context.CancelContext, m metrics.Metrics) error {
+func (gn MultiRunner) Exec(ctx context.Context, m metrics.Metrics) error {
 	for _, item := range gn.Pre {
 		if err := item.Exec(ctx, m); err != nil {
 			return err

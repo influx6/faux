@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"context"
+
 	"github.com/ardanlabs/kit/tests"
-	"github.com/influx6/faux/context"
 	"github.com/influx6/faux/workers"
 )
 
