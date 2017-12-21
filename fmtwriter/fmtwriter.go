@@ -57,7 +57,7 @@ func (fm WriterTo) WriteTo(w io.Writer) (int64, error) {
 		exec.Input(&input),
 		exec.Output(&inout),
 		exec.Err(&inerr),
-		exec.Timeout(10*time.Second),
+		exec.Timeout(5*time.Second),
 	)
 
 	if err := cmd.Exec(context.Background(), fm.Metrics); err != nil {
