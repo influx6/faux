@@ -11,7 +11,7 @@ import (
 
 	"fmt"
 
-	"context"
+	"github.com/influx6/faux/bag"
 )
 
 const (
@@ -95,7 +95,7 @@ func GetFileMimeType(path string) string {
 
 // Params defines a function to return all parameter values and query values
 // retrieved from the request.
-func Params(ctx context.ValueBag, r *http.Request, multipartFormSize int64) error {
+func Params(ctx bag.ValueBag, r *http.Request, multipartFormSize int64) error {
 	if multipartFormSize <= 0 {
 		multipartFormSize = maxsize
 	}
