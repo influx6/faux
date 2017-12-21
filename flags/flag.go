@@ -499,14 +499,15 @@ func Run(title string, cmds ...Command) {
 		ctx = context.Background()
 	}
 
+	if cancler != nil {
+		defer cancler()
+	}
+
 	for _, flag := range cmd.Flags {
 		ctx = context.WithValue(ctx, flag.FlagName(), flag.Value())
 	}
 
 	func() {
-		if cancler != nil {
-			defer cancler()
-		}
 		if !cmd.WaitOnCtrlC {
 			if err := cmd.Action(bag.FromContext(ctx)); err != nil {
 				fmt.Fprint(os.Stderr, err.Error())
@@ -520,14 +521,11 @@ func Run(title string, cmds ...Command) {
 	signal.Notify(ch, syscall.SIGTERM)
 
 	go func() {
-		if cancler != nil {
-			defer cancler()
-		}
 		if err := cmd.Action(bag.FromContext(ctx)); err != nil {
 			fmt.Fprint(os.Stderr, err.Error())
 			close(ch)
 		}
 	}()
 
-	<-ctx.Done()
+	<-ch
 }

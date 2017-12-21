@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	gexec "os/exec"
 	"time"
 
 	"github.com/influx6/faux/exec"
@@ -44,11 +45,11 @@ func (fm WriterTo) WriteTo(w io.Writer) (int64, error) {
 	}
 
 	cmdName := "gofmt -s"
-	//if fm.goreturn {
-	//	if _, err := gexec.LookPath("goreturns"); err == nil {
-	//		cmdName = "goreturns"
-	//	}
-	//}
+	if fm.goreturn {
+		if _, err := gexec.LookPath("goreturns"); err == nil {
+			cmdName = "goreturns"
+		}
+	}
 
 	cmd := exec.New(
 		exec.Command(cmdName),
