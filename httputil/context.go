@@ -46,6 +46,13 @@ func Apply(c *Context, ops ...Options) *Context {
 	return c
 }
 
+// SetValueBag sets the ValueBag of the giving context.
+func SetValueBag(vbag bag.ValueBag) Options {
+	return func(c *Context) {
+		c.ValueBag = vbag
+	}
+}
+
 // SetPath sets the path of the giving context.
 func SetPath(p string) Options {
 	return func(c *Context) {
