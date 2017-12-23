@@ -330,6 +330,7 @@ func LogMW(next Handler) Handler {
 		res.After(func() {
 			if err != nil {
 				m.Emit(metrics.Error(err),
+					metrics.WithID(ctx.id),
 					metrics.Message("Outgoing HTTP Response"),
 					metrics.With("method", req.Method),
 					metrics.With("status", res.Status),
@@ -346,6 +347,7 @@ func LogMW(next Handler) Handler {
 			}
 
 			m.Emit(metrics.Info("Outgoing HTTP Response"),
+				metrics.WithID(ctx.id),
 				metrics.With("method", req.Method),
 				metrics.With("status", res.Status),
 				metrics.With("header", res.Header()),
@@ -360,6 +362,7 @@ func LogMW(next Handler) Handler {
 		})
 
 		m.Emit(metrics.Info("Incoming HTTP Request"),
+			metrics.WithID(ctx.id),
 			metrics.With("method", req.Method),
 			metrics.With("path", req.URL.Path),
 			metrics.With("tls", req.TLS != nil),

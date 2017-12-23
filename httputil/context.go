@@ -20,6 +20,7 @@ import (
 
 	"github.com/influx6/faux/bag"
 	"github.com/influx6/faux/metrics"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -50,6 +51,13 @@ func Apply(c *Context, ops ...Options) *Context {
 func SetValueBag(vbag bag.ValueBag) Options {
 	return func(c *Context) {
 		c.ValueBag = vbag
+	}
+}
+
+// SetID sets the id of the giving context.
+func SetID(id string) Options {
+	return func(c *Context) {
+		c.id = id
 	}
 }
 
@@ -113,6 +121,7 @@ func SetMetrics(r metrics.Metrics) Options {
 // which is to be served.
 type Context struct {
 	bag.ValueBag
+	id              string
 	path            string
 	render          Render
 	response        *Response
@@ -127,6 +136,7 @@ type Context struct {
 func NewContext(ops ...Options) *Context {
 	c := &Context{
 		metrics:  metrics.New(),
+		id:       uuid.NewV4().String(),
 		flash:    make(map[string][]string),
 		ValueBag: bag.NewValueBag(),
 	}
@@ -643,6 +653,7 @@ func (c *Context) Reset(r *http.Request, w http.ResponseWriter) {
 	c.notfoundHandler = nil
 	c.metrics = metrics.New()
 	c.ValueBag = bag.NewValueBag()
+	c.id = uuid.NewV4().String()
 	c.response = &Response{Writer: w}
 	c.flash = make(map[string][]string)
 

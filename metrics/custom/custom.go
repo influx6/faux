@@ -58,6 +58,10 @@ func FlatDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bo
 			fmt.Fprintf(&bu, "%+s", printAtLevel(en.Level, en.Message))
 		}
 
+		if en.ID != "" {
+			fmt.Fprintf(&bu, "ID: %+s", printAtLevel(en.Level, en.ID))
+		}
+
 		fmt.Fprint(&bu, printSpaceLine(2))
 
 		if en.Function != "" {
@@ -122,6 +126,10 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 			fmt.Fprintf(&bu, "%+s\n", printAtLevel(en.Level, en.Message))
 		}
 
+		if en.ID != "" {
+			fmt.Fprintf(&bu, "ID: %+s", printAtLevel(en.Level, en.ID))
+		}
+
 		if en.Function != "" {
 			fmt.Fprintf(&bu, "%s: %+s\n", green.Sprint("Function"), en.Function)
 			fmt.Fprintf(&bu, "%s: %+s:%d\n", green.Sprint("File"), en.File, en.Line)
@@ -181,6 +189,10 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 			fmt.Fprintf(&bu, "%s %+s\n", green.Sprint(header), printAtLevel(en.Level, en.Message))
 		} else {
 			fmt.Fprintf(&bu, "%+s\n", printAtLevel(en.Level, en.Message))
+		}
+
+		if en.ID != "" {
+			fmt.Fprintf(&bu, "ID: %+s", printAtLevel(en.Level, en.ID))
 		}
 
 		if tag == "" {
