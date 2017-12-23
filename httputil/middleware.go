@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/dimfeld/httptreemux"
-	"github.com/influx6/faux/metrics"
 	"github.com/gorilla/mux"
+	"github.com/influx6/faux/metrics"
 )
 
 // Handler defines a function type to process a giving request.
@@ -52,7 +52,7 @@ func MetricsMW(m metrics.Metrics) Middleware {
 // GorillaMW returns a middleware which wraps the next handler
 // with the GorillaMuxVars.
 func GorillaMW(next Handler) Handler {
-		return GorillaMuxHandler(next)
+	return GorillaMuxHandler(next)
 }
 
 // NetworkAuthenticationNeeded implements a Handler which returns http.StatusNetworkAuthenticationRequired always.
@@ -133,8 +133,8 @@ func GorillaMuxHandler(next Handler) Handler {
 // variable map provided by the gorilla mux router and stores those
 // into the context.
 func GorillaMuxVars(ctx *Context) error {
-	for k, v := range mux.Vars(ctx.Request()){
-		ctx.Bag().Set(k,v)
+	for k, v := range mux.Vars(ctx.Request()) {
+		ctx.Bag().Set(k, v)
 	}
 	return nil
 }
@@ -434,13 +434,10 @@ func MuxHandler(errHandler ErrorHandler, handle Handler, mw ...Middleware) Handl
 	}
 }
 
-// TreemuxHandler defines a function which will return a http.HandlerFunc which will
-// receive new Context objects with the provided options applied and it generated
-// from a sync.Pool which will be used to retrieve and create new Context objects.
-// WARNING: When the http.handlerFunc returned by the returned HandlerX function,
-// the Context created will be reset and put back into the pull. So ensure calls
-// do not escape the http.HandlerFunc returned.
-func TreemuxHandler(errHandler ErrorHandler, ops ...Options) TreemuxHandlerMW {
+// HTTPTreemux returns a middleware for usage with the httptreemux router.
+// It ensures to wrap all params into the Context and add necessary paramters
+// as provided for err handling.
+func HTTPTreemux(errHandler ErrorHandler, ops ...Options) TreemuxHandlerMW {
 	return func(handle Handler, mw ...Middleware) httptreemux.HandlerFunc {
 		middleware := MW(mw...)
 
