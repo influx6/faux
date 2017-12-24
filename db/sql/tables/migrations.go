@@ -70,7 +70,9 @@ func (table TableMigration) String() string {
 	}
 
 	if len(table.Queries) != 0 {
-		fmt.Fprint(&b, "\r\n")
+		if b.Len() != 0 {
+			fmt.Fprint(&b, "\r\n")
+		}
 
 		for _, query := range table.Queries {
 			// Attempt to swap in tablename incase of format string
