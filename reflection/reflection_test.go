@@ -80,6 +80,47 @@ func TestMatchElement(t *testing.T) {
 	tests.Passed("Should have failed matched argument types successfully")
 }
 
+func TestStructMapperWithSlice(t *testing.T) {
+	mapper := reflection.NewStructMapper()
+
+	profile := struct {
+		List []Addrs
+	}{
+		List: []Addrs{{Addr: "Tokura 20"}},
+	}
+
+	mapped, err := mapper.MapFrom("json", profile)
+	if err != nil {
+		tests.FailedWithError(err, "Should have successfully converted struct")
+	}
+	tests.Passed("Should have successfully converted struct")
+
+	tests.Info("Map of Struct: %+q", mapped)
+
+	profile2 := struct {
+		List []Addrs
+	}{}
+
+	if err := mapper.MapTo("json", &profile2, mapped); err != nil {
+		tests.FailedWithError(err, "Should have successfully mapped data back to struct")
+	}
+	tests.Passed("Should have successfully mapped data back to struct")
+
+	if len(profile.List) != len(profile2.List) {
+		tests.Failed("Mapped struct should have same length: %d - %d ", len(profile.List), len(profile2.List))
+	}
+	tests.Passed("Mapped struct should have same length: %d - %d ", len(profile.List), len(profile2.List))
+
+	for ind, item := range profile.List {
+		nxItem := profile2.List[ind]
+		if item.Addr != nxItem.Addr {
+			tests.Failed("Item at %d should have equal value %+q -> %+q", ind, item.Addr, nxItem.Addr)
+		}
+	}
+
+	tests.Passed("All items should be exactly the same")
+}
+
 func TestStructMapperWthFieldStruct(t *testing.T) {
 	layout := "Mon Jan 2 2006 15:04:05 -0700 MST"
 	timeType := reflect.TypeOf((*time.Time)(nil))

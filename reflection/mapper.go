@@ -136,6 +136,22 @@ func (sm *StructMapper) MapTo(tag string, target interface{}, data map[string]in
 			}
 		}
 
+		if innerList, ok := value.([]interface{}); ok {
+			if field.Value.Kind() == reflect.Slice {
+				if len(innerList) == 0 {
+					itemsSlice := reflect.MakeSlice(field.Type, 0, 0)
+					fieldTarget.Set(itemsSlice)
+					continue
+				}
+
+				itemsLen := len(innerList)
+				itemsSlice := reflect.MakeSlice(field.Type, itemsLen, itemsLen*2)
+				reflect.Copy(itemsSlice, reflect.ValueOf(value))
+				fieldTarget.Set(itemsSlice)
+				continue
+			}
+		}
+
 		fieldTarget.Set(reflect.ValueOf(value))
 	}
 
