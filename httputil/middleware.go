@@ -166,6 +166,17 @@ func OnDone(condition Handler, nexts ...Handler) Handler {
 	}
 }
 
+// OnNoError calls the next Handler after the condition handler returns no error.
+func OnNoError(condition Handler, action Handler) Handler {
+	return func(c *Context) error {
+		if err := condition(c); err != nil {
+			return err
+		}
+
+		return action(c)
+	}
+}
+
 // OnError calls the next Handler after the condition handler returns an error.
 func OnError(condition Handler, errorAction Handler) Handler {
 	return func(c *Context) error {
