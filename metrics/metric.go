@@ -11,13 +11,13 @@ type Processors interface {
 // Collector defines an interface which exposes a single method to collect
 // internal data which is then returned as an Entry.
 type Collector interface {
-	Collect() Entry
+	Collect(string) Entry
 }
 
 // Metrics defines an interface with a single method for receiving
 // new Entry objects.
 type Metrics interface {
-	CollectMetrics() error
+	CollectMetrics(string) error
 	Emit(...EntryMod) error
 }
 
@@ -54,9 +54,9 @@ type metrics struct {
 
 // CollectMetrics runs internal indepent collectors to
 // grap metrics.
-func (m metrics) CollectMetrics() error {
+func (m metrics) CollectMetrics(id string) error {
 	for _, collector := range m.collectors {
-		if err := m.send(collector.Collect()); err != nil {
+		if err := m.send(collector.Collect(id)); err != nil {
 			return err
 		}
 	}
@@ -165,7 +165,7 @@ func (m caseProcessor) Handle(en Entry) error {
 }
 
 // EntryEmitter defines a type which returns a entry when runned.
-type EntryEmitter func() Entry
+type EntryEmitter func(string) Entry
 
 // Collect returns a Collector which executes provided function when
 // called by Metric to run.
@@ -179,8 +179,8 @@ type fnCollector struct {
 }
 
 // Collect runs the internal function and returning the produced entry.
-func (fn fnCollector) Collect() Entry {
-	return fn.fn()
+func (fn fnCollector) Collect(name string) Entry {
+	return fn.fn(name)
 }
 
 // switchMaster defines that mod out Entry objects based on a provided function.
