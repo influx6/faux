@@ -152,6 +152,11 @@ func NewContext(ops ...Options) *Context {
 	return c
 }
 
+// ID returns the unique id of giving request context.
+func (c *Context) ID() string {
+	return c.id
+}
+
 // Bag returns the underline value bag
 // DEPRECATED: This is added to provided backward compatiblity.
 func (c *Context) Bag() bag.ValueBag {
