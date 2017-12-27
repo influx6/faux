@@ -54,10 +54,13 @@ type metrics struct {
 
 // CollectMetrics runs internal indepent collectors to
 // grap metrics.
-func (m metrics) CollectMetrics() {
+func (m metrics) CollectMetrics() error {
 	for _, collector := range m.collectors {
-		m.send(collector.Collect())
+		if err := m.send(collector.Collect()); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // Send delivers Entry to processors
