@@ -17,7 +17,7 @@ type Collector interface {
 // Metrics defines an interface with a single method for receiving
 // new Entry objects.
 type Metrics interface {
-	CollectMetrics()
+	CollectMetrics() error
 	Emit(...EntryMod) error
 }
 
@@ -39,7 +39,7 @@ func New(vals ...interface{}) Metrics {
 		}
 	}
 
-	return &metrics{
+	return metrics{
 		collectors: collectors,
 		processors: procs,
 		mod:        Partial(mods...),
