@@ -14,6 +14,22 @@ const (
 	InfoLvl                     // Information for view about code operation (replaces Debug, Notice, Trace).
 )
 
+// Entry represent a giving record of data at a giving period of time.
+type Entry struct {
+	ID        string      `json:"id"`
+	Function  string      `json:"function"`
+	File      string      `json:"file"`
+	Type      string      `json:"type"`
+	Line      int         `json:"line"`
+	Level     Level       `json:"level"`
+	Field     Field       `json:"fields"`
+	Time      time.Time   `json:"time"`
+	Message   string      `json:"message"`
+	Filter    interface{} `json:"filter"`
+	Trace     Trace       `json:"trace"`
+	Timelapse []Timelapse `json:"timelapse"`
+}
+
 // Level defines a int type which represent the a giving level of entry for a giving entry.
 type Level int
 
@@ -124,6 +140,13 @@ func Error(err error) EntryMod {
 	})
 }
 
+// Type returns an Entry with the type value set to t.
+func Type(t string) EntryMod {
+	return func(en *Entry) {
+		en.Type = t
+	}
+}
+
 // Info returns an Entry with the level set to Info.
 func Info(message string, m ...interface{}) EntryMod {
 	return withMessageAt(4, InfoLvl, message, m...)
@@ -160,7 +183,7 @@ func withMessageAt(depth int, level Level, message string, m ...interface{}) Ent
 
 // WithTrace returns itself after setting the giving trace value
 // has the method trace for the giving Entry.
-func WithTrace(t *Trace) EntryMod {
+func WithTrace(t Trace) EntryMod {
 	return func(en *Entry) {
 		en.Trace = t
 	}
@@ -204,72 +227,4 @@ func WithFields(f Field) EntryMod {
 			en.Field[k] = v
 		}
 	}
-}
-
-// Entry represent a giving record of data at a giving period of time.
-type Entry struct {
-	ID        string      `json:"id"`
-	Function  string      `json:"function"`
-	File      string      `json:"file"`
-	Line      int         `json:"line"`
-	Level     Level       `json:"level"`
-	Field     Field       `json:"fields"`
-	Time      time.Time   `json:"time"`
-	Message   string      `json:"message"`
-	Filter    interface{} `json:"filter"`
-	Trace     *Trace      `json:"trace"`
-	Timelapse []Timelapse `json:"timelapse"`
-}
-
-// WithMessage sets the Entry Message value.
-func (e Entry) WithMessage(message string, m ...interface{}) Entry {
-	if len(m) == 0 {
-		e.Message = message
-		return e
-	}
-
-	e.Message = fmt.Sprintf(message, m...)
-	return e
-}
-
-// WithID sets the Entry ID value.
-func (e Entry) WithID(id string) Entry {
-	e.ID = id
-	return e
-}
-
-// WithLevel sets the Entry level.
-func (e Entry) WithLevel(l Level) Entry {
-	e.Level = l
-	return e
-}
-
-// WithTimelapse adds provided Timelapse into Entry.Timelapse slice.
-func (e Entry) WithTimelapse(t Timelapse) Entry {
-	e.Timelapse = append(e.Timelapse, t)
-	return e
-}
-
-// WithTrace returns itself after setting the giving trace value
-// has the method trace for the giving Entry.
-func (e Entry) WithTrace(t *Trace) Entry {
-	e.Trace = t
-	return e
-}
-
-// With returns a Entry set to the LogLevel of the previous and
-// adds the giving key-value pair to the entry.
-func (e Entry) With(key string, value interface{}) Entry {
-	e.Field[key] = value
-	return e
-}
-
-// WithFields adds all field key-value pair into associated Entry
-// returning the Entry.
-func (e Entry) WithFields(f Field) Entry {
-	for k, v := range f {
-		e.Field[k] = v
-	}
-
-	return e
 }

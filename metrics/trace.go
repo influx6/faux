@@ -22,16 +22,14 @@ type Trace struct {
 	Package    string    `json:"Package"`
 	Function   string    `json:"function"`
 	LineNumber int       `json:"line_number"`
-	BeginStack []byte    `json:"begin_stack"`
-	EndStack   []byte    `json:"end_stack"`
+	Stack      []byte    `json:"stack"`
 	Comments   []string  `json:"comments"`
-	StartTime  time.Time `json:"start_time"`
-	EndTime    time.Time `json:"end_time"`
+	Time       time.Time `json:"end_time"`
 }
 
 // NewTrace returns a Trace object which is used to track the execution and
 // stack details of a given trace call.
-func NewTrace(comments ...string) *Trace {
+func NewTrace(comments ...string) Trace {
 	trace := make([]byte, stackSize)
 	trace = trace[:runtime.Stack(trace, false)]
 
@@ -55,12 +53,12 @@ func NewTrace(comments ...string) *Trace {
 
 	functionName, _, _ := getFunctionName(3)
 
-	return &Trace{
+	return Trace{
 		Package:    pkg,
 		LineNumber: line,
-		BeginStack: trace,
+		Stack:      trace,
 		Comments:   comments,
-		StartTime:  time.Now(),
+		Time:       time.Now(),
 		File:       pkgFile,
 		Function:   functionName,
 	}
@@ -69,7 +67,7 @@ func NewTrace(comments ...string) *Trace {
 
 // NewTraceWithCallDepth returns a Trace object which is used to track the execution and
 // stack details of a given trace call.
-func NewTraceWithCallDepth(depth int, comments ...string) *Trace {
+func NewTraceWithCallDepth(depth int, comments ...string) Trace {
 	trace := make([]byte, stackSize)
 	trace = trace[:runtime.Stack(trace, false)]
 
@@ -93,30 +91,20 @@ func NewTraceWithCallDepth(depth int, comments ...string) *Trace {
 
 	functionName, _, _ := getFunctionName(3)
 
-	return &Trace{
+	return Trace{
 		Package:    pkg,
 		LineNumber: line,
-		BeginStack: trace,
+		Stack:      trace,
 		File:       pkgFile,
 		Comments:   comments,
-		StartTime:  time.Now(),
+		Time:       time.Now(),
 		Function:   functionName,
 	}
 }
 
 // String returns the giving trace timestamp for the execution time.
-func (t *Trace) String() string {
-	return fmt.Sprintf("[Total=%+q, Start=%+q, End=%+q]", t.EndTime.Sub(t.StartTime), t.StartTime, t.EndTime)
-}
-
-// End stops the trace, captures the current stack trace and returns the
-// entry related to the trace.
-func (t *Trace) End() *Trace {
-	trace := make([]byte, stackSize)
-	trace = trace[:runtime.Stack(trace, false)]
-	t.EndStack = trace
-	t.EndTime = time.Now()
-	return t
+func (t Trace) String() string {
+	return fmt.Sprintf("[Package=%q, File=%q, Time=%+q]", t.Package, t.File, t.Time)
 }
 
 // getFunctionName returns the caller of the function that called it :)

@@ -8,9 +8,16 @@ type Processors interface {
 	Handle(Entry) error
 }
 
+// Collector defines an interface which exposes a single method to collect
+// internal data which is then returned as an Entry.
+type Collector interface {
+	Collect() Entry
+}
+
 // Metrics defines an interface with a single method for receiving
 // new Entry objects.
 type Metrics interface {
+	CollectMetrics()
 	Emit(...EntryMod) error
 }
 
@@ -19,9 +26,12 @@ type Metrics interface {
 func New(vals ...interface{}) Metrics {
 	var mods []EntryMod
 	var procs []Processors
+	var collectors []Collector
 
 	for _, val := range vals {
 		switch item := val.(type) {
+		case Collector:
+			collectors = append(collectors, item)
 		case EntryMod:
 			mods = append(mods, item)
 		case Processors:
@@ -30,6 +40,7 @@ func New(vals ...interface{}) Metrics {
 	}
 
 	return &metrics{
+		collectors: collectors,
 		processors: procs,
 		mod:        Partial(mods...),
 	}
@@ -38,12 +49,35 @@ func New(vals ...interface{}) Metrics {
 type metrics struct {
 	mod        EntryMod
 	processors []Processors
+	collectors []Collector
+}
+
+// CollectMetrics runs internal indepent collectors to
+// grap metrics.
+func (m metrics) CollectMetrics() {
+	for _, collector := range m.collectors {
+		m.send(collector.Collect())
+	}
+}
+
+// Send delivers Entry to processors
+func (m metrics) send(en Entry) error {
+	for _, met := range m.processors {
+		if err := met.Handle(en); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Emit implements the Metrics interface and delivers Entry
 // to undeline metrics.
 func (m metrics) Emit(mods ...EntryMod) error {
 	if len(m.processors) == 0 {
+		return nil
+	}
+
+	if len(mods) == 0 {
 		return nil
 	}
 
@@ -54,14 +88,7 @@ func (m metrics) Emit(mods ...EntryMod) error {
 		m.mod(&en)
 	}
 
-	// Deliver augmented Entry to child Metrics
-	for _, met := range m.processors {
-		if err := met.Handle(en); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return m.send(en)
 }
 
 // FilterLevel will return a metrics where all Entry will be filtered by their Entry.Level
@@ -132,6 +159,25 @@ func (m caseProcessor) Handle(en Entry) error {
 		}
 	}
 	return nil
+}
+
+// EntryEmitter defines a type which returns a entry when runned.
+type EntryEmitter func() Entry
+
+// Collect returns a Collector which executes provided function when
+// called by Metric to run.
+func Collect(fn EntryEmitter) Collector {
+	return fnCollector{fn: fn}
+}
+
+// fnCollector implements the Collector interface.
+type fnCollector struct {
+	fn EntryEmitter
+}
+
+// Collect runs the internal function and returning the produced entry.
+func (fn fnCollector) Collect() Entry {
+	return fn.fn()
 }
 
 // switchMaster defines that mod out Entry objects based on a provided function.
