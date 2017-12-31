@@ -11,7 +11,7 @@ const (
 	chars        = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_abcdefghijklmnopqrstuvwxyz~"
 	charsLen     = 28
 	charsByte    = byte(28)
-	defaultIDLen = 10
+	defaultIDLen = 20
 	tickOffset   = 30 * time.Second
 )
 
