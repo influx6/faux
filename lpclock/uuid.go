@@ -2,6 +2,7 @@ package lpclock
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"strconv"
@@ -37,53 +38,6 @@ type UUID struct {
 	Origin string
 	Tick   int64
 	Type   TickType
-}
-
-// UnmarshalText unmarshals giving uuid into appropriate UUID struct.
-func (u *UUID) UnmarshalText(data []byte) error {
-	if !bytes.HasPrefix(data, hash) {
-		return ErrNoHashPrefix
-	}
-
-	data = bytes.TrimPrefix(data, hash)
-	areas := bytes.Split(data, hash)
-	if len(areas) != 2 {
-		return ErrInvalidUUIDFormat
-	}
-
-	tickValue, err := strconv.ParseInt(string(areas[0]), 10, 64)
-	if err != nil {
-		return err
-	}
-
-	switch TickType(tickValue) {
-	case LAMPORTTICK, UNIXTICK:
-		u.Type = TickType(tickValue)
-	default:
-		return ErrInvalidTickType
-	}
-
-	identity := bytes.Split(areas[1], dot)
-	if len(identity) != 2 {
-		return ErrInvalidIdentityFormat
-	}
-
-	u.Origin = string(identity[0])
-
-	idTime := bytes.Split(identity[1], underscore)
-	if len(idTime) != 2 {
-		return ErrInvalidIDTimeFormat
-	}
-
-	u.ID = string(idTime[0])
-
-	timeTick, err := strconv.ParseInt(string(idTime[1]), 10, 64)
-	if err != nil {
-		return err
-	}
-
-	u.Tick = timeTick
-	return nil
 }
 
 // GreaterThan validates that the uuid is less than value of
@@ -137,8 +91,61 @@ func (u UUID) MarshalText() ([]byte, error) {
 	return []byte(u.String()), nil
 }
 
+// UnmarshalText unmarshals giving uuid into appropriate UUID struct.
+func (u *UUID) UnmarshalText(data []byte) error {
+	var dest []byte
+	_, err := base64.StdEncoding.Decode(dest, data)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.HasPrefix(dest, hash) {
+		return ErrNoHashPrefix
+	}
+
+	dest = bytes.TrimPrefix(dest, hash)
+	areas := bytes.Split(dest, hash)
+	if len(areas) != 2 {
+		return ErrInvalidUUIDFormat
+	}
+
+	tickValue, err := strconv.ParseInt(string(areas[0]), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	switch TickType(tickValue) {
+	case LAMPORTTICK, UNIXTICK:
+		u.Type = TickType(tickValue)
+	default:
+		return ErrInvalidTickType
+	}
+
+	identity := bytes.Split(areas[1], dot)
+	if len(identity) != 2 {
+		return ErrInvalidIdentityFormat
+	}
+
+	u.Origin = string(identity[0])
+
+	idTime := bytes.Split(identity[1], underscore)
+	if len(idTime) != 2 {
+		return ErrInvalidIDTimeFormat
+	}
+
+	u.ID = string(idTime[0])
+
+	timeTick, err := strconv.ParseInt(string(idTime[1]), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	u.Tick = timeTick
+	return nil
+}
+
 // String returns string version of uuid.
 // Format: #TICK_TYPE#ID_LENGTH#OriginID_TIMETICK
 func (u UUID) String() string {
-	return fmt.Sprintf("#%d#%s.%s_%d", u.Type, u.Origin, u.ID, u.Tick)
+	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("#%d#%s.%s_%d", u.Type, u.Origin, u.ID, u.Tick)))
 }

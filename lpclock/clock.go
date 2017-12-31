@@ -103,5 +103,5 @@ func generateLength(m int) []byte {
 }
 
 func init() {
-	rand.Seed(time.Now().Unix())
+	rand.Seed(time.Now().UTC().Unix())
 }
