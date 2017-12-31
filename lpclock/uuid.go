@@ -2,7 +2,6 @@ package lpclock
 
 import (
 	"bytes"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"strconv"
@@ -92,13 +91,7 @@ func (u UUID) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText unmarshals giving uuid into appropriate UUID struct.
-func (u *UUID) UnmarshalText(data []byte) error {
-	var dest []byte
-	_, err := base64.StdEncoding.Decode(dest, data)
-	if err != nil {
-		return err
-	}
-
+func (u *UUID) UnmarshalText(dest []byte) error {
 	if !bytes.HasPrefix(dest, hash) {
 		return ErrNoHashPrefix
 	}
@@ -147,5 +140,5 @@ func (u *UUID) UnmarshalText(data []byte) error {
 // String returns string version of uuid.
 // Format: #TICK_TYPE#ID_LENGTH#OriginID_TIMETICK
 func (u UUID) String() string {
-	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("#%d#%s.%s_%d", u.Type, u.Origin, u.ID, u.Tick)))
+	return fmt.Sprintf("#%d#%s.%s_%d", u.Type, u.Origin, u.ID, u.Tick)
 }

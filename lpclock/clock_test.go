@@ -39,12 +39,14 @@ func TestUUIDMarshaling(t *testing.T) {
 	}
 	tests.Passed("Should have successfully marshalled UUID")
 
+	tests.Info("UUID: %q", uuid.String())
 	var uid lpclock.UUID
 	if err := uid.UnmarshalText(uuidBytes); err != nil {
 		tests.FailedWithError(err, "Should have successfully unmarshalled uuid")
 	}
 	tests.Passed("Should have successfully unmarshalled uuid")
 
+	tests.Info("UUID: %q", uid.String())
 	if uid.String() != uuid.String() {
 		tests.Failed("Should have uuid match successfully")
 	}
