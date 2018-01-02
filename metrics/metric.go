@@ -17,8 +17,9 @@ type Collector interface {
 // Metrics defines an interface with a single method for receiving
 // new Entry objects.
 type Metrics interface {
-	CollectMetrics(string) error
+	Send(Entry) error
 	Emit(...EntryMod) error
+	CollectMetrics(string) error
 }
 
 // New returns a Metrics object with the provided Augmenters and  Metrics
@@ -61,7 +62,7 @@ type metrics struct {
 // grap metrics.
 func (m metrics) CollectMetrics(id string) error {
 	for _, collector := range m.collectors {
-		if err := m.send(collector.Collect(id)); err != nil {
+		if err := m.Send(collector.Collect(id)); err != nil {
 			return err
 		}
 	}
@@ -69,7 +70,7 @@ func (m metrics) CollectMetrics(id string) error {
 }
 
 // Send delivers Entry to processors
-func (m metrics) send(en Entry) error {
+func (m metrics) Send(en Entry) error {
 	for _, met := range m.processors {
 		if err := met.Handle(en); err != nil {
 			return err
@@ -91,7 +92,7 @@ func (m metrics) Emit(mods ...EntryMod) error {
 		m.mod(&en)
 	}
 
-	return m.send(en)
+	return m.Send(en)
 }
 
 // FilterLevel will return a metrics where all Entry will be filtered by their Entry.Level
