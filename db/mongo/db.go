@@ -29,6 +29,17 @@ func (m Config) CloneWithCollection(col string) Config {
 	return copy
 }
 
+// Empty returns true/false if all Config values are at default/empty/non-set
+// state.
+func (mgc Config) Empty() bool {
+	return mgc.Collection == "" &&
+		mgc.AuthDB == "" &&
+		mgc.DB == "" &&
+		mgc.User == "" &&
+		mgc.Password == "" &&
+		mgc.Host == ""
+}
+
 // Validate returns an error if the config is invalid.
 func (mgc Config) Validate() error {
 	if mgc.User == "" {
