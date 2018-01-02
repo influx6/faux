@@ -13,12 +13,12 @@ import (
 
 // Config embodies the data used to connect to user's mongo connection.
 type Config struct {
-	AuthDB     string `toml:"authdb"`
-	DB         string `toml:"db"`
-	User       string `toml:"user"`
-	Password   string `toml:"password"`
-	Host       string `toml:"host"`
-	Collection string `toml:"collection"`
+	DB         string `toml:"db" json:"db"`
+	AuthDB     string `toml:"authdb" json:"authdb"`
+	User       string `toml:"user" json:"user"`
+	Password   string `toml:"password" json:"password"`
+	Host       string `toml:"host" json:"host"`
+	Collection string `toml:"collection" json:"collection"`
 }
 
 // CloneWithCollection returns a new Config cloned from this instance
