@@ -45,6 +45,9 @@ func (mgc Config) Validate() error {
 	if mgc.DB == "" {
 		return errors.New("Config.DB is required")
 	}
+	if mgc.Collection == "" {
+		return errors.New("Config.Collection is required")
+	}
 	return nil
 }
 
