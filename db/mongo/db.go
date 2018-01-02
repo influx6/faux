@@ -77,6 +77,17 @@ func NewMongoDB(conf Config) *MongoDB {
 }
 
 // New returns a new session and database from the giving configuration.
+//
+// Argument:
+//  isread: bool
+//
+// 1. If `isread` is false, then the mgo.Session is cloned so that we re-use the existing
+// sessiby not closing, so others get use ofn connection, in such case, it lets you optimize writes, so try not
+// the session instance connection for other writes.
+//
+// 2. If `isread` is true, then session is copied which creates a new unique session which you
+// should close after use, this lets you handle large reads that may contain complicated queries.
+//
 func (m *MongoDB) New(isread bool) (*mgo.Collection, *mgo.Database, *mgo.Session, error) {
 	m.ml.Lock()
 	defer m.ml.Unlock()
