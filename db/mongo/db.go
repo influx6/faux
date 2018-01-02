@@ -2,33 +2,122 @@ package mongo
 
 import (
 	"encoding/json"
+	"errors"
+	"runtime"
+	"sync"
 	"time"
 
 	"gopkg.in/mgo.v2"
 )
 
-// Mongod defines a interface which exposes a method for retrieving a
-// mongo.Database and mongo.Session.
-type Mongod interface {
-	New() (*mgo.Database, *mgo.Session, error)
-}
-
-// Config provides configuration for connecting to a db.
+// Config embodies the data used to connect to user's mongo connection.
 type Config struct {
-	Host     string
-	AuthDB   string
-	DB       string
-	User     string
-	Password string
-	Mode     mgo.Mode
+	AuthDB     string `toml:"authdb"`
+	DB         string `toml:"db"`
+	User       string `toml:"user"`
+	Password   string `toml:"password"`
+	Host       string `toml:"host"`
+	Collection string `toml:"collection"`
 }
 
-// GetSession attempts to retrieve the giving session for the given config.
-func GetSession(config Config) (*mgo.Session, error) {
-	// key := config.Host + ":" + config.DB
+// CloneWithCollection returns a new Config cloned from this instance
+// with the Collection changed to the provided name.
+func (m Config) CloneWithCollection(col string) Config {
+	copy := m
+	copy.Collection = col
+	return copy
+}
 
-	// If not found, then attemp to connect and add to session master list.
-	// We need this object to establish a session to our MongoDB.
+// Validate returns an error if the config is invalid.
+func (mgc Config) Validate() error {
+	if mgc.User == "" {
+		return errors.New("Config.User is required")
+	}
+	if mgc.Password == "" {
+		return errors.New("Config.Password is required")
+	}
+	if mgc.AuthDB == "" {
+		return errors.New("Config.AuthDB is required")
+	}
+	if mgc.Host == "" {
+		return errors.New("Config.Host is required")
+	}
+	if mgc.DB == "" {
+		return errors.New("Config.DB is required")
+	}
+	return nil
+}
+
+// MongoDB defines a mongo connection manager that builds
+// allows usage of a giving configuration to generate new mongo
+// sessions and database instances.
+type MongoDB struct {
+	Config
+	ml     sync.Mutex
+	master *mgo.Session
+}
+
+// NewMongoDB returns a new instance of a MongoDB.
+func NewMongoDB(conf Config) *MongoDB {
+	mg := &MongoDB{
+		Config: conf,
+	}
+
+	// Add finalizer to ensure closure of master session.
+	runtime.SetFinalizer(mg, func() {
+		mg.ml.Lock()
+		defer mg.ml.Unlock()
+		if mg.master != nil {
+			mg.master.Close()
+			mg.master = nil
+		}
+	})
+
+	return mg
+}
+
+// New returns a new session and database from the giving configuration.
+func (m *MongoDB) New(isread bool) (*mgo.Collection, *mgo.Database, *mgo.Session, error) {
+	m.ml.Lock()
+	defer m.ml.Unlock()
+
+	// if m.master is alive then continue else, reset as empty.
+	if err := m.master.Ping(); err != nil {
+		m.master = nil
+	}
+
+	if m.master != nil && isread {
+		copy := m.master.Copy()
+		db := copy.DB(m.Config.DB)
+		return db.C(m.Config.Collection), db, copy, nil
+	}
+
+	if m.master != nil && !isread {
+		clone := m.master.Clone()
+		db := clone.DB(m.Config.DB)
+		return db.C(m.Config.Collection), db, clone, nil
+	}
+
+	ses, err := getSession(m.Config)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	m.master = ses
+
+	if isread {
+		copy := m.master.Copy()
+		db := copy.DB(m.Config.DB)
+		return db.C(m.Config.Collection), db, copy, nil
+	}
+
+	clone := m.master.Clone()
+	db := clone.DB(m.Config.DB)
+	return db.C(m.Config.Collection), db, clone, nil
+}
+
+// getSession attempts to retrieve the giving session for the given config.
+func getSession(config Config) (*mgo.Session, error) {
 	info := mgo.DialInfo{
 		Addrs:    []string{config.Host},
 		Timeout:  60 * time.Second,
@@ -44,38 +133,9 @@ func GetSession(config Config) (*mgo.Session, error) {
 		return nil, err
 	}
 
-	if config.Mode < 0 {
-		config.Mode = mgo.Monotonic
-	}
-
-	ses.SetMode(config.Mode, true)
+	ses.SetMode(mgo.Monotonic, true)
 
 	return ses, nil
-}
-
-// New returns a new instance of a MongoServer.
-func New(config Config) Mongod {
-	var mn mongoServer
-	mn.Config = config
-
-	return &mn
-}
-
-// mongoServer defines a mongo connection manager that builds
-// allows usage of a giving configuration to generate new mongo
-// sessions and database instances.
-type mongoServer struct {
-	Config
-}
-
-// New returns a new session and database from the giving configuration.
-func (m *mongoServer) New() (*mgo.Database, *mgo.Session, error) {
-	ses, err := GetSession(m.Config)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return ses.DB(m.Config.DB), ses, nil
 }
 
 //==========================================================================================
