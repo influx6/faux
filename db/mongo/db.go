@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // Config embodies the data used to connect to user's mongo connection.
@@ -150,6 +151,61 @@ func getSession(config Config) (*mgo.Session, error) {
 	ses.SetMode(mgo.Monotonic, true)
 
 	return ses, nil
+}
+
+//==========================================================================================
+
+// MongoPush implements a record push mechanism which allows you
+// to quickly push new records into the underline mongo collection
+// which will be used for storage.
+type MongoPush struct {
+	Src *MongoDB
+}
+
+// Push returns next record from last batch retrieved from underlined
+// collection.
+func (m MongoPush) Push(recs ...map[string]interface{}) error {
+	col, _, _, err := m.Src.New(false)
+	if err != nil {
+		return err
+	}
+
+	for _, rec := range recs {
+		if err := col.Insert(rec); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// MongoPull implements a record pull mechanism which allows you
+// to quickly pull records from the underline mongo collection
+// which will be used for processing.
+type MongoPull struct {
+	Src  *MongoDB
+	last int
+}
+
+// Pull returns next record from last batch retrieved from underlined
+// collection.
+func (m *MongoPull) Pull(batch int) ([]map[string]interface{}, error) {
+	col, _, session, err := m.Src.New(true)
+	if err != nil {
+		return nil, err
+	}
+
+	defer session.Close()
+
+	var rec []map[string]interface{}
+	if err := col.Find(bson.M{}).Skip(m.last).Limit(batch).All(&rec); err != nil {
+		return rec, err
+	}
+
+	// update cursor of last read.
+	m.last += batch
+
+	return rec, nil
 }
 
 //==========================================================================================
