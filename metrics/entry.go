@@ -26,6 +26,7 @@ type Entry struct {
 	Time      time.Time   `json:"time"`
 	Message   string      `json:"message"`
 	Filter    interface{} `json:"filter"`
+	Tags      []string    `json:"tags"`
 	Trace     Trace       `json:"trace"`
 	Timelapse []Timelapse `json:"timelapse"`
 }
@@ -138,6 +139,13 @@ func Error(err error) EntryMod {
 	return Partial(withMessageAt(4, ErrorLvl, err.Error()), func(en *Entry) {
 		en.Field["error"] = err
 	})
+}
+
+// Tags returns an Entry with the tags value set to ts.
+func Tags(ts ...string) EntryMod {
+	return func(en *Entry) {
+		en.Tags = ts
+	}
 }
 
 // Type returns an Entry with the type value set to t.

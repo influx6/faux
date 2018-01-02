@@ -39,10 +39,15 @@ func New(vals ...interface{}) Metrics {
 		}
 	}
 
+	var modder EntryMod
+	if len(mods) != 0 {
+		modder = Partial(mods...)
+	}
+
 	return metrics{
 		collectors: collectors,
 		processors: procs,
-		mod:        Partial(mods...),
+		mod:        modder,
 	}
 }
 
@@ -76,17 +81,12 @@ func (m metrics) send(en Entry) error {
 // Emit implements the Metrics interface and delivers Entry
 // to undeline metrics.
 func (m metrics) Emit(mods ...EntryMod) error {
-	if len(m.processors) == 0 {
-		return nil
-	}
-
-	if len(mods) == 0 {
+	if len(m.processors) == 0 || len(mods) == 0 {
 		return nil
 	}
 
 	var en Entry
 	Apply(&en, mods...)
-
 	if m.mod != nil {
 		m.mod(&en)
 	}
