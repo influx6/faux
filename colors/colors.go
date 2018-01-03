@@ -23,10 +23,11 @@ func IsRGBFormat(c string) bool {
 
 // rgbHeader defines a regexp for matching rgb/rgba header content.
 var rgbHeader = regexp.MustCompile("rgb\\(([\\d\\.,\\s]+)\\)")
+var rgbHeader2 = regexp.MustCompile("rgb\\(([\\d\\.,]+)\\)")
 
 // IsRGB returns true/false if the giving string is a rgb format data.
 func IsRGB(c string) bool {
-	return rgbHeader.MatchString(c)
+	return rgbHeader.MatchString(c) || rgbHeader2.MatchString(c)
 }
 
 // IsHex returns true/false if the giving value is a hex color representation.
@@ -43,9 +44,12 @@ func IsHex(c string) bool {
 // rgbaHeader defines a regexp for matching rgb/rgba header content.
 var rgbaHeader = regexp.MustCompile("rgba\\(([\\d\\.,\\s]+)\\)")
 
+// rgbaHeader defines a regexp for matching rgb/rgba header content.
+var rgbaHeader2 = regexp.MustCompile("rgba\\(([\\d\\.,]+)\\)")
+
 // IsRGBA returns true/false if the giving string is a rgba format data.
 func IsRGBA(c string) bool {
-	return rgbaHeader.MatchString(c)
+	return rgbaHeader.MatchString(c) || rgbaHeader2.MatchString(c)
 }
 
 var hsl = regexp.MustCompile("hsl\\((\\d+),\\s*([\\d.]+)%,\\s*([\\d.]+)%\\)")

@@ -3,402 +3,207 @@
 // Inspired by https://medium.com/@tjholowaychuk/apex-log-e8d9627f4a9a.
 package metrics
 
-import (
-	"fmt"
-	"path/filepath"
-	"runtime"
-	"strings"
-	"time"
-)
+// Processors implements a single method to process a Entry.
+type Processors interface {
+	Handle(Entry) error
+}
 
-const (
-	// TraceKey defines the key which is used to store the trace object.
-	TraceKey = "FuncTrace"
+// Collector defines an interface which exposes a single method to collect
+// internal data which is then returned as an Entry.
+type Collector interface {
+	Collect(string) Entry
+}
 
-	// DefaultMessage defines a default message used by SentryJSON where
-	// fields contains no messages to be used.
-	DefaultMessage = "No Message"
-
-	// StackSize defines the max size for an expected stack.
-	StackSize = 1 << 6
-)
-
-//==============================================================================
-
-// Metrics defines an interface which exposes a method which receives given
-// Entry which will be sorted accordingly to it's registered entry.
+// Metrics defines an interface with a single method for receiving
+// new Entry objects.
 type Metrics interface {
-	Emit(Entry) error
+	Send(Entry) error
+	Emit(...EntryMod) error
+	CollectMetrics(string) error
 }
 
-// Sentry exposes an interface which allows Entries to be transformed into
-// a structure which delivers the json data to remote APIs, services, etc.
-type Sentry interface {
-	Emit(SentryJSON) error
-}
+// New returns a Metrics object with the provided Augmenters and  Metrics
+// implemement objects for receiving metric Entries.
+func New(vals ...interface{}) Metrics {
+	var mods []EntryMod
+	var procs []Processors
+	var collectors []Collector
 
-//==============================================================================
-
-// New returns a new metricsMaster for which will recieve all expected Entry values.
-func New(metrics ...interface{}) Master {
-	var sentries []Sentry
-	var entries []Metrics
-
-	for _, item := range metrics {
-		switch rItem := item.(type) {
-		case Metrics:
-			entries = append(entries, rItem)
-		case Sentry:
-			sentries = append(sentries, rItem)
+	for _, val := range vals {
+		switch item := val.(type) {
+		case Collector:
+			collectors = append(collectors, item)
+		case EntryMod:
+			mods = append(mods, item)
+		case Processors:
+			procs = append(procs, item)
 		}
 	}
 
-	return Master{
-		metrics: append(entries, Sentries(sentries...)),
+	var modder EntryMod
+	if len(mods) != 0 {
+		modder = Partial(mods...)
+	}
+
+	return metrics{
+		collectors: collectors,
+		processors: procs,
+		mod:        modder,
 	}
 }
 
-//==============================================================================
-
-// SentryJSON defines a json style structure for delivery entry data to
-// other APIs.
-type SentryJSON struct {
-	Time    time.Time `json:"time"`
-	Message string    `json:"message"`
-	Fields  Fields    `json:"fields"`
+type metrics struct {
+	mod        EntryMod
+	processors []Processors
+	collectors []Collector
 }
 
-// SentryPipe defines a pipe which will expose a method to allow piping into a
-// metrics to deliver entries as centries.
-type SentryPipe struct {
-	sentries []Sentry
-}
-
-// Sentries returns a metrics which will pipe all recieved Entrys to provided
-// sentries.
-func Sentries(sx ...Sentry) Metrics {
-	return SentryPipe{
-		sentries: sx,
-	}
-}
-
-// Emit delivers the giving entry to all available metricss.
-func (pipe SentryPipe) Emit(e Entry) error {
-	var sentryJSON SentryJSON
-	sentryJSON.Fields = e.Fields()
-	sentryJSON.Time = time.Now()
-
-	var message string
-	if e.Message != "" {
-		message = e.Message
-	} else if mo, ok := sentryJSON.Fields["message"].(string); ok {
-		message = mo
-	} else {
-		message = DefaultMessage
-	}
-
-	sentryJSON.Message = message
-
-	for _, sentry := range pipe.sentries {
-		if err := sentry.Emit(sentryJSON); err != nil {
+// CollectMetrics runs internal indepent collectors to
+// grap metrics.
+func (m metrics) CollectMetrics(id string) error {
+	for _, collector := range m.collectors {
+		if err := m.Send(collector.Collect(id)); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
-//==============================================================================
-
-// Master defines a core metrics structure to pipe Entry values to registed metricss.
-type Master struct {
-	metrics []Metrics
-}
-
-// With returns a new Master with a new list of metricss.
-func (metrics Master) With(m Metrics) Master {
-	return Master{
-		metrics: append([]Metrics{m}, metrics.metrics...),
-	}
-}
-
-// Emit delivers the giving entry to all available metricss.
-func (metrics Master) Emit(e Entry) error {
-	for _, metrics := range metrics.metrics {
-		if err := metrics.Emit(e); err != nil {
+// Send delivers Entry to processors
+func (m metrics) Send(en Entry) error {
+	for _, met := range m.processors {
+		if err := met.Handle(en); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
-//==============================================================================
+// Emit implements the Metrics interface and delivers Entry
+// to undeline metrics.
+func (m metrics) Emit(mods ...EntryMod) error {
+	if len(m.processors) == 0 || len(mods) == 0 {
+		return nil
+	}
 
-// NilPair defines a nil starting pair.
-var NilPair = (*Pair)(nil)
+	var en Entry
+	Apply(&en, mods...)
+	if m.mod != nil {
+		m.mod(&en)
+	}
 
-// Pair defines a struct for storing a linked pair of key and values.
-type Pair struct {
-	prev  *Pair
-	key   string
-	value interface{}
+	return m.Send(en)
 }
 
-// NewPair returns a a key-value pair chain for setting fields.
-func NewPair(key string, value interface{}) *Pair {
-	return &Pair{
-		key:   key,
-		value: value,
+// FilterLevel will return a metrics where all Entry will be filtered by their Entry.Level
+// if the level giving is greater or equal to the provided, then it will be received by
+// the metrics subscribers.
+func FilterLevel(l Level, procs ...Processors) Processors {
+	return Case(func(en Entry) bool { return en.Level >= l }, procs...)
+}
+
+// DoFn defines a function type which takes a giving Entry.
+type DoFn func(Entry) error
+
+type fnMetrics struct {
+	do DoFn
+}
+
+// DoWith returns a Metrics object where all entries are applied to the provided function.
+func DoWith(do DoFn) Processors {
+	return fnMetrics{
+		do: do,
 	}
 }
 
-// Append returns a new Pair with the giving key and with the provded Pair set as
-// it's previous link.
-func Append(p *Pair, key string, value interface{}) *Pair {
-	return p.Append(key, value)
+// Handle implements the Processors interface and delivers Entry
+// to undeline metrics.
+func (m fnMetrics) Handle(en Entry) error {
+	return m.do(en)
 }
 
-// Fields defines a type for key-value pairs which defines the field values to be stored.
-type Fields map[string]interface{}
-
-// Fields returns all internal pair data as a map.
-func (p *Pair) Fields() Fields {
-	var f Fields
-
-	if p.prev == nil {
-		f = make(Fields)
-		f[p.key] = p.value
-		return f
-	}
-
-	f = p.prev.Fields()
-
-	if p.key != "" {
-		f[p.key] = p.value
-	}
-
-	return f
+// ConditionalProcessors defines a Processor which first validate it's
+// ability to process a giving Entry.
+type ConditionalProcessors interface {
+	Processors
+	Can(Entry) bool
 }
 
-// Append returns a new pair with the giving key and value and its previous
-// set to this pair.
-func (p *Pair) Append(key string, val interface{}) *Pair {
-	return &Pair{
-		prev:  p,
-		key:   key,
-		value: val,
+// FilterFn defines a function type which takes a giving Entry returning a bool to indicate filtering state.
+type FilterFn func(Entry) bool
+
+type caseProcessor struct {
+	condition FilterFn
+	procs     []Processors
+}
+
+// Case returns a Processor object with the provided Augmenters and  Metrics
+// implemement objects for receiving metric Entries, where entries are filtered
+// out based on a provided function.
+func Case(fn FilterFn, procs ...Processors) ConditionalProcessors {
+	return caseProcessor{
+		condition: fn,
+		procs:     procs,
 	}
 }
 
-// Root returns the root Pair in the chain which links all pairs together.
-func (p *Pair) Root() *Pair {
-	if p.prev == nil {
-		return p
-	}
-
-	return p.prev.Root()
+// Can returns true/false if we can handle giving Entry.
+func (m caseProcessor) Can(en Entry) bool {
+	return m.condition(en)
 }
 
-// Get collects the value of a key if it exists.
-func (p *Pair) Get(key string) (value interface{}, found bool) {
-	if p == nil {
-		return
-	}
-
-	if p.key == key {
-		return p.value, true
-	}
-
-	if p.prev == nil {
-		return
-	}
-
-	return p.prev.Get(key)
-}
-
-//==============================================================================
-
-// Entry defines a data type which encapuslates data related to a giving
-// Log event.
-type Entry struct {
-	*Pair
-	Message string
-}
-
-// WithFields returns a new try with the provided key-value pair with the set ID.
-func WithFields(f Fields) Entry {
-	entry := Entry{
-		Pair: (*Pair)(nil),
-	}
-
-	for k, v := range f {
-		entry.Pair = entry.Pair.Append(k, v)
-	}
-
-	return entry
-}
-
-// With returns a new try with the provided key-value pair with the set ID.
-func With(key string, value interface{}) Entry {
-	return Entry{
-		Pair: NewPair(key, value),
-	}
-}
-
-// Trace defines a structure which contains the stack, start and endtime
-// on a given from a trace call to trace a given call with stack details
-// and execution time.
-type Trace struct {
-	File       string    `json:"file"`
-	Package    string    `json:"Package"`
-	LineNumber int       `json:"line_number"`
-	BeginStack []byte    `json:"begin_stack"`
-	EndStack   []byte    `json:"end_stack"`
-	StartTime  time.Time `json:"start_time"`
-	EndTime    time.Time `json:"end_time"`
-	entry      *Entry
-}
-
-// String returns the giving trace timestamp for the execution time.
-func (t *Trace) String() string {
-	return fmt.Sprintf("[Total=%+q, Start=%+q, End=%+q]", t.EndTime.Sub(t.StartTime), t.StartTime, t.EndTime)
-}
-
-// End stops the trace, captures the current stack trace and returns the
-// entry related to the trace.
-func (t *Trace) End() Entry {
-	trace := make([]byte, StackSize)
-	trace = trace[:runtime.Stack(trace, false)]
-
-	entry := t.entry
-	t.entry = nil
-
-	t.EndStack = trace
-	t.EndTime = time.Now()
-
-	return entry.With(TraceKey, *t)
-}
-
-// TraceWithCallDepth returns a Trace object which is used to track the execution and
-// stack details of a given trace call.
-func (e Entry) TraceWithCallDepth(name string, depth int) *Trace {
-	trace := make([]byte, StackSize)
-	trace = trace[:runtime.Stack(trace, false)]
-
-	_, file, line, ok := runtime.Caller(depth)
-	if !ok {
-		file = "???"
-	}
-
-	var pkg, pkgFile string
-	pkgFileBase := file
-
-	if file != "???" {
-		pkgPieces := strings.SplitAfter(pkgFileBase, "/src/")
-		if len(pkgPieces) > 1 {
-			pkgFileBase = pkgPieces[1]
+// Handle implements the Processors interface and delivers Entry
+// to undeline metrics.
+func (m caseProcessor) Handle(en Entry) error {
+	if m.condition(en) {
+		for _, proc := range m.procs {
+			if err := proc.Handle(en); err != nil {
+				return err
+			}
 		}
-
-		pkg = filepath.Dir(pkgFileBase)
-		pkgFile = filepath.Base(pkgFileBase)
 	}
+	return nil
+}
 
-	return &Trace{
-		entry:      &e,
-		Package:    pkg,
-		LineNumber: line,
-		BeginStack: trace,
-		StartTime:  time.Now(),
-		File:       pkgFile,
+// EntryEmitter defines a type which returns a entry when runned.
+type EntryEmitter func(string) Entry
+
+// Collect returns a Collector which executes provided function when
+// called by Metric to run.
+func Collect(fn EntryEmitter) Collector {
+	return fnCollector{fn: fn}
+}
+
+// fnCollector implements the Collector interface.
+type fnCollector struct {
+	fn EntryEmitter
+}
+
+// Collect runs the internal function and returning the produced entry.
+func (fn fnCollector) Collect(name string) Entry {
+	return fn.fn(name)
+}
+
+// switchMaster defines that mod out Entry objects based on a provided function.
+type switchMaster struct {
+	cases []ConditionalProcessors
+}
+
+// Switch returns a new instance of a SwitchMaster.
+func Switch(conditions ...ConditionalProcessors) Processors {
+	return switchMaster{
+		cases: conditions,
 	}
 }
 
-// Trace returns a Trace object which is used to track the execution and
-// stack details of a given trace call.
-func (e Entry) Trace(name string) *Trace {
-	trace := make([]byte, StackSize)
-	trace = trace[:runtime.Stack(trace, false)]
-
-	_, file, line, ok := runtime.Caller(1)
-	if !ok {
-		file = "???"
-	}
-
-	var pkg, pkgFile string
-	pkgFileBase := file
-
-	if file != "???" {
-		pkgPieces := strings.SplitAfter(pkgFileBase, "/src/")
-		if len(pkgPieces) > 1 {
-			pkgFileBase = pkgPieces[1]
+// Handle delivers the giving entry to all available metricss.
+func (fm switchMaster) Handle(e Entry) error {
+	for _, proc := range fm.cases {
+		if proc.Can(e) {
+			if err := proc.Handle(e); err != nil {
+				return err
+			}
 		}
-
-		pkg = filepath.Dir(pkgFileBase)
-		pkgFile = filepath.Base(pkgFileBase)
 	}
-
-	return &Trace{
-		entry:      &e,
-		Package:    pkg,
-		LineNumber: line,
-		BeginStack: trace,
-		StartTime:  time.Now(),
-		File:       pkgFile,
-	}
+	return nil
 }
-
-// With returns a new Entry set to the LogLevel of the previous and
-// adds the giving key-value pair to the entry.
-func (e Entry) With(key string, value interface{}) Entry {
-	return Entry{
-		Pair:    e.Pair.Append(key, value),
-		Message: e.Message,
-	}
-}
-
-// WithMessage sets the message for the giving Entry if it has no message
-// else returns a new Entry with the set message.
-func (e Entry) WithMessage(message string, m ...interface{}) Entry {
-	if e.Message == "" {
-		e.Message = fmt.Sprintf(message, m...)
-		return e
-	}
-
-	return Entry{
-		Pair:    e.Pair,
-		Message: fmt.Sprintf(message, m...),
-	}
-}
-
-// WithFields returns a new Entry set to the LogLevel of the previous and
-// adds the all giving key-value pair from the Fields to the entry.
-func (e Entry) WithFields(f Fields) Entry {
-	entry := Entry{
-		Pair:    e.Pair,
-		Message: e.Message,
-	}
-
-	for k, v := range f {
-		entry.Pair = entry.Pair.Append(k, v)
-	}
-
-	return entry
-}
-
-//==============================================================================
-
-// Hide takes the given message and generates a '***' character sets.
-func Hide(message string) string {
-	mLen := len(message)
-
-	var mval []string
-
-	for i := 0; i < mLen; i++ {
-		mval = append(mval, "*")
-	}
-
-	return strings.Join(mval, "")
-}
-
-//==============================================================================

@@ -2,7 +2,6 @@ package reflection
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 )
@@ -49,6 +48,111 @@ func FuncType(elem interface{}) (reflect.Type, error) {
 	}
 
 	return tl, nil
+}
+
+// MatchElement attempts to validate that both element are equal in type and value.
+func MatchElement(me interface{}, other interface{}, allowFunctions bool) bool {
+	meType := reflect.TypeOf(me)
+	otherType := reflect.TypeOf(other)
+
+	// if one is pointer, then both must be.
+	if meType.Kind() == reflect.Ptr && otherType.Kind() != reflect.Ptr {
+		return false
+	}
+
+	// if one is pointer, then both must be.
+	if otherType.Kind() == reflect.Ptr && meType.Kind() != reflect.Ptr {
+		return false
+	}
+
+	if meType.Kind() == reflect.Ptr {
+		meType = meType.Elem()
+	}
+
+	if otherType.Kind() == reflect.Ptr {
+		otherType = otherType.Elem()
+	}
+
+	if meType.Kind() == reflect.Func {
+		if allowFunctions {
+			return MatchFunction(me, other)
+		}
+
+		return false
+	}
+
+	if otherType.AssignableTo(meType) {
+		return true
+	}
+
+	return true
+}
+
+// MatchFunction attempts to validate if giving types are functions and
+// exactly match in arguments and returns.
+func MatchFunction(me interface{}, other interface{}) bool {
+	meType := reflect.TypeOf(me)
+	otherType := reflect.TypeOf(other)
+
+	// if one is pointer, then both must be.
+	if meType.Kind() == reflect.Ptr && otherType.Kind() != reflect.Ptr {
+		return false
+	}
+
+	// if one is pointer, then both must be.
+	if otherType.Kind() == reflect.Ptr && meType.Kind() != reflect.Ptr {
+		return false
+	}
+
+	if meType.Kind() == reflect.Ptr {
+		meType = meType.Elem()
+	}
+
+	if otherType.Kind() == reflect.Ptr {
+		otherType = otherType.Elem()
+	}
+
+	if meType.Kind() != reflect.Func {
+		return false
+	}
+
+	if otherType.Kind() != reflect.Func {
+		return false
+	}
+
+	if otherType.NumIn() != meType.NumIn() {
+		return false
+	}
+
+	if otherType.NumOut() != meType.NumOut() {
+		return false
+	}
+
+	for i := 0; i < meType.NumIn(); i++ {
+		item := meType.In(i)
+		otherItem := otherType.In(i)
+		if item.Kind() != reflect.Func && !MatchElement(item, otherItem, true) {
+			return false
+		}
+
+		if item.Kind() == reflect.Func && !MatchFunction(item, otherItem) {
+			return false
+		}
+	}
+
+	for i := 0; i < meType.NumOut(); i++ {
+		item := meType.Out(i)
+		otherItem := otherType.Out(i)
+		if item.Kind() != reflect.Func && !MatchElement(item, otherItem, true) {
+			return false
+		}
+
+		if item.Kind() == reflect.Func && !MatchFunction(item, otherItem) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // StructAndEmbeddedTypes returns the type of the giving element and a slice of
@@ -306,7 +410,6 @@ func MakeArgumentsValues(args []reflect.Type) []reflect.Value {
 	var inputs []reflect.Value
 
 	for _, tl := range args {
-		fmt.Printf("Item: %s-> %s\n", tl, reflect.New(tl))
 		inputs = append(inputs, MakeValueFor(tl))
 	}
 
@@ -336,10 +439,13 @@ var ErrNotStruct = errors.New("Not a struct type")
 
 // Field defines a specific tag field with its details from a giving struct.
 type Field struct {
+	Index int
 	Name  string
 	Tag   string
 	Type  reflect.Type
-	Index int
+	Value reflect.Value
+	// NameLC is the name in lower case.
+	NameLC string
 }
 
 // Fields defines a lists of Field instances.
@@ -353,9 +459,18 @@ func GetTagFields(elem interface{}, tag string, allowNaturalNames bool) (Fields,
 	}
 
 	tl := reflect.TypeOf(elem)
+	tlVal := reflect.ValueOf(elem)
 
 	if tl.Kind() == reflect.Ptr {
 		tl = tl.Elem()
+	}
+
+	if tlVal.Kind() == reflect.Ptr {
+		if tlVal.IsNil() {
+			return nil, errors.New("invalid value: must be non-nil struct")
+		}
+
+		tlVal = tlVal.Elem()
 	}
 
 	var fields Fields
@@ -380,10 +495,12 @@ func GetTagFields(elem interface{}, tag string, allowNaturalNames bool) (Fields,
 		}
 
 		fields = append(fields, Field{
-			Name:  field.Name,
-			Type:  field.Type,
-			Index: i,
-			Tag:   tagVal,
+			Index:  i,
+			Tag:    tagVal,
+			Name:   field.Name,
+			Type:   field.Type,
+			Value:  tlVal.Field(i),
+			NameLC: strings.ToLower(field.Name),
 		})
 	}
 
@@ -405,18 +522,28 @@ func ToMap(tag string, elem interface{}, allowNaturalNames bool) (map[string]int
 		return nil, errors.New("No Tag Matches")
 	}
 
-	tl := reflect.ValueOf(elem)
-
-	if tl.Kind() == reflect.Ptr {
-		tl = tl.Elem()
-	}
-
 	data := make(map[string]interface{})
 
 	// Loop through  the fields and set the appropriate value as needed.
 	for _, field := range fields {
-		fl := tl.Field(field.Index)
-		data[field.Tag] = fl.Interface()
+		if !field.Value.CanInterface() {
+			continue
+		}
+
+		itemType := field.Type
+		item := field.Value.Interface()
+
+		switch itemType.Kind() {
+		case reflect.Struct:
+			if subItem, err := ToMap(tag, item, allowNaturalNames); err == nil {
+				data[field.Tag] = subItem
+			} else {
+				data[field.Tag] = item
+			}
+
+		default:
+			data[field.Tag] = item
+		}
 	}
 
 	return data, nil
