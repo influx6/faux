@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"context"
+
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -175,7 +177,7 @@ type MongoPush struct {
 
 // Push returns next record from last batch retrieved from underlined
 // collection.
-func (m MongoPush) Push(recs ...map[string]interface{}) error {
+func (m MongoPush) Push(ctx context.Context, recs ...map[string]interface{}) error {
 	col, _, _, err := m.Src.New(false)
 	if err != nil {
 		return err
@@ -200,7 +202,7 @@ type MongoPull struct {
 
 // Pull returns next record from last batch retrieved from underlined
 // collection.
-func (m *MongoPull) Pull(batch int) ([]map[string]interface{}, error) {
+func (m *MongoPull) Pull(ctx context.Context, batch int) ([]map[string]interface{}, error) {
 	col, _, session, err := m.Src.New(true)
 	if err != nil {
 		return nil, err
