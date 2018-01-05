@@ -15,27 +15,17 @@ import (
 
 // Config embodies the data used to connect to user's mongo connection.
 type Config struct {
-	DB         string `toml:"db" json:"db"`
-	AuthDB     string `toml:"authdb" json:"authdb"`
-	User       string `toml:"user" json:"user"`
-	Password   string `toml:"password" json:"password"`
-	Host       string `toml:"host" json:"host"`
-	Collection string `toml:"collection" json:"collection"`
-}
-
-// CloneWithCollection returns a new Config cloned from this instance
-// with the Collection changed to the provided name.
-func (m Config) CloneWithCollection(col string) Config {
-	copy := m
-	copy.Collection = col
-	return copy
+	DB       string `toml:"db" json:"db"`
+	AuthDB   string `toml:"authdb" json:"authdb"`
+	User     string `toml:"user" json:"user"`
+	Password string `toml:"password" json:"password"`
+	Host     string `toml:"host" json:"host"`
 }
 
 // Empty returns true/false if all Config values are at default/empty/non-set
 // state.
 func (mgc Config) Empty() bool {
-	return mgc.Collection == "" &&
-		mgc.AuthDB == "" &&
+	return mgc.AuthDB == "" &&
 		mgc.DB == "" &&
 		mgc.User == "" &&
 		mgc.Password == "" &&
@@ -58,9 +48,6 @@ func (mgc Config) Validate() error {
 	}
 	if mgc.DB == "" {
 		return errors.New("Config.DB is required")
-	}
-	if mgc.Collection == "" {
-		return errors.New("Config.Collection is required")
 	}
 	return nil
 }
@@ -105,7 +92,7 @@ func NewMongoDB(conf Config) *MongoDB {
 // 2. If `isread` is true, then session is copied which creates a new unique session which you
 // should close after use, this lets you handle large reads that may contain complicated queries.
 //
-func (m *MongoDB) New(isread bool) (*mgo.Collection, *mgo.Database, *mgo.Session, error) {
+func (m *MongoDB) New(isread bool) (*mgo.Database, *mgo.Session, error) {
 	m.ml.Lock()
 	defer m.ml.Unlock()
 
@@ -114,21 +101,9 @@ func (m *MongoDB) New(isread bool) (*mgo.Collection, *mgo.Database, *mgo.Session
 		m.master = nil
 	}
 
-	if m.master != nil && isread {
-		copy := m.master.Copy()
-		db := copy.DB(m.Config.DB)
-		return db.C(m.Config.Collection), db, copy, nil
-	}
-
-	if m.master != nil && !isread {
-		clone := m.master.Clone()
-		db := clone.DB(m.Config.DB)
-		return db.C(m.Config.Collection), db, clone, nil
-	}
-
 	ses, err := getSession(m.Config)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	m.master = ses
@@ -136,12 +111,12 @@ func (m *MongoDB) New(isread bool) (*mgo.Collection, *mgo.Database, *mgo.Session
 	if isread {
 		copy := m.master.Copy()
 		db := copy.DB(m.Config.DB)
-		return db.C(m.Config.Collection), db, copy, nil
+		return db, copy, nil
 	}
 
 	clone := m.master.Clone()
 	db := clone.DB(m.Config.DB)
-	return db.C(m.Config.Collection), db, clone, nil
+	return db, clone, nil
 }
 
 // getSession attempts to retrieve the giving session for the given config.
@@ -172,17 +147,19 @@ func getSession(config Config) (*mgo.Session, error) {
 // to quickly push new records into the underline mongo collection
 // which will be used for storage.
 type MongoPush struct {
-	Src *MongoDB
+	Collection string
+	Src        *MongoDB
 }
 
 // Push returns next record from last batch retrieved from underlined
 // collection.
 func (m MongoPush) Push(ctx context.Context, recs ...map[string]interface{}) error {
-	col, _, _, err := m.Src.New(false)
+	db, _, err := m.Src.New(false)
 	if err != nil {
 		return err
 	}
 
+	col := db.C(m.Collection)
 	for _, rec := range recs {
 		if err := col.Insert(rec); err != nil {
 			return err
@@ -196,14 +173,15 @@ func (m MongoPush) Push(ctx context.Context, recs ...map[string]interface{}) err
 // to quickly pull records from the underline mongo collection
 // which will be used for processing.
 type MongoPull struct {
-	Src  *MongoDB
-	last int
+	Collection string
+	Src        *MongoDB
+	last       int
 }
 
 // Pull returns next record from last batch retrieved from underlined
 // collection.
 func (m *MongoPull) Pull(ctx context.Context, batch int) ([]map[string]interface{}, error) {
-	col, _, session, err := m.Src.New(true)
+	db, session, err := m.Src.New(true)
 	if err != nil {
 		return nil, err
 	}
@@ -211,6 +189,8 @@ func (m *MongoPull) Pull(ctx context.Context, batch int) ([]map[string]interface
 	defer session.Close()
 
 	var rec []map[string]interface{}
+
+	col := db.C(m.Collection)
 	if err := col.Find(bson.M{}).Skip(m.last).Limit(batch).All(&rec); err != nil {
 		return rec, err
 	}
