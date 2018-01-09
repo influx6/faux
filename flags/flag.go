@@ -45,6 +45,11 @@ const (
 	⠙ {{toLower $cmdName}}.{{toLower $fl.FlagName}}		Default: {{.Default}}	Desc: {{.Desc }}
 	{{end}}
 
+⡿ Examples:
+	{{ range $_, $content := .Cmd.Usages }}
+	⠙ {{$content}}
+	{{end}}
+
 ⡿ USAGE:
 	{{ range $_, $fl := .Cmd.Flags }}
 	⠙ {{$title}} -{{toLower $cmdName}}.{{toLower $fl.FlagName}}={{.Default}} {{toLower $cmdName}} 
@@ -434,6 +439,7 @@ type Command struct {
 	Flags       []Flag
 	Action      Action
 	WaitOnCtrlC bool
+	Usages      []string
 }
 
 // Run adds all commands and appropriate flags for each commands.
