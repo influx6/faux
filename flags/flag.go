@@ -520,54 +520,6 @@ func Run(title string, cmds ...Command) {
 		defer cancler()
 	}
 
-	// If commands contains only one, then attempt to run the available command instead if it
-	// sets AllowDefault to true.
-	if len(cmds) == 1 {
-		first := cmds[0]
-		if !first.AllowDefault {
-			if flag.Usage != nil {
-				flag.Usage()
-			}
-			return
-		}
-
-		if subCommand == "help" {
-			fmt.Println(commandHelp[first.Name])
-			return
-		}
-
-		for _, flag := range first.Flags {
-			ctx = context.WithValue(ctx, flag.FlagName(), flag.Value())
-		}
-
-		ctxx := ctxImpl{Getter: bag.FromContext(ctx), Context: ctx, args: args}
-		ctxx.printhelp = func() {
-			fmt.Println(commandHelp[first.Name])
-		}
-
-		if !first.WaitOnCtrlC {
-			if err := first.Action(ctxx); err != nil {
-				fmt.Fprint(os.Stderr, err.Error())
-			}
-			return
-		}
-
-		ch := make(chan os.Signal, 3)
-		signal.Notify(ch, os.Interrupt)
-		signal.Notify(ch, syscall.SIGQUIT)
-		signal.Notify(ch, syscall.SIGTERM)
-
-		go func() {
-			if err := first.Action(ctxx); err != nil {
-				fmt.Fprint(os.Stderr, err.Error())
-				close(ch)
-			}
-		}()
-
-		<-ch
-		return
-	}
-
 	var cmd Command
 	var found bool
 	for _, cmd = range cmds {
@@ -578,8 +530,51 @@ func Run(title string, cmds ...Command) {
 	}
 
 	if !found {
-		if flag.Usage != nil {
-			flag.Usage()
+		// If commands contains only one, then attempt to run the available command instead if it
+		// sets AllowDefault to true.
+		if len(cmds) == 1 {
+			first := cmds[0]
+			if !first.AllowDefault {
+				if flag.Usage != nil {
+					flag.Usage()
+				}
+				return
+			}
+
+			if subCommand == "help" {
+				fmt.Println(commandHelp[first.Name])
+				return
+			}
+
+			for _, flag := range first.Flags {
+				ctx = context.WithValue(ctx, flag.FlagName(), flag.Value())
+			}
+
+			ctxx := ctxImpl{Getter: bag.FromContext(ctx), Context: ctx, args: args}
+			ctxx.printhelp = func() {
+				fmt.Println(commandHelp[first.Name])
+			}
+
+			if !first.WaitOnCtrlC {
+				if err := first.Action(ctxx); err != nil {
+					fmt.Fprint(os.Stderr, err.Error())
+				}
+				return
+			}
+
+			ch := make(chan os.Signal, 3)
+			signal.Notify(ch, os.Interrupt)
+			signal.Notify(ch, syscall.SIGQUIT)
+			signal.Notify(ch, syscall.SIGTERM)
+
+			go func() {
+				if err := first.Action(ctxx); err != nil {
+					fmt.Fprint(os.Stderr, err.Error())
+					close(ch)
+				}
+			}()
+
+			<-ch
 		}
 		return
 	}
