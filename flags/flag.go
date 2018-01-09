@@ -401,7 +401,7 @@ type Context interface {
 	Args() []string
 }
 
-type ctx struct {
+type ctxImpl struct {
 	bag.Getter
 	context.Context
 	args []string
@@ -409,7 +409,7 @@ type ctx struct {
 
 // Args returning the internal associated arg list.
 // It implements the Context interface.
-func (c ctx) Args() []string {
+func (c ctxImpl) Args() []string {
 	return c.args
 }
 
@@ -521,7 +521,7 @@ func Run(title string, cmds ...Command) {
 	}
 
 	if !cmd.WaitOnCtrlC {
-		if err := cmd.Action(ctx{Getter: bag.FromContext(ctx), Context: ctx, args: flag.Args()}); err != nil {
+		if err := cmd.Action(ctxImpl{Getter: bag.FromContext(ctx), Context: ctx, args: flag.Args()}); err != nil {
 			fmt.Fprint(os.Stderr, err.Error())
 		}
 		return
@@ -533,7 +533,7 @@ func Run(title string, cmds ...Command) {
 	signal.Notify(ch, syscall.SIGTERM)
 
 	go func() {
-		if err := cmd.Action(ctx{Getter: bag.FromContext(ctx), Context: ctx, args: flag.Args()}); err != nil {
+		if err := cmd.Action(ctxImpl{Getter: bag.FromContext(ctx), Context: ctx, args: flag.Args()}); err != nil {
 			fmt.Fprint(os.Stderr, err.Error())
 			close(ch)
 		}
