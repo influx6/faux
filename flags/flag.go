@@ -398,13 +398,22 @@ func (s *StringFlag) Parse(cmd string) error {
 type Context interface {
 	bag.Getter
 	context.Context
+	PrintHelp()
 	Args() []string
 }
 
 type ctxImpl struct {
 	bag.Getter
 	context.Context
-	args []string
+	args      []string
+	printhelp func()
+}
+
+// PrintHelp calls underline function to print help for command.
+func (c ctxImpl) PrintHelp() {
+	if c.printhelp != nil {
+		c.printhelp()
+	}
 }
 
 // Args returning the internal associated arg list.
@@ -527,8 +536,13 @@ func Run(title string, cmds ...Command) {
 		ctx = context.WithValue(ctx, flag.FlagName(), flag.Value())
 	}
 
+	ctxx := ctxImpl{Getter: bag.FromContext(ctx), Context: ctx, args: args}
+	ctxx.printhelp = func() {
+		fmt.Println(commandHelp[cmd.Name])
+	}
+
 	if !cmd.WaitOnCtrlC {
-		if err := cmd.Action(ctxImpl{Getter: bag.FromContext(ctx), Context: ctx, args: args}); err != nil {
+		if err := cmd.Action(ctxx); err != nil {
 			fmt.Fprint(os.Stderr, err.Error())
 		}
 		return
@@ -540,7 +554,7 @@ func Run(title string, cmds ...Command) {
 	signal.Notify(ch, syscall.SIGTERM)
 
 	go func() {
-		if err := cmd.Action(ctxImpl{Getter: bag.FromContext(ctx), Context: ctx, args: args}); err != nil {
+		if err := cmd.Action(ctxx); err != nil {
 			fmt.Fprint(os.Stderr, err.Error())
 			close(ch)
 		}
