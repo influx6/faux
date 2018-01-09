@@ -428,6 +428,9 @@ type Action func(Context) error
 
 // Command defines structures which define specific actions to be executed
 // with associated flags.
+// Commands provided will have their ShortDesc trimmed to 100 in length, so
+// ensure to have what you wanna say fit 100 and put more detail explanations
+// in Desc field.
 type Command struct {
 	Name        string
 	Desc        string
