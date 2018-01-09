@@ -23,7 +23,6 @@ const (
 ⡿ COMMANDS:{{ range .Commands }}
 	⠙ {{toLower .Name }}	{{if isEmpty .ShortDesc }}{{cutoff .Desc 100 }}{{else}}{{cutoff .ShortDesc 100 }}{{end}}
 {{end}}
-
 ⡿ HELP:
 	Run [command] help
 
@@ -44,17 +43,14 @@ const (
 	{{$title := toLower .Title}}{{$cmdName := .Cmd.Name}}{{ range $_, $fl := .Cmd.Flags }}
 	⠙ {{toLower $cmdName}}.{{toLower $fl.FlagName}}		Default: {{.Default}}	Desc: {{.Desc }}
 	{{end}}
-
 ⡿ Examples:
 	{{ range $_, $content := .Cmd.Usages }}
 	⠙ {{$content}}
 	{{end}}
-
 ⡿ USAGE:
 	{{ range $_, $fl := .Cmd.Flags }}
 	⠙ {{$title}} -{{toLower $cmdName}}.{{toLower $fl.FlagName}}={{.Default}} {{toLower $cmdName}} 
 	{{end}}
-
 ⡿ OTHERS:
 	Commands which respect context.Context, can set timeout by using the -timeout flag.
 	e.g -timeout=4m, -timeout=4h
