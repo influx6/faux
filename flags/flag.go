@@ -439,6 +439,10 @@ type Command struct {
 	Action      Action
 	WaitOnCtrlC bool
 	Usages      []string
+
+	// AllowDefault is used when only one command is provided to flags, and we want it
+	// to be executable as default action when binary is called.
+	AllowDefault bool
 }
 
 // Run adds all commands and appropriate flags for each commands.
@@ -516,9 +520,17 @@ func Run(title string, cmds ...Command) {
 		defer cancler()
 	}
 
-	// If commands contains only one, then attempt to run the available command instead.
+	// If commands contains only one, then attempt to run the available command instead if it
+	// sets AllowDefault to true.
 	if len(cmds) == 1 {
 		first := cmds[0]
+		if !first.AllowDefault {
+			if flag.Usage != nil {
+				flag.Usage()
+			}
+			return
+		}
+
 		if subCommand == "help" {
 			fmt.Println(commandHelp[first.Name])
 			return
