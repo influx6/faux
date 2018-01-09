@@ -516,6 +516,7 @@ func Run(title string, cmds ...Command) {
 		defer cancler()
 	}
 
+	// If commands contains only one, then attempt to run the available command instead.
 	if len(cmds) == 1 {
 		first := cmds[0]
 		if subCommand == "help" {
