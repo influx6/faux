@@ -509,7 +509,7 @@ func Run(title string, cmds ...Command) {
 	var ctx context.Context
 
 	if *timeout != 0 {
-		ctx, cancel = context.WithTimeout(ctx, *timeout)
+		ctx, cancel = context.WithTimeout(context.Background(), *timeout)
 	} else {
 		ctx, cancel = context.WithCancel(context.Background())
 	}
