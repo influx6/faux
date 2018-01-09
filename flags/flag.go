@@ -578,6 +578,8 @@ func Run(title string, cmds ...Command) {
 
 	if flag.NArg() > 1 {
 		args = args[1:]
+	} else {
+		args = nil
 	}
 
 	if subCommand == "help" {
