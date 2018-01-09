@@ -21,7 +21,7 @@ const (
 	usageTml = `Usage: {{ toLower .Title}} [flags] [command] 
 
 ⡿ COMMANDS:{{ range .Commands }}
-	⠙ {{toLower .Name }}	{{if isEmpty .ShortDesc }}{{cutoff .Desc 40 }}{{else}}{{cutoff .ShortDesc 40 }}{{end}}
+	⠙ {{toLower .Name }}	{{if isEmpty .ShortDesc }}{{cutoff .Desc 100 }}{{else}}{{cutoff .ShortDesc 100 }}{{end}}
 {{end}}
 
 ⡿ HELP:
