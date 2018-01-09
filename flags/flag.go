@@ -477,9 +477,16 @@ func Run(title string, cmds ...Command) {
 
 	command := strings.ToLower(flag.Arg(0))
 	subCommand := strings.ToLower(flag.Arg(1))
+
 	if command == "flags" {
 		flag.PrintDefaults()
 		return
+	}
+
+	var args []string
+
+	if flag.NArg() > 1 {
+		args = flag.Args()[1:]
 	}
 
 	var cmd Command
@@ -521,7 +528,7 @@ func Run(title string, cmds ...Command) {
 	}
 
 	if !cmd.WaitOnCtrlC {
-		if err := cmd.Action(ctxImpl{Getter: bag.FromContext(ctx), Context: ctx, args: flag.Args()}); err != nil {
+		if err := cmd.Action(ctxImpl{Getter: bag.FromContext(ctx), Context: ctx, args: args}); err != nil {
 			fmt.Fprint(os.Stderr, err.Error())
 		}
 		return
@@ -533,7 +540,7 @@ func Run(title string, cmds ...Command) {
 	signal.Notify(ch, syscall.SIGTERM)
 
 	go func() {
-		if err := cmd.Action(ctxImpl{Getter: bag.FromContext(ctx), Context: ctx, args: flag.Args()}); err != nil {
+		if err := cmd.Action(ctxImpl{Getter: bag.FromContext(ctx), Context: ctx, args: args}); err != nil {
 			fmt.Fprint(os.Stderr, err.Error())
 			close(ch)
 		}
