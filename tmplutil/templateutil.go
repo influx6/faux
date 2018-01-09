@@ -176,6 +176,25 @@ var (
 	}
 )
 
+//======================================================================================
+
+// From returns a new template.Template instance which has the provided functions added.
+func From(tag string, data string) (*template.Template, error) {
+	return template.New(tag).Funcs(defaultFuncs).Parse(data)
+}
+
+// MustFrom returns a new template.Template instance with all functions added.
+// It panics if instance failed to be created with returned error.
+func MustFrom(tag string, data string) *template.Template {
+	tmpl, err := From(tag, data)
+	if err != nil {
+		panic(err)
+	}
+	return tmpl
+}
+
+//======================================================================================
+
 // Group holds a series of template content with associated name.
 // Group returns new templates based on provided sets.
 type Group struct {
