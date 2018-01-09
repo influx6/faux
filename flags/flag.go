@@ -501,11 +501,7 @@ func Run(title string, cmds ...Command) {
 		return
 	}
 
-	var args []string
-
-	if flag.NArg() > 1 {
-		args = flag.Args()[1:]
-	}
+	args := flag.Args()
 
 	var cancler func()
 	var ctx context.Context
@@ -534,6 +530,7 @@ func Run(title string, cmds ...Command) {
 		// sets AllowDefault to true.
 		if len(cmds) == 1 {
 			first := cmds[0]
+
 			if !first.AllowDefault {
 				if flag.Usage != nil {
 					flag.Usage()
@@ -577,6 +574,10 @@ func Run(title string, cmds ...Command) {
 			<-ch
 		}
 		return
+	}
+
+	if flag.NArg() > 1 {
+		args = args[1:]
 	}
 
 	if subCommand == "help" {
