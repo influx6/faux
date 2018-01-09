@@ -571,9 +571,10 @@ func Run(title string, cmds ...Command) {
 	signal.Notify(ch, syscall.SIGTERM)
 
 	go func() {
+		defer close(ch)
 		if err := cmd.Action(ctxx); err != nil {
 			fmt.Fprint(os.Stderr, err.Error())
-			close(ch)
+			return
 		}
 	}()
 
