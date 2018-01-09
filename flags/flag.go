@@ -28,7 +28,7 @@ const (
 	Run [command] help
 
 ⡿ OTHERS:
-	Run '{{toLower .Title}} printflags' to print all flags of all commands.
+	Run '{{toLower .Title}} flags' to print all flags of all commands.
 
 ⡿ WARNING:
 	Uses internal flag package so flags must precede command name. 
@@ -398,6 +398,19 @@ func (s *StringFlag) Parse(cmd string) error {
 type Context interface {
 	bag.Getter
 	context.Context
+	Args() []string
+}
+
+type ctx struct {
+	bag.Getter
+	context.Context
+	args []string
+}
+
+// Args returning the internal associated arg list.
+// It implements the Context interface.
+func (c ctx) Args() []string {
+	return c.args
 }
 
 // Action defines a giving function to be executed for a Command.
@@ -464,7 +477,7 @@ func Run(title string, cmds ...Command) {
 
 	command := strings.ToLower(flag.Arg(0))
 	subCommand := strings.ToLower(flag.Arg(1))
-	if command == "printflags" {
+	if command == "flags" {
 		flag.PrintDefaults()
 		return
 	}
@@ -508,7 +521,7 @@ func Run(title string, cmds ...Command) {
 	}
 
 	if !cmd.WaitOnCtrlC {
-		if err := cmd.Action(bag.FromContext(ctx)); err != nil {
+		if err := cmd.Action(ctx{Getter: bag.FromContext(ctx), Context: ctx, args: flag.Args()}); err != nil {
 			fmt.Fprint(os.Stderr, err.Error())
 		}
 		return
@@ -520,7 +533,7 @@ func Run(title string, cmds ...Command) {
 	signal.Notify(ch, syscall.SIGTERM)
 
 	go func() {
-		if err := cmd.Action(bag.FromContext(ctx)); err != nil {
+		if err := cmd.Action(ctx{Getter: bag.FromContext(ctx), Context: ctx, args: flag.Args()}); err != nil {
 			fmt.Fprint(os.Stderr, err.Error())
 			close(ch)
 		}
