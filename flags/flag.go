@@ -503,6 +503,58 @@ func Run(title string, cmds ...Command) {
 		args = flag.Args()[1:]
 	}
 
+	var cancler func()
+	var ctx context.Context
+
+	if *timeout != 0 {
+		ctx, cancler = context.WithTimeout(ctx, *timeout)
+	} else {
+		ctx = context.Background()
+	}
+
+	if cancler != nil {
+		defer cancler()
+	}
+
+	if len(cmds) == 1 {
+		first := cmds[0]
+		if subCommand == "help" {
+			fmt.Println(commandHelp[first.Name])
+			return
+		}
+
+		for _, flag := range first.Flags {
+			ctx = context.WithValue(ctx, flag.FlagName(), flag.Value())
+		}
+
+		ctxx := ctxImpl{Getter: bag.FromContext(ctx), Context: ctx, args: args}
+		ctxx.printhelp = func() {
+			fmt.Println(commandHelp[first.Name])
+		}
+
+		if !first.WaitOnCtrlC {
+			if err := first.Action(ctxx); err != nil {
+				fmt.Fprint(os.Stderr, err.Error())
+			}
+			return
+		}
+
+		ch := make(chan os.Signal, 3)
+		signal.Notify(ch, os.Interrupt)
+		signal.Notify(ch, syscall.SIGQUIT)
+		signal.Notify(ch, syscall.SIGTERM)
+
+		go func() {
+			if err := first.Action(ctxx); err != nil {
+				fmt.Fprint(os.Stderr, err.Error())
+				close(ch)
+			}
+		}()
+
+		<-ch
+		return
+	}
+
 	var cmd Command
 	var found bool
 	for _, cmd = range cmds {
@@ -522,19 +574,6 @@ func Run(title string, cmds ...Command) {
 	if subCommand == "help" {
 		fmt.Println(commandHelp[cmd.Name])
 		return
-	}
-
-	var cancler func()
-	var ctx context.Context
-
-	if *timeout != 0 {
-		ctx, cancler = context.WithTimeout(ctx, *timeout)
-	} else {
-		ctx = context.Background()
-	}
-
-	if cancler != nil {
-		defer cancler()
 	}
 
 	for _, flag := range cmd.Flags {

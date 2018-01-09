@@ -5,6 +5,7 @@ Flags provides a simple multicommand package built ontop of the internal `flag` 
 
 See [Flags Docs](https://golang.org/pkg/github.com/influx6/faux/flags) for more.
 
+If only one command is provided then Flags treats that command like the default command to be runned when argument is giving with no command name.
 
 ## Example
 
