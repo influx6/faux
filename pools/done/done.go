@@ -22,6 +22,7 @@ type DoneFunc func(int, io.WriterTo) error
 // into a underline function after giving size has being reached. It
 // has a underline bytes.Buffer which it uses as underline storage.
 type doneWriter struct {
+	max      int
 	DoneFunc DoneFunc
 	src      *DonePool
 	ml       sync.Mutex
@@ -61,11 +62,15 @@ func (bw *doneWriter) Write(d []byte) (int, error) {
 		return 0, ErrClosed
 	}
 
-	if bw.buffer.Len() == bw.buffer.Cap() {
+	// if we have reached the max size, then
+	// return return error.
+	if bw.max == bw.buffer.Len() {
 		return 0, ErrLimitExceeded
 	}
 
-	if len(d)+bw.buffer.Len() > bw.buffer.Cap() {
+	// if we are going to exceed max content, then
+	// return error.
+	if len(d)+bw.buffer.Len() > bw.max {
 		return 0, ErrLimitExceeded
 	}
 
@@ -150,6 +155,7 @@ func (bp *DonePool) Get(size int, doneFunc DoneFunc) io.WriteCloser {
 
 		bp.pl.RUnlock()
 		return &doneWriter{
+			max:      size,
 			src:      bp,
 			buffer:   pool.Get(),
 			DoneFunc: doneFunc,
@@ -166,6 +172,7 @@ func (bp *DonePool) Get(size int, doneFunc DoneFunc) io.WriteCloser {
 	bp.pl.Unlock()
 
 	return &doneWriter{
+		max:      size,
 		src:      bp,
 		buffer:   newPool.Get(),
 		DoneFunc: doneFunc,

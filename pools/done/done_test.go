@@ -34,7 +34,7 @@ func TestExceedLimitError(b *testing.T) {
 	writer := by.Get(10, nil)
 	defer writer.Close()
 
-	_, err := writer.Write([]byte("34332234fsdfr4y5656344tvwvft433t3tcfrfervg345g2sfgsdfsfgg324wgerwg45f445g4rtrgr"))
+	_, err := writer.Write([]byte("34332234fsdj"))
 	if err == nil {
 		tests.Failed("Should have received error for write exceed bountry")
 	}
@@ -61,7 +61,7 @@ func TestLimitWrite(b *testing.T) {
 		return nil
 	})
 
-	if _, err := writer.Write([]byte("34332234tvwvft433t3tcfrfervg345g2sfgsdfsfgg324wgerwg45f445g4rtrgr")); err != nil {
+	if _, err := writer.Write([]byte("34332234tv")); err != nil {
 		tests.FailedWithError(err, "Should have written data without error")
 	}
 	tests.Passed("Should have written data without error")
