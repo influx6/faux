@@ -132,6 +132,28 @@ func (rp *RangePool) Put(bu *bytes.Buffer) {
 	rp.pool.Put(bu)
 }
 
+// GuardedBuffer wraps a giving io.Writer with a mutex guard.
+type GuardedBuffer struct {
+	mu sync.Mutex
+	w  *bytes.Buffer
+}
+
+// NewGuardedBuffer returns a new instance of a GuardedWriter.
+func NewGuardedBuffer(b *bytes.Buffer) *GuardedBuffer {
+	return &GuardedBuffer{w: w}
+}
+
+// Write passes provided data to underline writer guarded by mutex.
+func (gw *GuardedBuffer) Do(action func(*bytes.Buffer)) {
+	if action == nil {
+		return
+	}
+
+	gw.mu.Lock()
+	defer gw.mu.Unlock()
+	action(gw.w)
+}
+
 // GuardedWriter wraps a giving io.Writer with a mutex guard.
 type GuardedWriter struct {
 	mu sync.Mutex
