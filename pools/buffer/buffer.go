@@ -2,6 +2,7 @@ package buffer
 
 import (
 	"bytes"
+	"io"
 	"sync"
 )
 
@@ -129,4 +130,17 @@ func (rp *RangePool) Get() (bu *bytes.Buffer) {
 func (rp *RangePool) Put(bu *bytes.Buffer) {
 	bu.Reset()
 	rp.pool.Put(bu)
+}
+
+// GuardedWriter wraps a giving io.Writer with a mutex guard.
+type GuardedWriter struct {
+	mu sync.Mutex
+	w  io.Writer
+}
+
+// Write passes provided data to underline writer guarded by mutex.
+func (gw GuardedWriter) Write(d []byte) (int, error) {
+	gw.mu.Lock()
+	defer gw.mu.Unlock()
+	return gw.w.Write(d)
 }

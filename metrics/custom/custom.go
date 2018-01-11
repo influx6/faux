@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -57,7 +56,7 @@ func FlatDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) bo
 		}
 
 		if en.ID != "" {
-			fmt.Fprintf(&bu, "ID: %+s", printAtLevel(en.Level, en.ID))
+			fmt.Fprintf(&bu, "ID: %+s\n", printAtLevel(en.Level, en.ID))
 		}
 
 		fmt.Fprint(&bu, printSpaceLine(2))
@@ -125,7 +124,7 @@ func BlockDisplayWith(w io.Writer, header string, filterFn func(metrics.Entry) b
 		}
 
 		if en.ID != "" {
-			fmt.Fprintf(&bu, "ID: %+s", printAtLevel(en.Level, en.ID))
+			fmt.Fprintf(&bu, "ID: %+s\n", printAtLevel(en.Level, en.ID))
 		}
 
 		if en.Function != "" {
@@ -189,7 +188,7 @@ func StackDisplayWith(w io.Writer, header string, tag string, filterFn func(metr
 		}
 
 		if en.ID != "" {
-			fmt.Fprintf(&bu, "ID: %+s", printAtLevel(en.Level, en.ID))
+			fmt.Fprintf(&bu, "ID: %+s\n", printAtLevel(en.Level, en.ID))
 		}
 
 		if tag == "" {
@@ -274,29 +273,7 @@ type stringer interface {
 	String() string
 }
 
-var maxDepth = 1000
-
 func printItem(item interface{}) string {
-	if item == nil {
-		return ""
-	}
-
-	itemType := reflect.TypeOf(item)
-	if itemType.Kind() == reflect.Ptr {
-		itemType = itemType.Elem()
-	}
-
-	switch itemType.Kind() {
-	case reflect.Array, reflect.Map, reflect.Slice:
-		return fmt.Sprintf("%+q", item)
-	case reflect.Struct:
-		return itemType.Name()
-	}
-
-	return printValue(item)
-}
-
-func printValue(item interface{}) string {
 	switch bo := item.(type) {
 	case stringer:
 		return bo.String()
