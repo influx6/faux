@@ -138,8 +138,13 @@ type GuardedWriter struct {
 	w  io.Writer
 }
 
+// NewGuardedWriter returns a new instance of a GuardedWriter.
+func NewGuardedWriter(w io.Writer) *GuardedWriter {
+	return &GuardedWriter{w: w}
+}
+
 // Write passes provided data to underline writer guarded by mutex.
-func (gw GuardedWriter) Write(d []byte) (int, error) {
+func (gw *GuardedWriter) Write(d []byte) (int, error) {
 	gw.mu.Lock()
 	defer gw.mu.Unlock()
 	return gw.w.Write(d)
