@@ -140,7 +140,7 @@ type GuardedBuffer struct {
 
 // NewGuardedBuffer returns a new instance of a GuardedWriter.
 func NewGuardedBuffer(b *bytes.Buffer) *GuardedBuffer {
-	return &GuardedBuffer{w: w}
+	return &GuardedBuffer{w: b}
 }
 
 // Write passes provided data to underline writer guarded by mutex.
