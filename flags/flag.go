@@ -42,8 +42,8 @@ const (
 ⡿ Flags:
 	{{$title := toLower .Title}}{{$cmdName := .Cmd.Name}}{{ range $_, $fl := .Cmd.Flags }}
 	⠙ {{toLower $cmdName}}.{{toLower $fl.FlagName}}
-		Default: {{.Default}}
-		Desc: {{.Desc }}
+	 Default: {{.Default}}
+	 Desc: {{.Desc }}
 	{{end}}
 ⡿ Examples:
 	{{ range $_, $content := .Cmd.Usages }}
