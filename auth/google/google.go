@@ -2,7 +2,7 @@ package google
 
 import (
 	"github.com/influx6/faux/auth"
-	"golang.org/x/oauth2/google"                 // https://github.com/golang/oauth2/google
+	"golang.org/x/oauth2/google" // https://github.com/golang/oauth2/google
 )
 
 // contains sets of user related scopes.

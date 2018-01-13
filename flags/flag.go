@@ -526,11 +526,12 @@ func Run(title string, cmds ...Command) {
 	}
 
 	if !found {
-		if len(cmds) != 0 {
-			if flag.Usage != nil {
-				flag.Usage()
-			}
-		}
+		//if len(cmds) != 0 {
+		//	if flag.Usage != nil {
+		//		flag.Usage()
+		//		return
+		//	}
+		//}
 
 		// If commands contains only one, then attempt to run the available command instead if it
 		// sets AllowDefault to true.

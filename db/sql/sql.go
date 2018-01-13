@@ -1,8 +1,8 @@
 package sql
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
