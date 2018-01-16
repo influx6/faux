@@ -42,6 +42,10 @@ func (bw *doneWriter) Close() error {
 
 	var err error
 	written := bw.buffer.Len()
+	if written == 0 {
+		return nil
+	}
+
 	if bw.DoneFunc != nil {
 		err = bw.DoneFunc(written, bw.buffer)
 	}
