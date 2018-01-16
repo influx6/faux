@@ -10,24 +10,6 @@ import (
 	"github.com/influx6/faux/tests"
 )
 
-// BenchmarkDonePool benchmarks speed and memory allocation using NewBytesPool.
-func BenchmarkDonePool(b *testing.B) {
-	b.StopTimer()
-	b.ReportAllocs()
-
-	by := done.NewDonePool(1024, 10)
-	item := []byte("c")
-
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		writer := by.Get(i*100, nil)
-		writer.Write(item)
-		writer.Close()
-	}
-
-	b.StopTimer()
-}
-
 func TestExceedLimitError(b *testing.T) {
 
 	by := done.NewDonePool(20, 10)

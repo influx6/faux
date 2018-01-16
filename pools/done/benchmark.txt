@@ -1,0 +1,16 @@
+goos: darwin
+goarch: amd64
+pkg: github.com/influx6/faux/pools/done
+BenchmarkNoBytesMessages-4    	 5000000	       292 ns/op	      48 B/op	       1 allocs/op
+Benchmark2BytesMessages-4     	 5000000	       295 ns/op	      48 B/op	       1 allocs/op
+Benchmark4BytesMessages-4     	 5000000	       290 ns/op	      48 B/op	       1 allocs/op
+Benchmark8BytesMessages-4     	 5000000	       290 ns/op	      48 B/op	       1 allocs/op
+Benchmark16BytesMessages-4    	 5000000	       292 ns/op	      48 B/op	       1 allocs/op
+Benchmark32BytesMessages-4    	 5000000	       298 ns/op	      48 B/op	       1 allocs/op
+Benchmark64BytesMessages-4    	 5000000	       301 ns/op	      48 B/op	       1 allocs/op
+Benchmark128BytesMessages-4   	 5000000	       299 ns/op	      48 B/op	       1 allocs/op
+Benchmark256BytesMessages-4   	 5000000	       307 ns/op	      48 B/op	       1 allocs/op
+Benchmark1KMessages-4         	 5000000	       323 ns/op	      48 B/op	       1 allocs/op
+Benchmark4KMessages-4         	 3000000	       449 ns/op	      48 B/op	       1 allocs/op
+Benchmark8KMessages-4         	 3000000	       542 ns/op	      48 B/op	       1 allocs/op
+Benchmark16KMessages-4        	 2000000	       920 ns/op	      48 B/op	       1 allocs/op

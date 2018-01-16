@@ -109,14 +109,13 @@ type RangePool struct {
 
 // NewRangePool returns a new RangePool instance.
 func NewRangePool(max int) *RangePool {
-	return &RangePool{
-		Max: max,
-		pool: &sync.Pool{
-			New: func() interface{} {
-				return bytes.NewBuffer(make([]byte, 0, max))
-			},
-		},
+	var rp RangePool
+	rp.Max = max
+	rp.pool = new(sync.Pool)
+	rp.pool.New = func() interface{} {
+		return bytes.NewBuffer(make([]byte, 0, max))
 	}
+	return &rp
 }
 
 // Get returns an existing bytes.Buffer that whoes internal byte slice is within
