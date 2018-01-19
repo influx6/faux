@@ -58,6 +58,26 @@ func NewClock(tickT TickType, timeOffset time.Duration, origin string, id string
 	return &clock
 }
 
+// Reset resets the clock to the provided UUID.
+func (c *Clock) Reset(last UUID) error {
+	if err := last.Validate(); err != nil {
+		return err
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Reset clock internals to match uuid standards.
+	c.id = last.ID
+	c.tickT = last.Type
+	c.origin = last.Origin
+
+	// reset last tick of clock.
+	c.last = &last
+
+	return nil
+}
+
 // Now returns new monotonic UUID which is consistently increasing.
 func (c *Clock) Now() UUID {
 	c.mu.Lock()

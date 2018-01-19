@@ -8,6 +8,38 @@ import (
 	"github.com/influx6/faux/tests"
 )
 
+func TestResetableClock(t *testing.T) {
+	uuids := lpclock.Unix("localhost")
+	lastTime := uuids.Now()
+
+	uuid2 := lpclock.Unix("localhust")
+	if err := uuid2.Reset(lastTime); err != nil {
+		tests.FailedWithError(err, "Should have successfully reset lpclock")
+	}
+	tests.Passed("Should have successfully reset lpclock")
+
+	nextTime := uuid2.Now()
+	if nextTime.LessThan(lastTime) {
+		tests.Failed("Should have next clock be upper version of last")
+	}
+	tests.Passed("Should have next clock be upper version of last")
+
+	if nextTime.Type != lastTime.Type {
+		tests.Failed("Should have Type of last and next clock time equal")
+	}
+	tests.Passed("Should have Type of last and next clock time equal")
+
+	if nextTime.ID != lastTime.ID {
+		tests.Failed("Should have ID of last and next clock time equal")
+	}
+	tests.Passed("Should have ID of last and next clock time equal")
+
+	if nextTime.Origin != lastTime.Origin {
+		tests.Failed("Should have origin of last and next clock time equal")
+	}
+	tests.Passed("Should have origin of last and next clock time equal")
+}
+
 func TestMonotonicClock(t *testing.T) {
 	uuids := lpclock.Unix("localhost")
 

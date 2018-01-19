@@ -39,6 +39,28 @@ type UUID struct {
 	Type   TickType
 }
 
+// Validate returns an error if uuid is in a invalid state.
+func (u UUID) Validate() error {
+	if u.ID == "" {
+		return errors.New("UUID.ID is required")
+	}
+
+	if u.Origin == "" {
+		return errors.New("UUID.Origin is required")
+	}
+
+	if u.Tick == 0 {
+		return errors.New("UUID.Tick can not be zero")
+	}
+
+	switch u.Type {
+	case LAMPORTTICK, UNIXTICK:
+		return nil
+	}
+
+	return errors.New("UUID.Type can not be 0 or invalid state")
+}
+
 // GreaterThan validates that the uuid is less than value of
 // provided uuid.
 func (u UUID) GreaterThan(n UUID) bool {
@@ -83,6 +105,25 @@ func (u UUID) Equal(n UUID) bool {
 	}
 
 	return true
+}
+
+// MarshalJSON marshals provided UUID into text version
+// returning byte slice.
+func (u UUID) MarshalJSON() ([]byte, error) {
+	return u.MarshalText()
+}
+
+// UnmarshalJSON relies on UnmarshalText and expects
+// to receive json string of uuid.
+// It returns an error if the provided byte slice is not
+// a quote string.
+func (u *UUID) UnmarshalJSON(d []byte) error {
+	content, err := strconv.Unquote(string(d))
+	if err != nil {
+		return err
+	}
+
+	return u.UnmarshalJSON([]byte(content))
 }
 
 // MarshalText returns byte slice of giving uuid.
