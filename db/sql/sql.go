@@ -171,12 +171,6 @@ func (sq *SQL) Save(identity db.TableIdentity, table db.TableFields) error {
 	fieldNames := fieldNames(fields)
 	values := fieldValues(fieldNames, fields)
 
-	fieldNames = append(fieldNames, "created_at")
-	fieldNames = append(fieldNames, "updated_at")
-
-	values = append(values, time.Now().UTC())
-	values = append(values, time.Now().UTC())
-
 	query := fmt.Sprintf(insertTemplate, identity.Table(), fieldNameMarkers(fieldNames), fieldMarkers(len(fieldNames)))
 	sq.l.Emit(metrics.Info("DB:Query"), metrics.With("query", query))
 
@@ -223,8 +217,6 @@ func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index str
 		sq.l.Emit(metrics.Error(err))
 		return err
 	}
-
-	tableFields["updated_at"] = time.Now().UTC()
 
 	indexValueString, err := ToValueString(indexValue)
 	if err != nil {
