@@ -24,6 +24,7 @@ type DoneFunc func(int, io.WriterTo) error
 // has a underline bytes.Buffer which it uses as underline storage.
 type doneWriter struct {
 	max      int
+	index    int
 	DoneFunc DoneFunc
 	src      *DonePool
 	buffer   *bytes.Buffer
@@ -48,11 +49,12 @@ func (bw *doneWriter) Close() error {
 	}
 
 	buffer := bw.buffer
-	bw.src.put(bw.max, buffer)
+	bw.src.put(bw.index, buffer)
 
 	bw.buffer = nil
 	bw.DoneFunc = nil
 	bw.max = 0
+	bw.index = -1
 	bw.src = nil
 
 	dWBuffer.Put(bw)
@@ -125,18 +127,16 @@ func NewDonePool(distance int, initialAmount int) *DonePool {
 // Put returns the bytes.Buffer by using the bu.Cap when greater than or equal to BytePool.distance,
 // it either finds a suitable RangePool to keep this bytes.Buffer or else creates a new RangePool to cater
 // for giving size.
-func (bp *DonePool) put(size int, bu *bytes.Buffer) {
+func (bp *DonePool) put(index int, bu *bytes.Buffer) {
 	bp.pl.Lock()
 	defer bp.pl.Unlock()
 
-	for _, pool := range bp.pools {
-		if pool.max < size {
-			continue
-		}
-
-		pool.pool.Put(bu)
+	if index >= len(bp.pools) {
 		return
 	}
+
+	pool := bp.pools[index]
+	pool.pool.Put(bu)
 }
 
 // Get returns a new or existing bytes.Buffer from it's internal size RangePool.
@@ -151,13 +151,14 @@ func (bp *DonePool) Get(size int, doneFunc DoneFunc) io.WriteCloser {
 	// loop through RangePool till we find the distance where size is no more
 	// greater, which means that pool will be suitable as the size provider for
 	// this size need.
-	for _, pool := range bp.pools {
+	for index, pool := range bp.pools {
 		if pool.max < size {
 			continue
 		}
 
 		doWriter.max = size
 		doWriter.src = bp
+		doWriter.index = index
 		doWriter.buffer = pool.pool.Get().(*bytes.Buffer)
 		doWriter.DoneFunc = doneFunc
 
@@ -175,10 +176,12 @@ func (bp *DonePool) Get(size int, doneFunc DoneFunc) io.WriteCloser {
 		},
 	}
 
+	index := len(bp.pools)
 	bp.pools = append(bp.pools, newPool)
 
 	doWriter.max = size
 	doWriter.src = bp
+	doWriter.index = index
 	doWriter.DoneFunc = doneFunc
 	doWriter.buffer = newPool.pool.Get().(*bytes.Buffer)
 	return doWriter
