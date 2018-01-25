@@ -43,12 +43,13 @@ func (bw *doneWriter) Close() error {
 		return nil
 	}
 
+	buffer := bw.buffer
+
 	var err error
 	if bw.DoneFunc != nil {
-		err = bw.DoneFunc(written, bw.buffer)
+		err = bw.DoneFunc(written, buffer)
 	}
 
-	buffer := bw.buffer
 	bw.src.put(bw.index, buffer)
 
 	bw.buffer = nil
