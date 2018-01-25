@@ -50,6 +50,7 @@ func (bw *doneWriter) Close() error {
 		err = bw.DoneFunc(written, buffer)
 	}
 
+	buffer.Reset()
 	bw.src.put(bw.index, buffer)
 
 	bw.buffer = nil
