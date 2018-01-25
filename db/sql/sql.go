@@ -864,9 +864,11 @@ func fieldNames(fields map[string]interface{}) []string {
 func ToValueString(val interface{}) (string, error) {
 	switch bo := val.(type) {
 	case *time.Time:
-		return bo.UTC().String(), nil
+		return bo.String(), nil
 	case time.Time:
-		return bo.UTC().String(), nil
+		return bo.String(), nil
+	case error:
+		return strconv.Quote(bo.Error()), nil
 	case string:
 		return strconv.Quote(bo), nil
 	case int:

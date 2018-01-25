@@ -13,6 +13,9 @@ import (
 var (
 	ErrClosed        = errors.New("writer already closed")
 	ErrLimitExceeded = errors.New("writer exceeded available space")
+	dWBuffer         = sync.Pool{New: func() interface{} {
+		return new(doneWriter)
+	}}
 )
 
 // DoneFunc defines a function type for calling a close op.
@@ -51,8 +54,13 @@ func (bw *doneWriter) Close() error {
 	}
 
 	bw.src.Put(bw.buffer)
+
 	bw.buffer = nil
+	bw.DoneFunc = nil
+	bw.max = 0
 	bw.src = nil
+
+	dWBuffer.Put(bw)
 	return err
 }
 
@@ -148,6 +156,8 @@ func (bp *DonePool) Put(bu *bytes.Buffer) {
 func (bp *DonePool) Get(size int, doneFunc DoneFunc) io.WriteCloser {
 	bp.pl.RLock()
 
+	doWriter := dWBuffer.Get().(*doneWriter)
+
 	// loop through RangePool till we find the distance where size is no more
 	// greater, which means that pool will be suitable as the size provider for
 	// this size need.
@@ -157,12 +167,12 @@ func (bp *DonePool) Get(size int, doneFunc DoneFunc) io.WriteCloser {
 		}
 
 		bp.pl.RUnlock()
-		return &doneWriter{
-			max:      size,
-			src:      bp,
-			buffer:   pool.Get(),
-			DoneFunc: doneFunc,
-		}
+		doWriter.max = size
+		doWriter.src = bp
+		doWriter.buffer = pool.Get()
+		doWriter.DoneFunc = doneFunc
+
+		return doWriter
 	}
 	bp.pl.RUnlock()
 
@@ -174,10 +184,9 @@ func (bp *DonePool) Get(size int, doneFunc DoneFunc) io.WriteCloser {
 	bp.pool = append(bp.pool, newPool)
 	bp.pl.Unlock()
 
-	return &doneWriter{
-		max:      size,
-		src:      bp,
-		buffer:   newPool.Get(),
-		DoneFunc: doneFunc,
-	}
+	doWriter.max = size
+	doWriter.src = bp
+	doWriter.buffer = newPool.Get()
+	doWriter.DoneFunc = doneFunc
+	return doWriter
 }
