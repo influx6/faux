@@ -112,7 +112,7 @@ func NewDonePool(distance int, initialAmount int) *DonePool {
 			max: sizeDist,
 			pool: &sync.Pool{
 				New: func() interface{} {
-					return bytes.NewBuffer(make([]byte, sizeDist))
+					return bytes.NewBuffer(make([]byte, 0, sizeDist))
 				},
 			},
 		})
@@ -171,7 +171,7 @@ func (bp *DonePool) Get(size int, doneFunc DoneFunc) io.WriteCloser {
 		max: newDistance,
 		pool: &sync.Pool{
 			New: func() interface{} {
-				return bytes.NewBuffer(make([]byte, newDistance))
+				return bytes.NewBuffer(make([]byte, 0, newDistance))
 			},
 		},
 	}
