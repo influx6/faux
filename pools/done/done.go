@@ -186,7 +186,7 @@ func (bp *DonePool) Get(size int, doneFunc DoneFunc) io.WriteCloser {
 
 	doWriter.max = size
 	doWriter.src = bp
-	doWriter.buffer = newPool.Get()
 	doWriter.DoneFunc = doneFunc
+	doWriter.buffer = newPool.Get()
 	return doWriter
 }

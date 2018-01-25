@@ -94,7 +94,9 @@ func benchThis(b *testing.B, payload []byte) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		w := pool.Get(len(payload), func(_ int, w io.WriterTo) error { return nil })
+		w := pool.Get(len(payload), func(_ int, w io.WriterTo) error {
+			return nil
+		})
 		w.Write(payload)
 		w.Close()
 	}
