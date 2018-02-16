@@ -2,6 +2,7 @@ package done_test
 
 import (
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"testing"
 
@@ -95,6 +96,7 @@ func benchThis(b *testing.B, payload []byte) {
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		w := pool.Get(len(payload), func(_ int, w io.WriterTo) error {
+			w.WriteTo(ioutil.Discard)
 			return nil
 		})
 		w.Write(payload)
