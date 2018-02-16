@@ -75,7 +75,7 @@ func (bp *BytesPool) Get(size int) []byte {
 			continue
 		}
 
-		return (pool.pool.Get().([]byte))[:pool.max]
+		return pool.pool.Get().([]byte)
 	}
 
 	// We dont have any pool within size range, so create new RangePool suited for this size.
@@ -92,5 +92,5 @@ func (bp *BytesPool) Get(size int) []byte {
 	bp.indexes[newDistance] = len(bp.pools)
 	bp.pools = append(bp.pools, newPool)
 
-	return (newPool.pool.Get().([]byte))[:newDistance]
+	return newPool.pool.Get().([]byte)
 }
