@@ -45,6 +45,7 @@ func NewBytesPool(distance int, initialAmount int) *BytesPool {
 	return &BytesPool{
 		distance: distance,
 		pools:    initials,
+		indexes:  indexes,
 	}
 }
 
