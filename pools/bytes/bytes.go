@@ -21,10 +21,10 @@ type BytesPool struct {
 	indexes  map[int]int
 }
 
-// NewDonePool returns a new instance of a BytesPool with size distance used for new pools
+// NewBytesPool returns a new instance of a BytesPool with size distance used for new pools
 // and creates as many as the initialAmount of RangePools internally to service those size
 // requests.
-func NewDonePool(distance int, initialAmount int) *BytesPool {
+func NewBytesPool(distance int, initialAmount int) *BytesPool {
 	initials := make([]rangePool, 0)
 	indexes := make(map[int]int)
 
