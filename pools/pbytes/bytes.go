@@ -1,6 +1,9 @@
 package pbytes
 
-import "sync"
+import (
+	"bytes"
+	"sync"
+)
 
 type rangePool struct {
 	max  int
@@ -36,7 +39,7 @@ func NewBytesPool(distance int, initialAmount int) *BytesPool {
 			max: sizeDist,
 			pool: &sync.Pool{
 				New: func() interface{} {
-					return make([]byte, 0, sizeDist)
+					return bytes.NewBuffer(make([]byte, 0, sizeDist))
 				},
 			},
 		})
@@ -50,11 +53,11 @@ func NewBytesPool(distance int, initialAmount int) *BytesPool {
 }
 
 // Put returns the []byte by using the capacity of the slice to find its pool.
-func (bp *BytesPool) Put(bu []byte) {
+func (bp *BytesPool) Put(bu *bytes.Buffer) {
 	bp.pl.Lock()
 	defer bp.pl.Unlock()
 
-	if index, ok := bp.indexes[cap(bu)]; ok {
+	if index, ok := bp.indexes[bu.Cap()]; ok {
 		pool := bp.pools[index]
 		pool.pool.Put(bu)
 	}
@@ -63,7 +66,7 @@ func (bp *BytesPool) Put(bu []byte) {
 // Get returns a new or existing []byte from it's internal size RangePool.
 // It gets a RangePool or creates one if non exists for the size + it's distance value
 // then gets a []byte from that RangePool.
-func (bp *BytesPool) Get(size int) []byte {
+func (bp *BytesPool) Get(size int) *bytes.Buffer {
 	bp.pl.Lock()
 	defer bp.pl.Unlock()
 
@@ -75,7 +78,7 @@ func (bp *BytesPool) Get(size int) []byte {
 			continue
 		}
 
-		return pool.pool.Get().([]byte)
+		return pool.pool.Get().(*bytes.Buffer)
 	}
 
 	// We dont have any pool within size range, so create new RangePool suited for this size.
@@ -84,7 +87,7 @@ func (bp *BytesPool) Get(size int) []byte {
 		max: newDistance,
 		pool: &sync.Pool{
 			New: func() interface{} {
-				return make([]byte, 0, newDistance)
+				return bytes.NewBuffer(make([]byte, 0, newDistance))
 			},
 		},
 	}
@@ -92,5 +95,5 @@ func (bp *BytesPool) Get(size int) []byte {
 	bp.indexes[newDistance] = len(bp.pools)
 	bp.pools = append(bp.pools, newPool)
 
-	return newPool.pool.Get().([]byte)
+	return newPool.pool.Get().(*bytes.Buffer)
 }
