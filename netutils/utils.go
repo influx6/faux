@@ -37,6 +37,24 @@ func GetAddr(addr string) string {
 	return addr
 }
 
+// ResolveAddr returns an appropriate address by validating the
+// presence of the ip and port, if non is found, it uses the default
+// 0.0.0.0 address and assigns a port if non is found.
+func ResolveAddr(addr string) string {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "0.0.0.0:" + strconv.Itoa(FreePort())
+	}
+
+	if host == "" {
+		host = "0.0.0.0"
+	}
+	if port == "" {
+		port = strconv.Itoa(FreePort())
+	}
+	return host + ":" + port
+}
+
 // FreePort returns a random free port from the underline system for use in a network socket.
 func FreePort() int {
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
