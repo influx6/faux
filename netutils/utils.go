@@ -37,6 +37,25 @@ func GetAddr(addr string) string {
 	return addr
 }
 
+// FreePort returns a random free port from the underline system for use in a network socket.
+func FreePort() int {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		log.Fatal(err)
+		return 0
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		log.Fatal(err)
+		return 0
+	}
+
+	defer l.Close()
+
+	return l.Addr().(*net.TCPAddr).Port
+}
+
 //==============================================================================
 
 // UpgradeConnToTLS upgrades the giving tcp connection to use a tls based connection
