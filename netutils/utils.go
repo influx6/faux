@@ -41,18 +41,32 @@ func GetAddr(addr string) string {
 // presence of the ip and port, if non is found, it uses the default
 // 0.0.0.0 address and assigns a port if non is found.
 func ResolveAddr(addr string) string {
-	host, port, err := net.SplitHostPort(addr)
+	var host, port string
+
+	uri, err := url.Parse(addr)
 	if err != nil {
-		return "0.0.0.0:" + strconv.Itoa(FreePort())
+		host, port, err = net.SplitHostPort(uri.Host)
+		if err != nil {
+			return "0.0.0.0:" + strconv.Itoa(FreePort())
+		}
+	} else {
+		host = uri.Host
+		port = uri.Port()
 	}
 
 	if host == "" {
 		host = "0.0.0.0"
 	}
+
 	if port == "" {
 		port = strconv.Itoa(FreePort())
 	}
-	return host + ":" + port
+
+	if uri.Scheme == "" {
+		return host + ":" + port
+	}
+
+	return uri.Scheme + "://" + host + ":" + port
 }
 
 // FreePort returns a random free port from the underline system for use in a network socket.
