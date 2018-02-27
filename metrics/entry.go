@@ -162,8 +162,10 @@ func Info(message string, m ...interface{}) EntryMod {
 
 // Message returns a new Entry with the provided Level and message used.
 func Message(message string, m ...interface{}) EntryMod {
+	function, file, line := getFunctionName(3)
 	return func(en *Entry) {
 		en.Message = fmt.Sprintf(message, m...)
+		en.Function, en.File, en.Line = function, file, line
 	}
 }
 
@@ -192,13 +194,15 @@ func withMessageAt(depth int, level Level, message string, m ...interface{}) Ent
 // WithTrace returns itself after setting the giving trace value
 // has the method trace for the giving Entry.
 func WithTrace(t Trace) EntryMod {
+	function, file, line := getFunctionName(3)
 	return func(en *Entry) {
 		en.Trace = t
+		en.Function, en.File, en.Line = function, file, line
 	}
 }
 
-// WithField returns a Entry and set the Filter to the provided value.
-func WithField(filter interface{}) EntryMod {
+// WithFilter returns a Entry and set the Filter to the provided value.
+func WithFilter(filter interface{}) EntryMod {
 	return func(en *Entry) {
 		en.Filter = filter
 	}
@@ -206,8 +210,10 @@ func WithField(filter interface{}) EntryMod {
 
 // WithID returns a Entry and set the ID to the provided value.
 func WithID(id string) EntryMod {
+	function, file, line := getFunctionName(3)
 	return func(en *Entry) {
 		en.ID = id
+		en.Function, en.File, en.Line = function, file, line
 	}
 }
 
