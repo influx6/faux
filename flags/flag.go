@@ -90,10 +90,16 @@ type Flag interface {
 	DefaultValue() interface{}
 }
 
+// BaseFlag embodies core fields shared by all flags.
+type BaseFlag struct {
+	Name string
+	Env  string
+	Desc string
+}
+
 // DurationFlag implements a structure for parsing duration flags.
 type DurationFlag struct {
-	Name       string
-	Desc       string
+	BaseFlag
 	Default    time.Duration
 	value      *time.Duration
 	Validation func(time.Duration) error
@@ -126,8 +132,7 @@ func (s *DurationFlag) Parse(cmd string) error {
 
 // Float64Flag implements a structure for parsing float64 flags.
 type Float64Flag struct {
-	Name       string
-	Desc       string
+	BaseFlag
 	Default    float64
 	value      *float64
 	Validation func(float64) error
@@ -160,8 +165,7 @@ func (s *Float64Flag) Parse(cmd string) error {
 
 // UInt64Flag implements a structure for parsing uint64 flags.
 type UInt64Flag struct {
-	Name       string
-	Desc       string
+	BaseFlag
 	Default    uint64
 	value      *uint64
 	Validation func(uint64) error
@@ -194,8 +198,7 @@ func (s *UInt64Flag) Parse(cmd string) error {
 
 // Int64Flag implements a structure for parsing int64 flags.
 type Int64Flag struct {
-	Name       string
-	Desc       string
+	BaseFlag
 	Default    int64
 	value      *int64
 	Validation func(int64) error
@@ -228,8 +231,7 @@ func (s *Int64Flag) Parse(cmd string) error {
 
 // UIntFlag implements a structure for parsing uint flags.
 type UIntFlag struct {
-	Name       string
-	Desc       string
+	BaseFlag
 	Default    uint
 	value      *uint
 	Validation func(uint) error
@@ -262,8 +264,7 @@ func (s *UIntFlag) Value() interface{} {
 
 // IntFlag implements a structure for parsing int flags.
 type IntFlag struct {
-	Name       string
-	Desc       string
+	BaseFlag
 	Default    int
 	value      *int
 	Validation func(int) error
@@ -295,8 +296,7 @@ func (s *IntFlag) Parse(cmd string) error {
 
 // BoolFlag implements a structure for parsing bool flags.
 type BoolFlag struct {
-	Name       string
-	Desc       string
+	BaseFlag
 	Default    bool
 	value      *bool
 	Validation func(bool) error
@@ -329,8 +329,7 @@ func (s *BoolFlag) Parse(cmd string) error {
 
 // TBoolFlag implements a structure for parsing bool flags that are true by default.
 type TBoolFlag struct {
-	Name       string
-	Desc       string
+	BaseFlag
 	Default    bool
 	value      *bool
 	Validation func(bool) error
@@ -364,8 +363,7 @@ func (s *TBoolFlag) Parse(cmd string) error {
 
 // StringFlag implements a structure for parsing string flags.
 type StringFlag struct {
-	Name       string
-	Desc       string
+	BaseFlag
 	Default    string
 	value      *string
 	Validation func(string) error
@@ -528,13 +526,6 @@ func Run(title string, cmds ...Command) {
 	}
 
 	if !found {
-		//if len(cmds) != 0 {
-		//	if flag.Usage != nil {
-		//		flag.Usage()
-		//		return
-		//	}
-		//}
-
 		// If commands contains only one, then attempt to run the available command instead if it
 		// sets AllowDefault to true.
 		first := cmds[0]

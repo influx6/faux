@@ -11,17 +11,17 @@ type Fields map[interface{}]interface{}
 
 // Getter defines a series of Get methods for which values will be retrieved with.
 type Getter interface {
-	Get(key interface{}) (interface{}, bool)
-	GetInt(key interface{}) (int, bool)
-	GetBool(key interface{}) (bool, bool)
-	GetInt8(key interface{}) (int8, bool)
-	GetInt16(key interface{}) (int16, bool)
-	GetInt32(key interface{}) (int32, bool)
-	GetInt64(key interface{}) (int64, bool)
-	GetString(key interface{}) (string, bool)
-	GetFloat32(key interface{}) (float32, bool)
-	GetFloat64(key interface{}) (float64, bool)
-	GetDuration(key interface{}) (time.Duration, bool)
+	GetInt(interface{}) int
+	GetBool(interface{}) bool
+	GetInt8(interface{}) int8
+	GetInt16(interface{}) int16
+	GetInt32(interface{}) int32
+	GetInt64(interface{}) int64
+	Get(interface{}) interface{}
+	GetString(interface{}) string
+	GetFloat32(interface{}) float32
+	GetFloat64(interface{}) float64
+	GetDuration(interface{}) time.Duration
 }
 
 // ValueBag defines a context for holding values to be shared across processes..
@@ -78,135 +78,141 @@ func (c *vbag) WithValue(key, value interface{}) ValueBag {
 }
 
 // Deadline returns giving time when context is expected to be canceled.
-func (c *vbag) Deadline() (time.Time, bool) {
-	return time.Time{}, false
+func (c *vbag) Deadline() time.Time {
+	return time.Time{}
 }
 
 // GetDuration returns the duration value of a key if it exists.
-func (c *vbag) GetDuration(key interface{}) (time.Duration, bool) {
-	val, found := c.Get(key)
+func (c *vbag) GetDuration(key interface{}) time.Duration {
+	val, found := c.get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
 	if dval, ok := val.(time.Duration); ok {
-		return dval, true
+		return dval
 	}
 
 	if dval, ok := val.(int64); ok {
-		return time.Duration(dval), true
+		return time.Duration(dval)
 	}
 
 	if sval, ok := val.(string); ok {
 		if dur, err := time.ParseDuration(sval); err == nil {
-			return dur, true
+			return dur
 		}
 	}
 
-	return 0, false
+	return 0
 }
 
 // GetBool returns the bool value of a key if it exists.
-func (c *vbag) GetBool(key interface{}) (bool, bool) {
-	val, found := c.Get(key)
+func (c *vbag) GetBool(key interface{}) bool {
+	val, found := c.get(key)
 	if !found {
-		return false, false
+		return false
 	}
 
-	value, ok := val.(bool)
-	return value, ok
+	return val.(bool)
+
 }
 
 // GetFloat64 returns the float64 value of a key if it exists.
-func (c *vbag) GetFloat64(key interface{}) (float64, bool) {
-	val, found := c.Get(key)
+func (c *vbag) GetFloat64(key interface{}) float64 {
+	val, found := c.get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(float64)
-	return value, ok
+	return val.(float64)
+
 }
 
 // GetFloat32 returns the float32 value of a key if it exists.
-func (c *vbag) GetFloat32(key interface{}) (float32, bool) {
-	val, found := c.Get(key)
+func (c *vbag) GetFloat32(key interface{}) float32 {
+	val, found := c.get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(float32)
-	return value, ok
+	return val.(float32)
+
 }
 
 // GetInt8 returns the int8 value of a key if it exists.
-func (c *vbag) GetInt8(key interface{}) (int8, bool) {
-	val, found := c.Get(key)
+func (c *vbag) GetInt8(key interface{}) int8 {
+	val, found := c.get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(int8)
-	return value, ok
+	return val.(int8)
+
 }
 
 // GetInt16 returns the int16 value of a key if it exists.
-func (c *vbag) GetInt16(key interface{}) (int16, bool) {
-	val, found := c.Get(key)
+func (c *vbag) GetInt16(key interface{}) int16 {
+	val, found := c.get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(int16)
-	return value, ok
+	return val.(int16)
+
 }
 
 // GetInt64 returns the value type value of a key if it exists.
-func (c *vbag) GetInt64(key interface{}) (int64, bool) {
-	val, found := c.Get(key)
+func (c *vbag) GetInt64(key interface{}) int64 {
+	val, found := c.get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(int64)
-	return value, ok
+	return val.(int64)
+
 }
 
 // GetInt32 returns the value type value of a key if it exists.
-func (c *vbag) GetInt32(key interface{}) (int32, bool) {
-	val, found := c.Get(key)
+func (c *vbag) GetInt32(key interface{}) int32 {
+	val, found := c.get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(int32)
-	return value, ok
+	return val.(int32)
+
 }
 
 // GetInt returns the value type value of a key if it exists.
-func (c *vbag) GetInt(key interface{}) (int, bool) {
-	val, found := c.Get(key)
+func (c *vbag) GetInt(key interface{}) int {
+	val, found := c.get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(int)
-	return value, ok
+	return val.(int)
+
 }
 
 // GetString returns the value type value of a key if it exists.
-func (c *vbag) GetString(key interface{}) (string, bool) {
-	val, found := c.Get(key)
+func (c *vbag) GetString(key interface{}) string {
+	val, found := c.get(key)
 	if !found {
-		return "", false
+		return ""
 	}
 
-	value, ok := val.(string)
-	return value, ok
+	return val.(string)
+
 }
 
 // Get returns the value of a key if it exists.
-func (c *vbag) Get(key interface{}) (value interface{}, found bool) {
+func (c *vbag) Get(key interface{}) (value interface{}) {
+	item, _ := c.get(key)
+	return item
+}
+
+// Get returns the value of a key if it exists.
+func (c *vbag) get(key interface{}) (value interface{}, found bool) {
 	c.ml.RLock()
 	defer c.ml.RUnlock()
 
@@ -229,136 +235,83 @@ func FromContext(ctx context.Context) *googleContext {
 }
 
 // GetDuration returns the giving value for the provided key if it exists else nil.
-func (g *googleContext) GetDuration(key interface{}) (time.Duration, bool) {
+func (g *googleContext) GetDuration(key interface{}) time.Duration {
 	val := g.Context.Value(key)
 	if val == nil {
-		return 0, false
+		return 0
 	}
 
 	if dval, ok := val.(time.Duration); ok {
-		return dval, true
+		return dval
 	}
 
 	if dval, ok := val.(int64); ok {
-		return time.Duration(dval), true
+		return time.Duration(dval)
 	}
 
 	if sval, ok := val.(string); ok {
 		if dur, err := time.ParseDuration(sval); err == nil {
-			return dur, true
+			return dur
 		}
 	}
 
-	return 0, false
+	return 0
 }
 
 // Get returns the giving value for the provided key if it exists else nil.
-func (g *googleContext) Get(key interface{}) (interface{}, bool) {
+func (g *googleContext) Get(key interface{}) interface{} {
 	val := g.Context.Value(key)
 	if val == nil {
-		return val, false
+		return val
 	}
 
-	return val, true
+	return val
 }
 
 // GetBool returns the value type value of a key if it exists.
-func (g *googleContext) GetBool(key interface{}) (bool, bool) {
-	val, found := g.Get(key)
-	if !found {
-		return false, false
-	}
-
-	value, ok := val.(bool)
-	return value, ok
+func (g *googleContext) GetBool(key interface{}) bool {
+	return g.Get(key).(bool)
 }
 
 // GetFloat64 returns the value type value of a key if it exists.
-func (g *googleContext) GetFloat64(key interface{}) (float64, bool) {
-	val, found := g.Get(key)
-	if !found {
-		return 0, false
-	}
+func (g *googleContext) GetFloat64(key interface{}) float64 {
+	return g.Get(key).(float64)
 
-	value, ok := val.(float64)
-	return value, ok
 }
 
 // GetFloat32 returns the value type value of a key if it exists.
-func (g *googleContext) GetFloat32(key interface{}) (float32, bool) {
-	val, found := g.Get(key)
-	if !found {
-		return 0, false
-	}
-
-	value, ok := val.(float32)
-	return value, ok
+func (g *googleContext) GetFloat32(key interface{}) float32 {
+	return g.Get(key).(float32)
 }
 
 // GetInt8 returns the value type value of a key if it exists.
-func (g *googleContext) GetInt8(key interface{}) (int8, bool) {
-	val, found := g.Get(key)
-	if !found {
-		return 0, false
-	}
-
-	value, ok := val.(int8)
-	return value, ok
+func (g *googleContext) GetInt8(key interface{}) int8 {
+	return g.Get(key).(int8)
 }
 
 // GetInt16 returns the value type value of a key if it exists.
-func (g *googleContext) GetInt16(key interface{}) (int16, bool) {
-	val, found := g.Get(key)
-	if !found {
-		return 0, false
-	}
-
-	value, ok := val.(int16)
-	return value, ok
+func (g *googleContext) GetInt16(key interface{}) int16 {
+	return g.Get(key).(int16)
 }
 
 // GetInt64 returns the value type value of a key if it exists.
-func (g *googleContext) GetInt64(key interface{}) (int64, bool) {
-	val, found := g.Get(key)
-	if !found {
-		return 0, false
-	}
-
-	value, ok := val.(int64)
-	return value, ok
+func (g *googleContext) GetInt64(key interface{}) int64 {
+	return g.Get(key).(int64)
 }
 
 // GetInt32 returns the value type value of a key if it exists.
-func (g *googleContext) GetInt32(key interface{}) (int32, bool) {
-	val, found := g.Get(key)
-	if !found {
-		return 0, false
-	}
-
-	value, ok := val.(int32)
-	return value, ok
+func (g *googleContext) GetInt32(key interface{}) int32 {
+	return g.Get(key).(int32)
 }
 
 // GetInt returns the value type value of a key if it exists.
-func (g *googleContext) GetInt(key interface{}) (int, bool) {
-	val, found := g.Get(key)
-	if !found {
-		return 0, false
-	}
-
-	value, ok := val.(int)
-	return value, ok
+func (g *googleContext) GetInt(key interface{}) int {
+	return g.Get(key).(int)
 }
 
 // GetString returns the value type value of a key if it exists.
-func (g *googleContext) GetString(key interface{}) (string, bool) {
-	val, found := g.Get(key)
-	if !found {
-		return "", false
-	}
-
-	value, ok := val.(string)
-	return value, ok
+func (g *googleContext) GetString(key interface{}) string {
+	return g.Get(key).(string)
 }
 
 //==============================================================================
@@ -434,132 +387,132 @@ func (p *Pair) Root() *Pair {
 }
 
 // GetDuration returns the duration value of a key if it exists.
-func (p *Pair) GetDuration(key interface{}) (time.Duration, bool) {
+func (p *Pair) GetDuration(key interface{}) time.Duration {
 	val, found := p.Get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
 	if dval, ok := val.(time.Duration); ok {
-		return dval, true
+		return dval
 	}
 
 	if dval, ok := val.(int64); ok {
-		return time.Duration(dval), true
+		return time.Duration(dval)
 	}
 
 	if sval, ok := val.(string); ok {
 		if dur, err := time.ParseDuration(sval); err == nil {
-			return dur, true
+			return dur
 		}
 	}
 
-	return 0, false
+	return 0
 }
 
 // GetBool returns the bool value of a key if it exists.
-func (p *Pair) GetBool(key interface{}) (bool, bool) {
+func (p *Pair) GetBool(key interface{}) bool {
 	val, found := p.Get(key)
 	if !found {
-		return false, false
+		return false
 	}
 
-	value, ok := val.(bool)
-	return value, ok
+	return val.(bool)
+
 }
 
 // GetFloat64 returns the float64 value of a key if it exists.
-func (p *Pair) GetFloat64(key interface{}) (float64, bool) {
+func (p *Pair) GetFloat64(key interface{}) float64 {
 	val, found := p.Get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(float64)
-	return value, ok
+	return val.(float64)
+
 }
 
 // GetFloat32 returns the float32 value of a key if it exists.
-func (p *Pair) GetFloat32(key interface{}) (float32, bool) {
+func (p *Pair) GetFloat32(key interface{}) float32 {
 	val, found := p.Get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(float32)
-	return value, ok
+	return val.(float32)
+
 }
 
 // GetInt8 returns the int8 value of a key if it exists.
-func (p *Pair) GetInt8(key interface{}) (int8, bool) {
+func (p *Pair) GetInt8(key interface{}) int8 {
 	val, found := p.Get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(int8)
-	return value, ok
+	return val.(int8)
+
 }
 
 // GetInt16 returns the int16 value of a key if it exists.
-func (p *Pair) GetInt16(key interface{}) (int16, bool) {
+func (p *Pair) GetInt16(key interface{}) int16 {
 	val, found := p.Get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(int16)
-	return value, ok
+	return val.(int16)
+
 }
 
 // GetInt64 returns the value type value of a key if it exists.
-func (p *Pair) GetInt64(key interface{}) (int64, bool) {
+func (p *Pair) GetInt64(key interface{}) int64 {
 	val, found := p.Get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(int64)
-	return value, ok
+	return val.(int64)
+
 }
 
 // GetInt32 returns the value type value of a key if it exists.
-func (p *Pair) GetInt32(key interface{}) (int32, bool) {
+func (p *Pair) GetInt32(key interface{}) int32 {
 	val, found := p.Get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(int32)
-	return value, ok
+	return val.(int32)
+
 }
 
 // GetInt returns the value type value of a key if it exists.
-func (p *Pair) GetInt(key interface{}) (int, bool) {
+func (p *Pair) GetInt(key interface{}) int {
 	val, found := p.Get(key)
 	if !found {
-		return 0, false
+		return 0
 	}
 
-	value, ok := val.(int)
-	return value, ok
+	return val.(int)
+
 }
 
 // GetString returns the value type value of a key if it exists.
-func (p *Pair) GetString(key interface{}) (string, bool) {
+func (p *Pair) GetString(key interface{}) string {
 	val, found := p.Get(key)
 	if !found {
-		return "", false
+		return ""
 	}
 
-	value, ok := val.(string)
-	return value, ok
+	return val.(string)
+
 }
 
 // Get returns the value of a key if it exists.
-func (p *Pair) Get(key interface{}) (value interface{}, found bool) {
+func (p *Pair) Get(key interface{}) (interface{}, bool) {
 	if p == nil {
-		return
+		return nil, false
 	}
 
 	if p.key == key {
@@ -567,7 +520,7 @@ func (p *Pair) Get(key interface{}) (value interface{}, found bool) {
 	}
 
 	if p.prev == nil {
-		return
+		return nil, false
 	}
 
 	return p.prev.Get(key)
