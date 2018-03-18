@@ -253,6 +253,7 @@ func (c *Commander) Exec(ctx context.Context, metric metrics.Metrics) error {
 	}()
 
 	if err := cmder.Wait(); err != nil {
+
 		metric.Emit(metrics.Error(err), metrics.WithID("shell:exec:error"), metrics.WithFields(metrics.Field{
 			"envs":       c.Envs,
 			"error":      err.Error(),

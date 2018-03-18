@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -36,6 +37,10 @@ func GetAddr(addr string) string {
 
 	return addr
 }
+
+var (
+	zeros = regexp.MustCompile("0*")
+)
 
 // ResolveAddr returns an appropriate address by validating the
 // presence of the ip and port, if non is found, it uses the default
@@ -63,7 +68,7 @@ func ResolveAddr(addr string) string {
 		host = "0.0.0.0"
 	}
 
-	if port == "" {
+	if port == "" || zeros.MatchString(port) {
 		port = strconv.Itoa(FreePort())
 	}
 
