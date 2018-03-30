@@ -39,7 +39,7 @@ func GetAddr(addr string) string {
 }
 
 var (
-	zeros = regexp.MustCompile("0*")
+	zeros = regexp.MustCompile("^0+")
 )
 
 // ResolveAddr returns an appropriate address by validating the
