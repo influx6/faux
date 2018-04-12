@@ -86,7 +86,7 @@ func (bp *BytesPool) Get(size int) *bytes.Buffer {
 	}
 
 	// We dont have any pool within size range, so create new RangePool suited for this size.
-	newDistance := size + bp.distance
+	newDistance := (size / bp.distance) * bp.distance
 	newPool := rangePool{
 		max: newDistance,
 		pool: &sync.Pool{
