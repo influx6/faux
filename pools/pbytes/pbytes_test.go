@@ -1,12 +1,13 @@
 package pbytes_test
 
 import (
-	"testing"
-	"github.com/influx6/faux/pools/pbytes"
 	"math/rand"
+	"testing"
+
+	"github.com/influx6/faux/pools/pbytes"
 )
 
-func BenchmarkBitsBoot(b *testing.B){
+func BenchmarkBitsBoot(b *testing.B) {
 	b.ReportAllocs()
 	b.StopTimer()
 
@@ -14,7 +15,7 @@ func BenchmarkBitsBoot(b *testing.B){
 	benchmarkPool(b, provider)
 }
 
-func BenchmarkBitsPool(b *testing.B){
+func BenchmarkBitsPool(b *testing.B) {
 	b.ReportAllocs()
 	b.StopTimer()
 
@@ -22,20 +23,22 @@ func BenchmarkBitsPool(b *testing.B){
 	benchmarkPool(b, provider)
 }
 
-type provider interface{
+type provider interface {
 	Get(int) *pbytes.Buffer
 }
 
-func benchmarkPool(b *testing.B, handler provider){
+func benchmarkPool(b *testing.B, handler provider) {
 	b.Run("2bytes", func(b *testing.B) {
 		b.ReportAllocs()
 		b.StopTimer()
 
 		b.StartTimer()
-		for i :=0; i < b.N; i++ {
-			buff := handler.Get(2)
-			buff.Discard()
-		}
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				buff := handler.Get(2)
+				buff.Discard()
+			}
+		})
 		b.StopTimer()
 	})
 
@@ -43,10 +46,12 @@ func benchmarkPool(b *testing.B, handler provider){
 		b.ReportAllocs()
 		b.StopTimer()
 		b.StartTimer()
-		for i :=0; i < b.N; i++ {
-			buff := handler.Get(4)
-			buff.Discard()
-		}
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				buff := handler.Get(4)
+				buff.Discard()
+			}
+		})
 		b.StopTimer()
 	})
 
@@ -54,10 +59,12 @@ func benchmarkPool(b *testing.B, handler provider){
 		b.ReportAllocs()
 		b.StopTimer()
 		b.StartTimer()
-		for i :=0; i < b.N; i++ {
-			buff := handler.Get(16)
-			buff.Discard()
-		}
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				buff := handler.Get(16)
+				buff.Discard()
+			}
+		})
 		b.StopTimer()
 	})
 
@@ -65,10 +72,12 @@ func benchmarkPool(b *testing.B, handler provider){
 		b.ReportAllocs()
 		b.StopTimer()
 		b.StartTimer()
-		for i :=0; i < b.N; i++ {
-			buff := handler.Get(32)
-			buff.Discard()
-		}
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				buff := handler.Get(32)
+				buff.Discard()
+			}
+		})
 		b.StopTimer()
 	})
 
@@ -76,10 +85,12 @@ func benchmarkPool(b *testing.B, handler provider){
 		b.ReportAllocs()
 		b.StopTimer()
 		b.StartTimer()
-		for i :=0; i < b.N; i++ {
-			buff := handler.Get(64)
-			buff.Discard()
-		}
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				buff := handler.Get(64)
+				buff.Discard()
+			}
+		})
 		b.StopTimer()
 	})
 
@@ -87,10 +98,16 @@ func benchmarkPool(b *testing.B, handler provider){
 		b.ReportAllocs()
 		b.StopTimer()
 		b.StartTimer()
-		for i :=0; i < b.N; i++ {
+		for i := 0; i < b.N; i++ {
 			buff := handler.Get(128)
 			buff.Discard()
 		}
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				buff := handler.Get(128)
+				buff.Discard()
+			}
+		})
 		b.StopTimer()
 	})
 
@@ -98,10 +115,12 @@ func benchmarkPool(b *testing.B, handler provider){
 		b.ReportAllocs()
 		b.StopTimer()
 		b.StartTimer()
-		for i :=0; i < b.N; i++ {
-			buff := handler.Get(512)
-			buff.Discard()
-		}
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				buff := handler.Get(512)
+				buff.Discard()
+			}
+		})
 		b.StopTimer()
 	})
 
@@ -109,10 +128,12 @@ func benchmarkPool(b *testing.B, handler provider){
 		b.ReportAllocs()
 		b.StopTimer()
 		b.StartTimer()
-		for i :=0; i < b.N; i++ {
-			buff := handler.Get(1024)
-			buff.Discard()
-		}
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				buff := handler.Get(1024)
+				buff.Discard()
+			}
+		})
 		b.StopTimer()
 	})
 
@@ -120,10 +141,13 @@ func benchmarkPool(b *testing.B, handler provider){
 		b.ReportAllocs()
 		b.StopTimer()
 		b.StartTimer()
-		for i :=0; i < b.N; i++ {
-			buff := handler.Get(1024 * 4)
-			buff.Discard()
-		}
+
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				buff := handler.Get(1024 * 4)
+				buff.Discard()
+			}
+		})
 		b.StopTimer()
 	})
 
@@ -131,10 +155,13 @@ func benchmarkPool(b *testing.B, handler provider){
 		b.ReportAllocs()
 		b.StopTimer()
 		b.StartTimer()
-		for i :=0; i < b.N; i++ {
-			buff := handler.Get(1024 * 8)
-			buff.Discard()
-		}
+
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				buff := handler.Get(1024 * 8)
+				buff.Discard()
+			}
+		})
 		b.StopTimer()
 	})
 
@@ -142,10 +169,12 @@ func benchmarkPool(b *testing.B, handler provider){
 		b.ReportAllocs()
 		b.StopTimer()
 		b.StartTimer()
-		for i :=0; i < b.N; i++ {
-			buff := handler.Get(1024 * 16)
-			buff.Discard()
-		}
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				buff := handler.Get(1024 * 16)
+				buff.Discard()
+			}
+		})
 		b.StopTimer()
 	})
 }
@@ -172,4 +201,3 @@ func sizedBytes(sz int) []byte {
 	}
 	return b
 }
-

@@ -44,15 +44,16 @@ func (b *bitsBoot) Put(br *Buffer)  {
 	b.free = append(b.free, br)
 }
 
-func (b *bitsBoot) Get() *Buffer {
+func (b *bitsBoot) Get(n int) *Buffer {
 	b.pl.Lock()
 	defer b.pl.Unlock()
 
 	free := len(b.free)
 	if free == 0 {
+		mem := make([]byte, b.max)
 		br := &Buffer{
 			pool: b,
-			Data: make([]byte, b.max),
+			Data: mem[:n],
 		}
 		return br
 	}
@@ -132,7 +133,7 @@ func (bp *BitsBoot) Get(size int) *Buffer {
 		}
 
 		bp.pl.Unlock()
-		return pool.Get()
+		return pool.Get(size)
 	}
 
 	// We dont have any pool within size range, so create new RangePool suited for this size.
@@ -146,7 +147,7 @@ func (bp *BitsBoot) Get(size int) *Buffer {
 	bp.pools = append(bp.pools, newPool)
 	bp.pl.Unlock()
 
-	return newPool.Get()
+	return newPool.Get(size)
 }
 
 //************************************************************************
@@ -164,8 +165,9 @@ func (b *bitsPool) Put(bu *Buffer)  {
 	b.pool.Put(bu)
 }
 
-func (b *bitsPool) Get() *Buffer {
+func (b *bitsPool) Get(n int) *Buffer {
 	br := b.pool.Get().(*Buffer)
+	br.Data = br.Data[:n]
 	br.pool = b
 	return br
 }
@@ -224,7 +226,7 @@ func (bp *BitsPool) Get(size int) *Buffer {
 			continue
 		}
 
-		return pool.Get()
+		return pool.Get(size)
 	}
 
 	// We dont have any pool within size range, so create new RangePool suited for this size.
@@ -243,7 +245,7 @@ func (bp *BitsPool) Get(size int) *Buffer {
 
 	bp.indexes[newDistance] = len(bp.pools)
 	bp.pools = append(bp.pools, newPool)
-	return newPool.Get()
+	return newPool.Get(size)
 }
 
 //************************************************************************
