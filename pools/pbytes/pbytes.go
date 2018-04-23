@@ -124,6 +124,13 @@ func (bp *BitsBoot) Put(bu *Buffer) {
 func (bp *BitsBoot) Get(size int) *Buffer {
 	bp.pl.Lock()
 
+	if poolIndex, ok := bp.indexes[size]; ok {
+		pool := bp.pools[poolIndex]
+		bp.pl.Unlock()
+		
+		return pool.Get(size)
+	}
+
 	// loop through RangePool till we find the distance where size is no more
 	// greater, which means that pool will be suitable as the size provider for
 	// this size need.
@@ -217,6 +224,11 @@ func NewBitsPool(distance int, initialAmount int) *BitsPool {
 func (bp *BitsPool) Get(size int) *Buffer {
 	bp.pl.Lock()
 	defer bp.pl.Unlock()
+
+	if poolIndex, ok := bp.indexes[size]; ok {
+		pool := bp.pools[poolIndex]
+		return pool.Get(size)
+	}
 
 	// loop through RangePool till we find the distance where size is no more
 	// greater, which means that pool will be suitable as the size provider for
