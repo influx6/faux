@@ -28,7 +28,7 @@ func (m *monster) Speak() string {
 }
 
 func get(t *testing.T, sm speaker) {
-	name, embedded, err := reflection.StructAndEmbeddedTypeNames(sm)
+	name, embedded, err := reflection.ExternalTypeNames(sm)
 	if err != nil {
 		tests.FailedWithError(err, "Should be able to retrieve field names arguments lists")
 	}
@@ -163,6 +163,37 @@ func TestStructMapperWthFieldStruct(t *testing.T) {
 	}
 	tests.Passed("Mapped struct should have same %q value", "Addr.Addr")
 }
+
+//type Addr3 string
+//type Addr2 Addrs
+//
+//func TestGetFields_Fields(t *testing.T) {
+//	profile := struct {
+//		Addrs
+//		Bu Addr2
+//		Ref Addr3
+//		Name string
+//		Date time.Time
+//		Users []string
+//		Addresses []Addrs
+//		Associations []map[string]interface{}
+//	}{
+//		Addrs: Addrs{Addr: "Tokura 20"},
+//		Ref: "Saki DS. 20",
+//		Bu: Addr2{Addr:"Saki 20"},
+//		Name:  "Johnson",
+//		Date:  time.Now(),
+//	}
+//
+//	fields, err := reflection.GetFields(profile)
+//	if err != nil {
+//		tests.FailedWithError(err, "Should have decoded struct and fields")
+//	}
+//
+//	for ind, field := range fields{
+//		fmt.Printf("Field#%d: %q %q %#q\n", ind, field.Name, field.TypeName, field.Type.Kind())
+//	}
+//}
 
 func TestStructMapperWthEmbeddedStruct(t *testing.T) {
 	layout := "Mon Jan 2 2006 15:04:05 -0700 MST"
@@ -303,7 +334,7 @@ func TestGetArgumentsType(t *testing.T) {
 	}
 	tests.Passed("Should be able to retrieve function arguments lists")
 
-	name, embedded, err := reflection.StructAndEmbeddedTypeNames(monster{Name: "Bob"})
+	name, embedded, err := reflection.ExternalTypeNames(monster{Name: "Bob"})
 	if err != nil {
 		tests.FailedWithError(err, "Should be able to retrieve field names arguments lists")
 	}

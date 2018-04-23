@@ -155,9 +155,9 @@ func MatchFunction(me interface{}, other interface{}) bool {
 	return true
 }
 
-// StructAndEmbeddedTypes returns the type of the giving element and a slice of
+// TypeAndFields returns the type of the giving element and a slice of
 // all composed types.
-func StructAndEmbeddedTypes(elem interface{}) (reflect.Type, []reflect.Type, error) {
+func TypeAndFields(elem interface{}) (reflect.Type, []reflect.Type, error) {
 	tl := reflect.ValueOf(elem)
 
 	if tl.Kind() == reflect.Ptr {
@@ -191,9 +191,9 @@ type FieldType struct {
 	Pkg      string `json:"pkg"`
 }
 
-// StructAndEmbeddedTypeNames returns the name and field names of the provided
-// elem which must be a struct.
-func StructAndEmbeddedTypeNames(elem interface{}) (FieldType, []FieldType, error) {
+// ExternalTypeNames returns the name and field names of the provided
+// elem which must be a struct, excluding all internal types.
+func ExternalTypeNames(elem interface{}) (FieldType, []FieldType, error) {
 	tl := reflect.TypeOf(elem)
 
 	if tl.Kind() == reflect.Ptr {
@@ -442,10 +442,15 @@ type Field struct {
 	Index int
 	Name  string
 	Tag   string
+	NameLC string
+	TypeName string
 	Type  reflect.Type
 	Value reflect.Value
-	// NameLC is the name in lower case.
-	NameLC string
+	IsSlice bool
+	IsArray bool
+	IsMap bool
+	IsChan bool
+	IsStruct bool
 }
 
 // Fields defines a lists of Field instances.
@@ -500,8 +505,60 @@ func GetTagFields(elem interface{}, tag string, allowNaturalNames bool) (Fields,
 			Name:   field.Name,
 			Type:   field.Type,
 			Value:  tlVal.Field(i),
+			TypeName: field.Type.Name(),
 			NameLC: strings.ToLower(field.Name),
+			IsMap: field.Type.Kind() == reflect.Map,
+			IsChan: field.Type.Kind() == reflect.Chan,
+			IsSlice: field.Type.Kind() == reflect.Slice,
+			IsArray: field.Type.Kind() == reflect.Array,
+			IsStruct: field.Type.Kind() == reflect.Struct,
 		})
+	}
+
+	return fields, nil
+}
+
+// GetFields retrieves all fields of the giving elements with the giving tag
+// type.
+func GetFields(elem interface{}) (Fields, error) {
+	if !IsStruct(elem) {
+		return nil, ErrNotStruct
+	}
+
+	tl := reflect.TypeOf(elem)
+	tlVal := reflect.ValueOf(elem)
+
+	if tl.Kind() == reflect.Ptr {
+		tl = tl.Elem()
+	}
+
+	if tlVal.Kind() == reflect.Ptr {
+		if tlVal.IsNil() {
+			return nil, errors.New("invalid value: must be non-nil struct")
+		}
+
+		tlVal = tlVal.Elem()
+	}
+
+	var fields Fields
+
+	for i := 0; i < tl.NumField(); i++ {
+		field := tl.Field(i)
+		fieldVal := Field{
+			Index:  i,
+			Name:   field.Name,
+			Type:   field.Type,
+			Value:  tlVal.Field(i),
+			TypeName: field.Type.Name(),
+			NameLC: strings.ToLower(field.Name),
+			IsMap: field.Type.Kind() == reflect.Map,
+			IsChan: field.Type.Kind() == reflect.Chan,
+			IsSlice: field.Type.Kind() == reflect.Slice,
+			IsArray: field.Type.Kind() == reflect.Array,
+			IsStruct: field.Type.Kind() == reflect.Struct,
+		}
+
+		fields = append(fields, fieldVal)
 	}
 
 	return fields, nil
