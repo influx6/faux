@@ -518,6 +518,27 @@ func GetTagFields(elem interface{}, tag string, allowNaturalNames bool) (Fields,
 	return fields, nil
 }
 
+// GetFieldByTagAndValue returns a giving struct field which has giving tag and value pair.
+func GetFieldByTagAndValue(elem interface{}, tag string, value string) (reflect.StructField, error) {
+	if !IsStruct(elem) {
+		return reflect.StructField{}, ErrNotStruct
+	}
+
+	tl := reflect.TypeOf(elem)
+	if tl.Kind() == reflect.Ptr {
+		tl = tl.Elem()
+	}
+
+	for i := 0; i < tl.NumField(); i++ {
+		field := tl.Field(i)
+		if field.Tag.Get(tag) == value {
+			return field, nil
+		}
+	}
+
+	return reflect.StructField{}, ErrNoFieldWithTagFound
+}
+
 // GetFields retrieves all fields of the giving elements with the giving tag
 // type.
 func GetFields(elem interface{}) (Fields, error) {

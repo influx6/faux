@@ -127,7 +127,7 @@ func (bp *BitsBoot) Get(size int) *Buffer {
 	if poolIndex, ok := bp.indexes[size]; ok {
 		pool := bp.pools[poolIndex]
 		bp.pl.Unlock()
-		
+
 		return pool.Get(size)
 	}
 
