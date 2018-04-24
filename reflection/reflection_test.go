@@ -195,6 +195,23 @@ func TestStructMapperWthFieldStruct(t *testing.T) {
 //	}
 //}
 
+func TestGetFieldByTagAndValue(t *testing.T) {
+	profile := struct {
+		Addrs
+		Name string    `json:"name"`
+		Date time.Time `json:"date"`
+	}{
+		Addrs: Addrs{Addr: "Tokura 20"},
+		Name:  "Johnson",
+		Date:  time.Now(),
+	}
+
+	_, err := reflection.GetFieldByTagAndValue(profile, "json", "name")
+	if err != nil {
+		tests.FailedWithError(err, "Should have successfully converted struct")
+	}
+}
+
 func TestStructMapperWthEmbeddedStruct(t *testing.T) {
 	layout := "Mon Jan 2 2006 15:04:05 -0700 MST"
 	timeType := reflect.TypeOf((*time.Time)(nil))
