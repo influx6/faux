@@ -18,14 +18,14 @@ type Collector interface {
 // new Entry objects.
 type Metrics interface {
 	Send(Entry) error
-	Emit(...EntryMod) error
+	Emit(...func(*Entry)) error
 	CollectMetrics(string) error
 }
 
 // New returns a Metrics object with the provided Augmenters and  Metrics
 // implemement objects for receiving metric Entries.
 func New(vals ...interface{}) Metrics {
-	var mods []EntryMod
+	var mods []func(*Entry)
 	var procs []Processors
 	var collectors []Collector
 
@@ -33,14 +33,14 @@ func New(vals ...interface{}) Metrics {
 		switch item := val.(type) {
 		case Collector:
 			collectors = append(collectors, item)
-		case EntryMod:
+		case func(*Entry):
 			mods = append(mods, item)
 		case Processors:
 			procs = append(procs, item)
 		}
 	}
 
-	var modder EntryMod
+	var modder func(*Entry)
 	if len(mods) != 0 {
 		modder = Partial(mods...)
 	}
@@ -53,7 +53,7 @@ func New(vals ...interface{}) Metrics {
 }
 
 type metrics struct {
-	mod        EntryMod
+	mod        func(*Entry)
 	processors []Processors
 	collectors []Collector
 }
@@ -81,7 +81,7 @@ func (m metrics) Send(en Entry) error {
 
 // Emit implements the Metrics interface and delivers Entry
 // to undeline metrics.
-func (m metrics) Emit(mods ...EntryMod) error {
+func (m metrics) Emit(mods ...func(*Entry)) error {
 	if len(m.processors) == 0 || len(mods) == 0 {
 		return nil
 	}
