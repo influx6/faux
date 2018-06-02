@@ -1,6 +1,7 @@
 package reflection_test
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -42,6 +43,117 @@ type Addrs struct {
 }
 
 type addrFunc func(Addrs) error
+
+func TestValidateFunc_Bad(t *testing.T) {
+	var testFunc = func(v string) string {
+		return "Hello " + v
+	}
+
+	err := reflection.ValidateFunc(testFunc, []reflection.TypeValidation{
+		func(types []reflect.Type) bool {
+			return len(types) == 1
+		},
+	}, []reflection.TypeValidation{
+		func(types []reflect.Type) bool {
+			return len(types) == 0
+		},
+	})
+
+	if err == nil {
+		tests.Failed("Should have function invalid to conditions")
+	}
+}
+
+func TestValidateFunc(t *testing.T) {
+	var testFunc = func(v string) string {
+		return "Hello " + v
+	}
+
+	err := reflection.ValidateFunc(testFunc, []reflection.TypeValidation{
+		func(types []reflect.Type) bool {
+			return len(types) == 1
+		},
+	}, []reflection.TypeValidation{
+		func(types []reflect.Type) bool {
+			return len(types) == 1
+		},
+	})
+
+	if err != nil {
+		tests.FailedWithError(err, "Should have function valid to conditions")
+	}
+}
+
+func TestFunctionApply_OneArgument(t *testing.T) {
+	var testFunc = func(v string) string {
+		return "Hello " + v
+	}
+
+	res, err := reflection.CallFunc(testFunc, "Alex")
+	if err != nil {
+		tests.FailedWithError(err, "Should have executed function")
+	}
+	tests.Passed("Should have executed function")
+
+	if !reflect.DeepEqual(res, []interface{}{"Hello Alex"}) {
+		tests.Info("Received: %q", res)
+		tests.Failed("Expected value unmatched")
+	}
+}
+
+func TestFunctionApply_ThreeArgumentWithError(t *testing.T) {
+	bad := errors.New("bad")
+	var testFunc = func(v string, i int, d bool) ([]interface{}, error) {
+		return []interface{}{v, i, d}, bad
+	}
+
+	res, err := reflection.CallFunc(testFunc, "Alex", 1, false)
+	if err != nil {
+		tests.FailedWithError(err, "Should have executed function")
+	}
+	tests.Passed("Should have executed function")
+
+	if !reflect.DeepEqual(res, []interface{}{[]interface{}{"Alex", 1, false}, bad}) {
+		tests.Info("Expected: %q", []interface{}{[]interface{}{"Alex", 1, false}, bad})
+		tests.Info("Received: %q", res)
+		tests.Failed("Expected value unmatched")
+	}
+}
+
+func TestFunctionApply_ThreeArgumentWithVariadic(t *testing.T) {
+	var testFunc = func(v string, i int, d ...bool) []interface{} {
+		return []interface{}{v, i, d}
+	}
+
+	res, err := reflection.CallFunc(testFunc, "Alex", 1, []bool{false})
+	if err != nil {
+		tests.FailedWithError(err, "Should have executed function")
+	}
+	tests.Passed("Should have executed function")
+
+	if !reflect.DeepEqual(res, []interface{}{[]interface{}{"Alex", 1, []bool{false}}}) {
+		tests.Info("Expected: %q", []interface{}{[]interface{}{"Alex", 1, []bool{false}}})
+		tests.Info("Received: %q", res)
+		tests.Failed("Expected value unmatched")
+	}
+}
+
+func TestFunctionApply_ThreeArgument(t *testing.T) {
+	var testFunc = func(v string, i int, d bool) string {
+		return "Hello " + v
+	}
+
+	res, err := reflection.CallFunc(testFunc, "Alex", 1, false)
+	if err != nil {
+		tests.FailedWithError(err, "Should have executed function")
+	}
+	tests.Passed("Should have executed function")
+
+	if !reflect.DeepEqual(res, []interface{}{"Hello Alex"}) {
+		tests.Info("Received: %q", res)
+		tests.Failed("Expected value unmatched")
+	}
+}
 
 func TestMatchFunction(t *testing.T) {
 	var addr1 = func(_ Addrs) error { return nil }
@@ -163,37 +275,6 @@ func TestStructMapperWthFieldStruct(t *testing.T) {
 	}
 	tests.Passed("Mapped struct should have same %q value", "Addr.Addr")
 }
-
-//type Addr3 string
-//type Addr2 Addrs
-//
-//func TestGetFields_Fields(t *testing.T) {
-//	profile := struct {
-//		Addrs
-//		Bu Addr2
-//		Ref Addr3
-//		Name string
-//		Date time.Time
-//		Users []string
-//		Addresses []Addrs
-//		Associations []map[string]interface{}
-//	}{
-//		Addrs: Addrs{Addr: "Tokura 20"},
-//		Ref: "Saki DS. 20",
-//		Bu: Addr2{Addr:"Saki 20"},
-//		Name:  "Johnson",
-//		Date:  time.Now(),
-//	}
-//
-//	fields, err := reflection.GetFields(profile)
-//	if err != nil {
-//		tests.FailedWithError(err, "Should have decoded struct and fields")
-//	}
-//
-//	for ind, field := range fields{
-//		fmt.Printf("Field#%d: %q %q %#q\n", ind, field.Name, field.TypeName, field.Type.Kind())
-//	}
-//}
 
 func TestGetFieldByTagAndValue(t *testing.T) {
 	profile := struct {

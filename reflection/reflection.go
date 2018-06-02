@@ -2,9 +2,16 @@ package reflection
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 )
+
+// ErrInvalid is returned when a type fails certain conditions.
+var ErrInvalid = errors.New("invalid types, failed conditions")
+
+// ErrPanic is returned when a panic happens.
+var ErrPanic = errors.New("panic occured")
 
 // ErrNotFunction is returned when the type is not a reflect.Func.
 var ErrNotFunction = errors.New("Not A Function Type")
@@ -18,7 +25,152 @@ func IsFuncType(elem interface{}) bool {
 	return true
 }
 
-// FuncValue return the Function reflect.Value of the interface provided else
+// TypeValidation defines a function which validates a
+// a given set against some condition.
+type TypeValidation func([]reflect.Type) bool
+
+// ValidateFunc validates giving function arguments and returns types against TypeValidation
+// functions.
+func ValidateFunc(fn interface{}, argRules, returnRules []TypeValidation) error {
+	funcTl, err := FuncType(fn)
+	if err != nil {
+		return err
+	}
+
+	args, err := getFuncArgumentsType(funcTl)
+	if err != nil {
+		return err
+	}
+
+	if len(args) != 0 && len(argRules) != 0 {
+		for _, cond := range argRules {
+			if !cond(args) {
+				return ErrInvalid
+			}
+		}
+	}
+
+	rets, err := getFuncReturnsType(funcTl)
+	if err != nil {
+		return err
+	}
+
+	if len(rets) != 0 && len(rets) != 0 {
+		for _, cond := range returnRules {
+			if !cond(rets) {
+				return ErrInvalid
+			}
+		}
+	}
+
+	return nil
+}
+
+// CallFuncType attempts to call a giving function with provided arguments
+// assuming all of them match the ff:
+// 1. Exected number of arguments
+// 2. Expected type of arguments
+// It returns an error if not possible or returns the response for calling said
+// function or if type is not a function.
+// Note that the function call follows some rules:
+// 1. If the function expects no arguments and some is supplied,
+// they will be ignored.
+func CallFunc(fn interface{}, args ...interface{}) (res []interface{}, err error) {
+	var funcTl reflect.Type
+	var funcVl reflect.Value
+
+	funcTl, err = FuncType(fn)
+	if err != nil {
+		return
+	}
+
+	res = make([]interface{}, funcTl.NumOut())
+
+	funcVl, err = FuncValue(fn)
+	if err != nil {
+		return
+	}
+
+	argLen := len(args)
+	argValues := make([]reflect.Value, len(args))
+	for index, arg := range args {
+		argValues[index] = reflect.ValueOf(arg)
+	}
+
+	if funcTl.NumIn() == 0 {
+		for index, item := range funcVl.Call(nil) {
+			res[index] = item.Interface()
+		}
+		return
+	}
+
+	if funcTl.NumIn() == 1 {
+		if funcTl.IsVariadic() && len(args) == 0 {
+			for index, item := range funcVl.CallSlice(nil) {
+				res[index] = item.Interface()
+			}
+			return
+		}
+
+		for index, item := range funcVl.Call(argValues) {
+			res[index] = item.Interface()
+		}
+		return
+	}
+
+	// if argument and expected are not equal in length
+	// and the last is variadic, we can treat has providing
+	// a nil towards that part.
+	if argLen != funcTl.NumIn() {
+		last := funcTl.NumIn() - 1
+		argItem := funcTl.In(last)
+		if argItem.IsVariadic() && argLen == last {
+			for index, item := range funcVl.Call(argValues) {
+				res[index] = item.Interface()
+			}
+			return
+		} else {
+			err = errors.New("argument length does not match number of wanted")
+			return
+		}
+	}
+
+	for i := 0; i < funcTl.NumIn(); i++ {
+		item := funcTl.In(i)
+		inarg := argValues[i]
+
+		canSet, mustConvert := CanSetFor(item, inarg)
+		if !canSet {
+			err = fmt.Errorf("argument at %d does not match function argument at postion", i)
+			return
+		}
+
+		if mustConvert {
+			converted, err2 := Convert(item, inarg)
+			if err2 != nil {
+				err = err2
+				return
+			}
+
+			argValues[i] = converted
+		}
+	}
+
+	if funcTl.IsVariadic() {
+		for index, item := range funcVl.CallSlice(argValues) {
+			res[index] = item.Interface()
+		}
+		return
+	}
+
+	for index, item := range funcVl.Call(argValues) {
+		res[index] = item.Interface()
+	}
+
+	return
+}
+
+// FuncValue return the Function reflect.Value of the provided function else
 // returns a non-nil error.
 func FuncValue(elem interface{}) (reflect.Value, error) {
 	tl := reflect.ValueOf(elem)
@@ -28,13 +180,12 @@ func FuncValue(elem interface{}) (reflect.Value, error) {
 	}
 
 	if tl.Kind() != reflect.Func {
-		return tl, ErrNotFunction
+		return reflect.Value{}, ErrNotFunction
 	}
-
 	return tl, nil
 }
 
-// FuncType return the Function reflect.Type of the interface provided else
+// FuncType return the Function reflect.Type of the provided function else
 // returns a non-nil error.
 func FuncType(elem interface{}) (reflect.Type, error) {
 	tl := reflect.TypeOf(elem)
@@ -273,11 +424,10 @@ func HasArgumentSize(elem interface{}, len int) bool {
 	return true
 }
 
-// GetFuncArgumentsType returns the arguments type of function which should be
+// GetFuncReturnsType returns the returns type of function which should be
 // a function type,else returns a non-nil error.
-func GetFuncArgumentsType(elem interface{}) ([]reflect.Type, error) {
+func GetFuncReturnsType(elem interface{}) ([]reflect.Type, error) {
 	tl := reflect.TypeOf(elem)
-
 	if tl.Kind() == reflect.Ptr {
 		tl = tl.Elem()
 	}
@@ -286,20 +436,49 @@ func GetFuncArgumentsType(elem interface{}) ([]reflect.Type, error) {
 		return nil, ErrNotFunction
 	}
 
-	totalFields := tl.NumIn()
+	return getFuncReturnsType(tl)
+}
 
-	var input []reflect.Type
-
-	for i := 0; i < totalFields; i++ {
-		indElem := tl.In(i)
-
-		// if indElem.Kind() == reflect.Ptr {
-		// 	indElem = indElem.Elem()
-		// }
-
-		input = append(input, indElem)
+func getFuncReturnsType(tl reflect.Type) ([]reflect.Type, error) {
+	totalFields := tl.NumOut()
+	if totalFields == 0 {
+		return nil, nil
 	}
 
+	input := make([]reflect.Type, 0, totalFields)
+	for i := 0; i < totalFields; i++ {
+		indElem := tl.Out(i)
+		input = append(input, indElem)
+	}
+	return input, nil
+}
+
+// GetFuncArgumentsType returns the arguments type of function which should be
+// a function type,else returns a non-nil error.
+func GetFuncArgumentsType(elem interface{}) ([]reflect.Type, error) {
+	tl := reflect.TypeOf(elem)
+	if tl.Kind() == reflect.Ptr {
+		tl = tl.Elem()
+	}
+
+	if tl.Kind() != reflect.Func {
+		return nil, ErrNotFunction
+	}
+
+	return getFuncArgumentsType(tl)
+}
+
+func getFuncArgumentsType(tl reflect.Type) ([]reflect.Type, error) {
+	totalFields := tl.NumIn()
+	if totalFields == 0 {
+		return nil, nil
+	}
+
+	input := make([]reflect.Type, 0, totalFields)
+	for i := 0; i < totalFields; i++ {
+		indElem := tl.In(i)
+		input = append(input, indElem)
+	}
 	return input, nil
 }
 
@@ -439,17 +618,17 @@ var ErrNotStruct = errors.New("Not a struct type")
 
 // Field defines a specific tag field with its details from a giving struct.
 type Field struct {
-	Index int
-	Name  string
-	Tag   string
-	NameLC string
+	Index    int
+	Name     string
+	Tag      string
+	NameLC   string
 	TypeName string
-	Type  reflect.Type
-	Value reflect.Value
-	IsSlice bool
-	IsArray bool
-	IsMap bool
-	IsChan bool
+	Type     reflect.Type
+	Value    reflect.Value
+	IsSlice  bool
+	IsArray  bool
+	IsMap    bool
+	IsChan   bool
 	IsStruct bool
 }
 
@@ -500,17 +679,17 @@ func GetTagFields(elem interface{}, tag string, allowNaturalNames bool) (Fields,
 		}
 
 		fields = append(fields, Field{
-			Index:  i,
-			Tag:    tagVal,
-			Name:   field.Name,
-			Type:   field.Type,
-			Value:  tlVal.Field(i),
+			Index:    i,
+			Tag:      tagVal,
+			Name:     field.Name,
+			Type:     field.Type,
+			Value:    tlVal.Field(i),
 			TypeName: field.Type.Name(),
-			NameLC: strings.ToLower(field.Name),
-			IsMap: field.Type.Kind() == reflect.Map,
-			IsChan: field.Type.Kind() == reflect.Chan,
-			IsSlice: field.Type.Kind() == reflect.Slice,
-			IsArray: field.Type.Kind() == reflect.Array,
+			NameLC:   strings.ToLower(field.Name),
+			IsMap:    field.Type.Kind() == reflect.Map,
+			IsChan:   field.Type.Kind() == reflect.Chan,
+			IsSlice:  field.Type.Kind() == reflect.Slice,
+			IsArray:  field.Type.Kind() == reflect.Array,
 			IsStruct: field.Type.Kind() == reflect.Struct,
 		})
 	}
@@ -566,16 +745,16 @@ func GetFields(elem interface{}) (Fields, error) {
 	for i := 0; i < tl.NumField(); i++ {
 		field := tl.Field(i)
 		fieldVal := Field{
-			Index:  i,
-			Name:   field.Name,
-			Type:   field.Type,
-			Value:  tlVal.Field(i),
+			Index:    i,
+			Name:     field.Name,
+			Type:     field.Type,
+			Value:    tlVal.Field(i),
 			TypeName: field.Type.Name(),
-			NameLC: strings.ToLower(field.Name),
-			IsMap: field.Type.Kind() == reflect.Map,
-			IsChan: field.Type.Kind() == reflect.Chan,
-			IsSlice: field.Type.Kind() == reflect.Slice,
-			IsArray: field.Type.Kind() == reflect.Array,
+			NameLC:   strings.ToLower(field.Name),
+			IsMap:    field.Type.Kind() == reflect.Map,
+			IsChan:   field.Type.Kind() == reflect.Chan,
+			IsSlice:  field.Type.Kind() == reflect.Slice,
+			IsArray:  field.Type.Kind() == reflect.Array,
 			IsStruct: field.Type.Kind() == reflect.Struct,
 		}
 
