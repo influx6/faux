@@ -44,6 +44,33 @@ type Addrs struct {
 
 type addrFunc func(Addrs) error
 
+var errorType = reflect.TypeOf((*error)(nil)).Elem()
+
+func TestIsSettableType(t *testing.T) {
+	m2 := errors.New("invalid error")
+	if !reflection.IsSettableType(errorType, reflect.TypeOf(m2)) {
+		tests.Failed("Should have error matching type")
+	}
+}
+
+func TestIsSettable(t *testing.T) {
+	m2 := errors.New("invalid error")
+	if !reflection.IsSettable(errorType, reflect.ValueOf(m2)) {
+		tests.Failed("Should have error matching type")
+	}
+
+	m1 := mo("invalid error")
+	if !reflection.IsSettable(errorType, reflect.ValueOf(m1)) {
+		tests.Failed("Should have error matching type")
+	}
+}
+
+type mo string
+
+func (m mo) Error() string {
+	return string(m)
+}
+
 func TestValidateFunc_Bad(t *testing.T) {
 	var testFunc = func(v string) string {
 		return "Hello " + v
