@@ -42,11 +42,9 @@ func ValidateFunc(fn interface{}, argRules, returnRules []TypeValidation) error 
 		return err
 	}
 
-	if len(args) != 0 && len(argRules) != 0 {
-		for _, cond := range argRules {
-			if err = cond(args); err != nil {
-				return err
-			}
+	for _, cond := range argRules {
+		if err = cond(args); err != nil {
+			return err
 		}
 	}
 
@@ -55,11 +53,9 @@ func ValidateFunc(fn interface{}, argRules, returnRules []TypeValidation) error 
 		return err
 	}
 
-	if len(rets) != 0 && len(returnRules) != 0 {
-		for _, cond := range returnRules {
-			if err = cond(rets); err != nil {
-				return err
-			}
+	for _, cond := range returnRules {
+		if err = cond(rets); err != nil {
+			return err
 		}
 	}
 
