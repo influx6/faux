@@ -77,12 +77,18 @@ func TestValidateFunc_Bad(t *testing.T) {
 	}
 
 	err := reflection.ValidateFunc(testFunc, []reflection.TypeValidation{
-		func(types []reflect.Type) bool {
-			return len(types) == 1
+		func(types []reflect.Type) error {
+			if len(types) == 1 {
+				return nil
+			}
+			return errors.New("bad")
 		},
 	}, []reflection.TypeValidation{
-		func(types []reflect.Type) bool {
-			return len(types) == 0
+		func(types []reflect.Type) error {
+			if len(types) == 0 {
+				return nil
+			}
+			return errors.New("bad")
 		},
 	})
 
@@ -97,12 +103,18 @@ func TestValidateFunc(t *testing.T) {
 	}
 
 	err := reflection.ValidateFunc(testFunc, []reflection.TypeValidation{
-		func(types []reflect.Type) bool {
-			return len(types) == 1
+		func(types []reflect.Type) error {
+			if len(types) == 1 {
+				return nil
+			}
+			return errors.New("bad")
 		},
 	}, []reflection.TypeValidation{
-		func(types []reflect.Type) bool {
-			return len(types) == 1
+		func(types []reflect.Type) error {
+			if len(types) == 1 {
+				return nil
+			}
+			return errors.New("bad")
 		},
 	})
 

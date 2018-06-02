@@ -27,7 +27,7 @@ func IsFuncType(elem interface{}) bool {
 
 // TypeValidation defines a function which validates a
 // a given set against some condition.
-type TypeValidation func([]reflect.Type) bool
+type TypeValidation func([]reflect.Type) error
 
 // ValidateFunc validates giving function arguments and returns types against TypeValidation
 // functions.
@@ -44,8 +44,8 @@ func ValidateFunc(fn interface{}, argRules, returnRules []TypeValidation) error 
 
 	if len(args) != 0 && len(argRules) != 0 {
 		for _, cond := range argRules {
-			if !cond(args) {
-				return ErrInvalid
+			if err = cond(args); err != nil {
+				return err
 			}
 		}
 	}
@@ -55,10 +55,10 @@ func ValidateFunc(fn interface{}, argRules, returnRules []TypeValidation) error 
 		return err
 	}
 
-	if len(rets) != 0 && len(rets) != 0 {
+	if len(rets) != 0 && len(returnRules) != 0 {
 		for _, cond := range returnRules {
-			if !cond(rets) {
-				return ErrInvalid
+			if err = cond(rets); err != nil {
+				return err
 			}
 		}
 	}
