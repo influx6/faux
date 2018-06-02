@@ -523,6 +523,20 @@ func StrictCanSetForType(target, val reflect.Type) (canSet bool, mustConvert boo
 	return
 }
 
+// IsSettableType returns true/fale if the element(elem) can be used for
+// for ref type.
+func IsSettableType(ref reflect.Type, elem reflect.Type) bool {
+	canset, canConvert := CanSetForType(ref, elem)
+	return canset || canConvert
+}
+
+// IsSettable returns true/fale if the element(elem) can be used for
+// for ref type.
+func IsSettable(ref reflect.Type, elem reflect.Value) bool {
+	canset, canConvert := CanSetFor(ref, elem)
+	return canset || canConvert
+}
+
 // CanSetForType checks if a val reflect.Type can be used for the target type.
 // It returns true bool, where the first returns if the value can be used and if
 // it must be converted into the type first.
