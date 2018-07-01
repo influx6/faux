@@ -36,7 +36,7 @@ type AreaValidation func(arguments []reflect.Type, returns []reflect.Type) error
 // ValidateFuncArea validates giving function arguments and returns types against AreaValidation
 // functions.
 func ValidateFuncArea(fn interface{},  conditions ...TypeValidation) error {
-	if(len(conditions) == 0){return nil}
+	if len(conditions) == 0 {return nil}
 	
 	funcTl, err := FuncType(fn)
 	if err != nil {
