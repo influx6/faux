@@ -31,7 +31,7 @@ type TypeValidation func([]reflect.Type) error
 
 // AreaValidation defines a function which validates a
 // a given set against some condition.
-type AreaValidation func(arguments []refleect.Type, returns []reflect.Type) error
+type AreaValidation func(arguments []reflect.Type, returns []reflect.Type) error
 
 // ValidateFuncArea validates giving function arguments and returns types against AreaValidation
 // functions.
