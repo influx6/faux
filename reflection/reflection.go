@@ -29,6 +29,39 @@ func IsFuncType(elem interface{}) bool {
 // a given set against some condition.
 type TypeValidation func([]reflect.Type) error
 
+// AreaValidation defines a function which validates a
+// a given set against some condition.
+type AreaValidation func(arguments []refleect.Type, returns []reflect.Type) error
+
+// ValidateFuncArea validates giving function arguments and returns types against AreaValidation
+// functions.
+func ValidateFuncArea(fn interface{},  conditions ...TypeValidation) error {
+	if(len(conditions) == 0){return nil}
+	
+	funcTl, err := FuncType(fn)
+	if err != nil {
+		return err
+	}
+	
+	args, err := getFuncArgumentsType(funcTl)
+	if err != nil {
+		return err
+	}
+	
+	rets, err := getFuncReturnsType(funcTl)
+	if err != nil {
+		return err
+	}
+	
+	for _, cond := range conditions {
+		if err = cond(args, rets); err != nil {
+			return err
+		}
+	}
+	
+	return nil
+}
+
 // ValidateFunc validates giving function arguments and returns types against TypeValidation
 // functions.
 func ValidateFunc(fn interface{}, argRules, returnRules []TypeValidation) error {
