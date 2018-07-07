@@ -122,17 +122,17 @@ func CallFunc(fn interface{}, args ...interface{}) (res []interface{}, err error
 		return
 	}
 
-	argLen := len(args)
-	argValues := make([]reflect.Value, len(args))
-	for index, arg := range args {
-		argValues[index] = reflect.ValueOf(arg)
-	}
-
 	if funcTl.NumIn() == 0 {
 		for index, item := range funcVl.Call(nil) {
 			res[index] = item.Interface()
 		}
 		return
+	}
+
+	argLen := len(args)
+	argValues := make([]reflect.Value, len(args))
+	for index, arg := range args {
+		argValues[index] = reflect.ValueOf(arg)
 	}
 
 	if funcTl.NumIn() == 1 {
